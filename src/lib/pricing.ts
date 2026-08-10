@@ -33,8 +33,9 @@ export type PricingResult = {
 const DISCOUNT_PER_BUNDLE_PAIR = 300; // £23 catalogue → £20 bundle
 
 /**
- * Bundle rule (SLF): one tee + one tote in the same cart → £20 for that pair (not £23).
+ * Optional bundle rule: one tee + one tote in the same cart → £20 for that pair (not £23).
  * Extra tees/totes stay at catalogue price. Shipping is flat UK rate from the store.
+ * Acme Store demo products use kind "other", so this discount does not apply there.
  *
  * Discount is allocated onto tote line totals (£3 off per bundled tote unit) so Stripe
  * Checkout can use non-negative line amounts (negative unit_amount is not allowed).

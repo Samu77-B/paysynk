@@ -47,7 +47,10 @@ export default async function OverviewPage() {
             {ctx.merchant.name} · live snapshot of revenue and fulfilment
           </p>
         </div>
-        <CopyEmbedButton merchantId={ctx.merchant.id} />
+        <CopyEmbedButton
+          merchantId={ctx.merchant.id}
+          storeSlug={ctx.merchant.slug}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

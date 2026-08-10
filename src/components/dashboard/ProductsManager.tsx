@@ -32,6 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  CopySnippetButton,
+  productEmbedSnippet,
+} from "@/components/dashboard/embed-snippets";
 import { formatGbp } from "@/lib/dashboard/demo-data";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Product } from "@/types/database";
@@ -69,10 +73,12 @@ const emptyForm = (): FormState => ({
 
 export function ProductsManager({
   merchantId,
+  storeSlug,
   initialProducts,
   mode,
 }: {
   merchantId: string;
+  storeSlug: string;
   initialProducts: Product[];
   mode: "demo" | "supabase";
 }) {
@@ -228,7 +234,7 @@ export function ProductsManager({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
           <p className="text-sm text-zinc-500">
-            Catalogue, stock levels, and publish status
+            Catalogue, stock, and a copyable embed code per product
           </p>
         </div>
         <Button
@@ -247,7 +253,7 @@ export function ProductsManager({
             {products.length} products · scoped to your merchant
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -257,6 +263,7 @@ export function ProductsManager({
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Embed</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -301,6 +308,13 @@ export function ProductsManager({
                     <Badge variant={product.is_active ? "default" : "secondary"}>
                       {product.is_active ? "Active" : "Draft"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <CopySnippetButton
+                      snippet={productEmbedSnippet(storeSlug, product.slug)}
+                      label="Copy"
+                      className="h-8 bg-zinc-900 text-white hover:bg-zinc-800"
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -434,6 +448,37 @@ export function ProductsManager({
             <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4 text-center text-sm text-zinc-500">
               Product images upload — connect Supabase Storage bucket `product-images`
             </div>
+            {form.id && (
+              <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <div>
+                  <p className="text-sm font-medium">Product embed code</p>
+                  <p className="text-xs text-zinc-500">
+                    Paste on any page with this shop’s cart.js for a shared basket
+                  </p>
+                </div>
+                <pre className="overflow-x-auto rounded-lg bg-[#141414] p-3 text-[11px] leading-relaxed text-[#9FE870]">
+                  {productEmbedSnippet(
+                    storeSlug,
+                    products.find((p) => p.id === form.id)?.slug ??
+                      form.title
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)/g, ""),
+                  )}
+                </pre>
+                <CopySnippetButton
+                  snippet={productEmbedSnippet(
+                    storeSlug,
+                    products.find((p) => p.id === form.id)?.slug ??
+                      form.title
+                        .toLowerCase()
+                        .replace(/[^a-z0-9]+/g, "-")
+                        .replace(/(^-|-$)/g, ""),
+                  )}
+                  label="Copy product embed"
+                />
+              </div>
+            )}
             {error && <p className="text-sm text-red-600">{error}</p>}
           </div>
 

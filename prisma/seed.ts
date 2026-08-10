@@ -74,7 +74,7 @@ async function upsertProduct(opts: {
   });
 }
 
-function teeVariants(
+function colourSizeVariants(
   prefix: string,
   rows: Array<{ colour: string; sizes: Record<string, number> }>,
 ): VariantSeed[] {
@@ -93,11 +93,31 @@ function teeVariants(
   return out;
 }
 
+function colourVariants(
+  prefix: string,
+  rows: Array<{ colour: string; stockQty: number }>,
+): VariantSeed[] {
+  return rows.map((row) => {
+    const colourCode = row.colour.replace(/\s+/g, "").toUpperCase().slice(0, 8);
+    return {
+      colour: row.colour,
+      stockQty: row.stockQty,
+      sku: `${prefix}-${colourCode}`,
+    };
+  });
+}
+
+const ACME_TITLES = [
+  "Acme Minimalist Heavyweight Hoodie",
+  "Acme Insulated Steel Water Bottle (750ml)",
+  "Acme Artisan Ceramic Mug Set",
+] as const;
+
 async function main() {
   const store = await prisma.store.upsert({
     where: { slug: "slf" },
     update: {
-      name: "Saturday Love Funk",
+      name: "Acme Store",
       currency: "gbp",
       shippingFlatMinor: 525,
       paymentProvider: "stripe",
@@ -106,7 +126,7 @@ async function main() {
     },
     create: {
       slug: "slf",
-      name: "Saturday Love Funk",
+      name: "Acme Store",
       currency: "gbp",
       shippingFlatMinor: 525,
       paymentProvider: "stripe",
@@ -118,58 +138,70 @@ async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
   await prisma.merchantUser.upsert({
     where: { email: "merchant@slf.test" },
-    update: { passwordHash, storeId: store.id, name: "SLF Merchant" },
+    update: { passwordHash, storeId: store.id, name: "Acme Merchant" },
     create: {
       email: "merchant@slf.test",
       passwordHash,
-      name: "SLF Merchant",
+      name: "Acme Merchant",
       storeId: store.id,
     },
   });
 
+  // Remove retired demo products so only the Acme catalogue remains.
+  await prisma.product.deleteMany({
+    where: {
+      storeId: store.id,
+      title: { notIn: [...ACME_TITLES] },
+    },
+  });
+
+  // Hoodie: 85 units across 3 colours × 4 sizes
   await upsertProduct({
     storeId: store.id,
-    title: "Classic T-shirt",
-    description: "Soft classic tee. 15 GBP each; bundles with tote for 20 GBP.",
-    kind: "tee",
-    priceMinor: 1500,
-    variants: teeVariants("SLF-CLASSIC", [
-      { colour: "Red", sizes: { S: 3, M: 3, L: 4 } },
-      { colour: "Green", sizes: { S: 2 } },
-      { colour: "Royal Blue", sizes: { S: 2 } },
-      { colour: "Beige", sizes: { S: 3, M: 3, L: 3 } },
-      { colour: "Brown", sizes: { S: 2, M: 0, L: 2, XL: 1 } },
-      { colour: "Grey", sizes: { S: 1, M: 0, L: 1, XL: 1 } },
-      { colour: "Petrol Blue", sizes: { S: 2, M: 2, L: 0, XL: 1 } },
+    title: "Acme Minimalist Heavyweight Hoodie",
+    description:
+      "450gsm organic French terry cotton. Boxy oversized fit with subtle tonal Acme chest embroidery.",
+    kind: "other",
+    priceMinor: 6500,
+    variants: colourSizeVariants("ACME-HOODIE", [
+      { colour: "Off-White", sizes: { S: 7, M: 7, L: 7, XL: 7 } },
+      { colour: "Charcoal Black", sizes: { S: 7, M: 8, L: 7, XL: 7 } },
+      { colour: "Forest Green", sizes: { S: 7, M: 7, L: 7, XL: 7 } },
     ]),
   });
 
+  // Bottle: 200 units across 3 colours
   await upsertProduct({
     storeId: store.id,
-    title: "2024 Retro T-shirt",
-    description: "2024 retro print tee.",
-    kind: "tee",
-    priceMinor: 1500,
-    variants: teeVariants("SLF-RETRO24", [
-      { colour: "Black", sizes: { S: 5, M: 1, L: 0, XL: 0 } },
+    title: "Acme Insulated Steel Water Bottle (750ml)",
+    description:
+      "Double-wall vacuum insulation keeps drinks cold for 24 hours or hot for 12 hours. BPA-free stainless steel.",
+    kind: "other",
+    priceMinor: 2200,
+    variants: colourVariants("ACME-BOTTLE", [
+      { colour: "Matte Black", stockQty: 67 },
+      { colour: "Raw Silver", stockQty: 67 },
+      { colour: "Sage Green", stockQty: 66 },
     ]),
   });
 
+  // Mug set: 30 units, single SKU
   await upsertProduct({
     storeId: store.id,
-    title: "Tote bag",
-    description: "Canvas tote. 8 GBP; bundles with a tee for 20 GBP.",
-    kind: "tote",
-    priceMinor: 800,
+    title: "Acme Artisan Ceramic Mug Set",
+    description:
+      "Hand-thrown speckled stoneware mugs. Set of 2 with ergonomic thumb rests. Microwave and dishwasher safe.",
+    kind: "other",
+    priceMinor: 3400,
     variants: [
       {
-        sku: "SLF-TOTE",
-        stockQty: 38,
+        sku: "ACME-MUG-SET",
+        stockQty: 30,
       },
     ],
   });
 
-  console.log("Seeded store slf (Saturday Love Funk)");
+  console.log("Seeded store slf (Acme Store)");
   console.log("Merchant login: merchant@slf.test / password123");
 }
 

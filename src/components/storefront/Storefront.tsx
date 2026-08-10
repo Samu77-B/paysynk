@@ -33,6 +33,16 @@ function optionLabel(options: Record<string, string>) {
     .join(" · ");
 }
 
+function productBadge(product: StorefrontProduct) {
+  const title = product.title.toLowerCase();
+  if (title.includes("hoodie")) return "Hoodie";
+  if (title.includes("bottle")) return "Bottle";
+  if (title.includes("mug")) return "Mugs";
+  if (product.kind === "tote") return "Tote";
+  if (product.kind === "tee") return "Tee";
+  return "Item";
+}
+
 function ProductCard({
   product,
   currency,
@@ -40,7 +50,7 @@ function ProductCard({
   product: StorefrontProduct;
   currency: string;
 }) {
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const colours = useMemo(() => {
     const set = new Set<string>();
     for (const v of product.variants) {
@@ -60,10 +70,22 @@ function ProductCard({
   const selected =
     product.variants.find((v) => v.id === variantId) ?? sizesForColour[0];
 
+  const cartQty = selected
+    ? (items.find((i) => i.variantId === selected.id)?.quantity ?? 0)
+    : 0;
+  const available = selected ? Math.max(0, selected.stockQty - cartQty) : 0;
+  const hasSizes = sizesForColour.some((v) => v.options.size);
+
+  function remainingFor(variantId: string, stockQty: number) {
+    const reserved =
+      items.find((i) => i.variantId === variantId)?.quantity ?? 0;
+    return Math.max(0, stockQty - reserved);
+  }
+
   return (
     <article className="store-product">
       <div className="store-product-visual" aria-hidden>
-        <span>{product.kind === "tote" ? "Tote" : "Tee"}</span>
+        <span>{productBadge(product)}</span>
       </div>
       <div className="store-product-body">
         <h2>{product.title}</h2>
@@ -86,16 +108,25 @@ function ProductCard({
                 if (first) setVariantId(first.id);
               }}
             >
-              {colours.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {colours.map((c) => {
+                const colourVariants = product.variants.filter(
+                  (v) => v.options.colour === c,
+                );
+                const colourLeft = colourVariants.reduce(
+                  (sum, v) => sum + remainingFor(v.id, v.stockQty),
+                  0,
+                );
+                return (
+                  <option key={c} value={c}>
+                    {hasSizes ? c : `${c} — ${colourLeft} left`}
+                  </option>
+                );
+              })}
             </select>
           </label>
         )}
 
-        {sizesForColour.some((v) => v.options.size) && (
+        {hasSizes && (
           <label className="field">
             <span>Size</span>
             <select
@@ -104,19 +135,26 @@ function ProductCard({
             >
               {sizesForColour.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.options.size ?? v.sku} — {v.stockQty} left
+                  {v.options.size ?? v.sku} —{" "}
+                  {remainingFor(v.id, v.stockQty)} left
                 </option>
               ))}
             </select>
           </label>
         )}
 
+        {!hasSizes && (
+          <p className="muted small">
+            {available === 0 ? "Out of stock" : `${available} left`}
+          </p>
+        )}
+
         <button
           type="button"
           className="btn btn-primary"
-          disabled={!selected}
+          disabled={!selected || available <= 0}
           onClick={() => {
-            if (!selected) return;
+            if (!selected || available <= 0) return;
             addItem({
               variantId: selected.id,
               productId: product.id,
@@ -128,7 +166,7 @@ function ProductCard({
             });
           }}
         >
-          Add to cart
+          {available <= 0 ? "Out of stock" : "Add to cart"}
         </button>
       </div>
     </article>
@@ -228,12 +266,6 @@ function CartPanel({ store }: { store: StorefrontStore }) {
                 {formatMoney(pricing.catalogueSubtotalMinor, store.currency)}
               </dd>
             </div>
-            {pricing.bundlePairs > 0 && (
-              <div>
-                <dt>Bundle ({pricing.bundlePairs}× tee + tote → £20)</dt>
-                <dd>−{formatMoney(pricing.discountMinor, store.currency)}</dd>
-              </div>
-            )}
             <div>
               <dt>UK shipping</dt>
               <dd>{formatMoney(pricing.shippingMinor, store.currency)}</dd>
@@ -255,7 +287,7 @@ function CartPanel({ store }: { store: StorefrontStore }) {
             {busy ? "Redirecting…" : "Checkout with Stripe"}
           </button>
           <p className="muted small note">
-            Prices re-validated on the server. Bundle: tee + tote = £20.
+            Prices and stock re-validated on the server at checkout.
           </p>
         </>
       )}

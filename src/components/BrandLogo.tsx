@@ -1,7 +1,8 @@
 import Image from "next/image";
 
 const LOGOS = {
-  white: "/brand/PaySynk-Wht-Logo-2.png",
+  /** Light logo for dark / image backgrounds */
+  white: "/brand/PaySynk-Grey-Logo-3.png",
   black: "/brand/PaySynk-Blk-Logo-2.png",
 } as const;
 

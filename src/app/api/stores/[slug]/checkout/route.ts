@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { CheckoutError, createStoreCheckout } from "@/lib/checkout";
+import { embedCorsPreflight, withEmbedCors } from "@/lib/embed-cors";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -15,6 +16,10 @@ const bodySchema = z.object({
     .min(1),
 });
 
+export async function OPTIONS() {
+  return embedCorsPreflight();
+}
+
 /** POST checkout — validates stock/prices server-side, creates Stripe session. */
 export async function POST(req: Request, { params }: Params) {
   const { slug } = await params;
@@ -23,9 +28,11 @@ export async function POST(req: Request, { params }: Params) {
     const json = await req.json();
     const parsed = bodySchema.safeParse(json);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid body", details: parsed.error.flatten() },
-        { status: 400 },
+      return withEmbedCors(
+        NextResponse.json(
+          { error: "Invalid body", details: parsed.error.flatten() },
+          { status: 400 },
+        ),
       );
     }
 
@@ -40,22 +47,28 @@ export async function POST(req: Request, { params }: Params) {
       channel: "online",
     });
 
-    return NextResponse.json({
-      orderId: result.orderId,
-      redirectUrl: result.redirectUrl,
-      pricing: {
-        subtotalMinor: result.pricing.subtotalMinor,
-        shippingMinor: result.pricing.shippingMinor,
-        totalMinor: result.pricing.totalMinor,
-        bundlePairs: result.pricing.bundlePairs,
-        discountMinor: result.pricing.discountMinor,
-      },
-    });
+    return withEmbedCors(
+      NextResponse.json({
+        orderId: result.orderId,
+        redirectUrl: result.redirectUrl,
+        pricing: {
+          subtotalMinor: result.pricing.subtotalMinor,
+          shippingMinor: result.pricing.shippingMinor,
+          totalMinor: result.pricing.totalMinor,
+          bundlePairs: result.pricing.bundlePairs,
+          discountMinor: result.pricing.discountMinor,
+        },
+      }),
+    );
   } catch (err) {
     if (err instanceof CheckoutError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return withEmbedCors(
+        NextResponse.json({ error: err.message }, { status: err.status }),
+      );
     }
     console.error(err);
-    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
+    return withEmbedCors(
+      NextResponse.json({ error: "Checkout failed" }, { status: 500 }),
+    );
   }
 }

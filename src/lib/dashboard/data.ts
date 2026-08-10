@@ -24,7 +24,7 @@ export async function getDashboardContext(
       user: {
         id: DEMO_MERCHANT.owner_id,
         email: "merchant@slf.test",
-        name: "SLF Merchant",
+        name: "Acme Merchant",
       },
       merchants: [DEMO_MERCHANT],
       merchant: DEMO_MERCHANT,

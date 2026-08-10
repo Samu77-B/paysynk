@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, ShoppingBag } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  cartEmbedSnippet,
+  CopySnippetButton,
+  productEmbedSnippet,
+} from "@/components/dashboard/embed-snippets";
 
 export function IntegrationHub({
   merchantId,
@@ -21,45 +26,39 @@ export function IntegrationHub({
   merchantName: string;
   storeSlug: string;
 }) {
-  const snippet = `<script src="https://paysynk.com/cart.js" data-merchant-id="${merchantId}" async></script>`;
-  const [copied, setCopied] = useState(false);
+  const cartSnippet = cartEmbedSnippet(storeSlug, merchantId);
+  const exampleProductSnippet = productEmbedSnippet(
+    storeSlug,
+    "acme-minimalist-heavyweight-hoodie",
+  );
   const [cartOpen, setCartOpen] = useState(true);
-
-  async function copy() {
-    await navigator.clipboard.writeText(snippet);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Integration</h1>
         <p className="text-sm text-zinc-500">
-          Embed PaySynk on WordPress, Next.js, Framer, Webflow, and more
+          Shop cart on every page · product widgets wherever you sell
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="border-zinc-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Embed script</CardTitle>
+            <CardTitle>Shop cart code</CardTitle>
             <CardDescription>
-              Drop this before <code>&lt;/body&gt;</code> on any site. One
-              merchant ID scopes the cart to {merchantName}.
+              One snippet for {merchantName}. Paste before{" "}
+              <code>&lt;/body&gt;</code> on any page — floating cart + checkout.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <pre className="overflow-x-auto rounded-xl bg-[#141414] p-4 text-sm text-[#9FE870]">
-              {snippet}
+              {cartSnippet}
             </pre>
-            <Button
-              onClick={copy}
-              className="bg-[#9FE870] text-[#141414] hover:bg-[#8fd960]"
-            >
-              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-              {copied ? "Copied" : "Copy embed script"}
-            </Button>
+            <CopySnippetButton
+              snippet={cartSnippet}
+              label="Copy shop cart code"
+            />
 
             <Tabs defaultValue="html">
               <TabsList>
@@ -68,16 +67,15 @@ export function IntegrationHub({
                 <TabsTrigger value="wp">WordPress</TabsTrigger>
               </TabsList>
               <TabsContent value="html" className="text-sm text-zinc-600">
-                Paste the script tag on any static page. Optional: add{" "}
-                <code>data-store=&quot;{storeSlug}&quot;</code> for slug-based
-                mounts.
+                Paste once site-wide. Uses <code>data-store=&quot;{storeSlug}&quot;</code>{" "}
+                so the basket stays scoped to this shop.
               </TabsContent>
               <TabsContent value="next" className="text-sm text-zinc-600">
                 Load via <code>next/script</code> in your root layout with{" "}
                 <code>strategy=&quot;afterInteractive&quot;</code>.
               </TabsContent>
               <TabsContent value="wp" className="text-sm text-zinc-600">
-                Appearance → Theme File Editor → footer.php, or use an “Insert
+                Appearance → Theme File Editor → footer.php, or an “Insert
                 Headers and Footers” plugin.
               </TabsContent>
             </Tabs>
@@ -128,22 +126,22 @@ export function IntegrationHub({
                   <div className="flex-1 space-y-3 p-4 text-sm">
                     <div className="flex justify-between gap-3">
                       <div>
-                        <p className="font-medium">Classic T-shirt</p>
-                        <p className="text-zinc-500">Red / M</p>
+                        <p className="font-medium">Acme Heavyweight Hoodie</p>
+                        <p className="text-zinc-500">Charcoal Black / M</p>
                       </div>
-                      <p>£15.00</p>
+                      <p>£65.00</p>
                     </div>
                     <div className="flex justify-between gap-3">
                       <div>
-                        <p className="font-medium">Tote bag</p>
-                        <p className="text-zinc-500">Bundle applied</p>
+                        <p className="font-medium">Acme Water Bottle</p>
+                        <p className="text-zinc-500">Matte Black</p>
                       </div>
-                      <p>£5.00</p>
+                      <p>£22.00</p>
                     </div>
                     <div className="border-t border-zinc-100 pt-3 text-zinc-500">
                       <div className="flex justify-between">
                         <span>Subtotal</span>
-                        <span>£20.00</span>
+                        <span>£87.00</span>
                       </div>
                       <div className="mt-1 flex justify-between">
                         <span>UK shipping</span>
@@ -151,7 +149,7 @@ export function IntegrationHub({
                       </div>
                       <div className="mt-2 flex justify-between font-semibold text-zinc-900">
                         <span>Total</span>
-                        <span>£25.25</span>
+                        <span>£92.25</span>
                       </div>
                     </div>
                   </div>
@@ -169,6 +167,30 @@ export function IntegrationHub({
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-zinc-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Product embed codes</CardTitle>
+          <CardDescription>
+            Each product under Products has its own snippet. Example for the
+            Acme hoodie — paste on any landing page alongside the shop cart
+            code above.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <pre className="overflow-x-auto rounded-xl bg-[#141414] p-4 text-sm text-[#9FE870]">
+            {exampleProductSnippet}
+          </pre>
+          <CopySnippetButton
+            snippet={exampleProductSnippet}
+            label="Copy example product code"
+          />
+          <p className="text-sm text-zinc-600">
+            Open a product in <strong>Products</strong> to copy its exact embed
+            code. Buy buttons share the same basket as this shop’s cart.js.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

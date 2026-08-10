@@ -1,16 +1,30 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  embedCorsPreflight,
+  slugifyProductKey,
+  withEmbedCors,
+} from "@/lib/embed-cors";
 
 type Params = { params: Promise<{ slug: string }> };
 
-/** GET sellable products for a store (variants with stockQty > 0 only). */
-export async function GET(_req: Request, { params }: Params) {
+export async function OPTIONS() {
+  return embedCorsPreflight();
+}
+
+/** GET sellable products for a store (variants with stockQty > 0 only).
+ *  Optional ?product=id-or-slug filters to one product for embed widgets.
+ */
+export async function GET(req: Request, { params }: Params) {
   const { slug } = await params;
+  const productKey = new URL(req.url).searchParams.get("product")?.trim() || "";
 
   try {
     const store = await prisma.store.findUnique({ where: { slug } });
     if (!store) {
-      return NextResponse.json({ error: "Store not found" }, { status: 404 });
+      return withEmbedCors(
+        NextResponse.json({ error: "Store not found" }, { status: 404 }),
+      );
     }
 
     const products = await prisma.product.findMany({
@@ -24,18 +38,11 @@ export async function GET(_req: Request, { params }: Params) {
       },
     });
 
-    const sellable = products.filter((p) => p.variants.length > 0);
-
-    return NextResponse.json({
-      store: {
-        id: store.id,
-        slug: store.slug,
-        name: store.name,
-        currency: store.currency,
-        shippingFlatMinor: store.shippingFlatMinor,
-      },
-      products: sellable.map((p) => ({
+    const mapped = products
+      .filter((p) => p.variants.length > 0)
+      .map((p) => ({
         id: p.id,
+        slug: slugifyProductKey(p.title),
         title: p.title,
         description: p.description,
         images: p.images,
@@ -43,14 +50,44 @@ export async function GET(_req: Request, { params }: Params) {
         variants: p.variants.map((v) => ({
           id: v.id,
           sku: v.sku,
-          options: v.options,
+          options: v.options as Record<string, string>,
           priceMinor: v.priceMinor,
           stockQty: v.stockQty,
         })),
-      })),
-    });
+      }));
+
+    const filtered = productKey
+      ? mapped.filter(
+          (p) =>
+            p.id === productKey ||
+            p.slug === productKey ||
+            p.slug.startsWith(productKey) ||
+            productKey.startsWith(p.slug),
+        )
+      : mapped;
+
+    if (productKey && filtered.length === 0) {
+      return withEmbedCors(
+        NextResponse.json({ error: "Product not found" }, { status: 404 }),
+      );
+    }
+
+    return withEmbedCors(
+      NextResponse.json({
+        store: {
+          id: store.id,
+          slug: store.slug,
+          name: store.name,
+          currency: store.currency,
+          shippingFlatMinor: store.shippingFlatMinor,
+        },
+        products: filtered,
+      }),
+    );
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Failed to load products" }, { status: 500 });
+    return withEmbedCors(
+      NextResponse.json({ error: "Failed to load products" }, { status: 500 }),
+    );
   }
 }

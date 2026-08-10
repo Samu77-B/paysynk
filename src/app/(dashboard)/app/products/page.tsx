@@ -14,6 +14,7 @@ export default async function ProductsPage() {
   return (
     <ProductsManager
       merchantId={ctx.merchant.id}
+      storeSlug={ctx.merchant.slug}
       initialProducts={products}
       mode={ctx.mode}
     />

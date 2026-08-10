@@ -1,26 +1,24 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
+import { SiteNav } from "@/components/SiteNav";
 
 export default function HomePage() {
   return (
     <main className="home">
-      <header className="site-nav">
-        <Link href="/" className="nav-logo" aria-label="PaySynk home">
-          <BrandLogo variant="white" height={34} priority />
-        </Link>
-        <nav>
-          <Link href="/s/slf">Demo store</Link>
-          <a href="#features">Features</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#embed">Embed</a>
-          <Link href="/login" className="nav-cta">
-            Sign in
-          </Link>
-        </nav>
-      </header>
+      <SiteNav />
 
       <section className="hero hero-media">
-        <div className="hero-media-bg" aria-hidden />
+        <div className="hero-media-bg" aria-hidden>
+          <Image
+            src="/brand/paysynk-hero01.png"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="hero-media-img"
+          />
+        </div>
         <div className="hero-inner">
           <BrandLogo variant="white" height={52} className="hero-brand" priority />
           <p className="eyebrow accent-text">A Paradigm Studio product</p>
@@ -83,12 +81,12 @@ export default function HomePage() {
           <span>Hosted Checkout + webhooks</span>
         </div>
         <div className="stat">
-          <strong>SLF</strong>
+          <strong>Acme</strong>
           <span>Live demo catalogue seeded</span>
         </div>
         <div className="stat">
-          <strong>Bundle</strong>
-          <span>Tee + tote pricing built in</span>
+          <strong>Stock</strong>
+          <span>Inventory updates as you add to cart</span>
         </div>
       </section>
 
@@ -150,15 +148,21 @@ export default function HomePage() {
 
       <section className="home-section" id="embed">
         <p className="eyebrow accent-text">Embed</p>
-        <h2>Add a shop to any page</h2>
+        <h2>Product widgets + a cart on any page</h2>
         <p className="section-copy">
-          Mount with <code>data-store</code>. Full in-page widget comes next;
-          today the launcher opens the hosted storefront.
+          Each product gets its own embed. Each shop gets one cart script that
+          works site-wide — add from a product widget, checkout from the cart.
         </p>
-        <pre className="code-block">{`<div id="paysynk-shop" data-store="slf"></div>
-<script src="https://paysynk.com/embed.js" defer></script>`}</pre>
+        <pre className="code-block">{`<!-- One product -->
+<div data-paysynk-product="acme-minimalist-heavyweight-hoodie" data-store="slf"></div>
+<script src="https://paysynk.com/embed.js" defer></script>
+
+<!-- Shop cart on any page -->
+<script src="https://paysynk.com/cart.js" data-store="slf" async></script>`}</pre>
         <p className="muted small">
-          Local: <code>/embed.js</code> · Demo: <Link href="/s/slf">/s/slf</Link>
+          Local: <code>/embed.js</code> · <code>/cart.js</code> · Demo:{" "}
+          <Link href="/s/slf">/s/slf</Link> ·{" "}
+          <Link href="/embed-demo">/embed-demo</Link>
         </p>
       </section>
 
@@ -166,7 +170,7 @@ export default function HomePage() {
         <div>
           <h2>Ready to open a store?</h2>
           <p className="muted">
-            Browse the Saturday Love Funk demo, or sign in to manage stock and
+            Browse the Acme Store demo, or sign in to manage stock and
             orders.
           </p>
         </div>
