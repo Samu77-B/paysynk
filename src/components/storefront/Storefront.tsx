@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 
@@ -274,10 +275,15 @@ export function Storefront({
       <div className="store-shell">
         <header className="store-header">
           <div>
-            <p className="eyebrow">PaySynk storefront</p>
+            <a href="/" aria-label="PaySynk home">
+              <BrandLogo variant="white" height={28} />
+            </a>
+            <p className="eyebrow accent-text" style={{ marginTop: "1rem" }}>
+              Hosted storefront
+            </p>
             <h1>{store.name}</h1>
             <p className="muted">
-              Hosted store · currency {store.currency.toUpperCase()} · UK shipping{" "}
+              Currency {store.currency.toUpperCase()} · UK shipping{" "}
               {formatMoney(store.shippingFlatMinor, store.currency)}
             </p>
           </div>

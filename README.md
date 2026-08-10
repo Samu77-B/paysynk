@@ -13,7 +13,28 @@ Domain: [paysynk.com](https://paysynk.com)
 - Auth.js (NextAuth v5) credentials for merchant admin
 - Stripe Checkout Sessions + signed webhooks
 
-## Features (MVP)
+## Merchant dashboard (`/app`)
+
+Multi-tenant merchant UI (Stripe-meets-Linear):
+
+- Auth: `/login`, `/register`, `/forgot-password` (Supabase Auth when configured)
+- Dashboard: Overview, Products, Orders, Integration, Settings → Payments / Billing
+- Embed snippet: `public/cart.js` with `data-merchant-id`
+- SQL + RLS: [`supabase/schema.sql`](supabase/schema.sql)
+
+Without Supabase env vars the dashboard runs in **demo mode** (SLF sample data).
+
+```bash
+# 1. Create a Supabase project
+# 2. Run supabase/schema.sql in the SQL editor
+# 3. Set NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY
+# 4. Open http://localhost:3000/login → /app
+```
+
+## Legacy storefront (Prisma)
+
+Hosted shop `/s/slf`, Stripe Checkout, and `/admin` still use Prisma + Auth.js until fully migrated onto the Supabase schema.
+
 
 | Area | What ships |
 | --- | --- |

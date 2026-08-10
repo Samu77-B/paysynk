@@ -34,18 +34,22 @@
 
     var origin = appOrigin();
     var href = origin + "/s/" + encodeURIComponent(slug);
+    var logo = origin + "/brand/PaySynk-Wht-Logo-2.png";
 
     el.className = (el.className ? el.className + " " : "") + "paysynk-embed";
     el.innerHTML =
-      '<div style="font-family:Georgia,serif;border:1px solid #1c2a24;padding:1.25rem;background:linear-gradient(160deg,#f4f7f5,#e7eee9);color:#14201b">' +
-      '<div style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;opacity:0.7">PaySynk</div>' +
-      '<div style="font-size:1.35rem;margin:0.35rem 0 0.75rem">Store: ' +
+      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #2e2e2e;border-radius:12px;padding:1.25rem;background:linear-gradient(160deg,#1a1a1a,#141414);color:#f4f4f4">' +
+      '<img src="' +
+      logo +
+      '" alt="PaySynk" style="height:28px;width:auto;display:block;margin-bottom:0.85rem" />' +
+      '<div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:#9FE870">Store</div>' +
+      '<div style="font-family:Syne,system-ui,sans-serif;font-size:1.35rem;margin:0.35rem 0 0.75rem;font-weight:700">' +
       slug +
       "</div>" +
       '<a href="' +
       href +
-      '" style="display:inline-block;background:#1f6b4a;color:#fff;text-decoration:none;padding:0.65rem 1rem;border-radius:2px">Open shop</a>' +
-      '<p style="margin:0.75rem 0 0;font-size:0.85rem;opacity:0.75">Embed launcher · hosted storefront at /s/' +
+      '" style="display:inline-block;background:#9FE870;color:#141414;text-decoration:none;padding:0.65rem 1rem;border-radius:999px;font-weight:600">Open shop</a>' +
+      '<p style="margin:0.75rem 0 0;font-size:0.85rem;color:#a3a3a3">Embed launcher · hosted storefront at /s/' +
       slug +
       "</p></div>";
   }

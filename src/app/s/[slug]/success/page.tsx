@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/pricing";
 
@@ -20,7 +21,10 @@ export default async function SuccessPage({ params, searchParams }: Props) {
 
   return (
     <main className="success-page">
-      <p className="eyebrow">PaySynk</p>
+      <BrandLogo variant="white" height={32} />
+      <p className="eyebrow accent-text" style={{ marginTop: "1.25rem" }}>
+        Checkout
+      </p>
       <h1>Thanks — payment received</h1>
       <p className="muted">
         If the webhook is running, stock has been decremented and the order is

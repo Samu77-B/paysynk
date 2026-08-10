@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default async function AdminLayout({
   children,
@@ -12,7 +13,9 @@ export default async function AdminLayout({
     <div className="admin-shell">
       <header className="admin-top">
         <div className="admin-brand">
-          <Link href="/admin">PaySynk Admin</Link>
+          <Link href="/admin" aria-label="PaySynk admin">
+            <BrandLogo variant="white" height={30} />
+          </Link>
           {session?.user?.storeSlug && (
             <span className="muted small">
               store/{session.user.storeSlug}

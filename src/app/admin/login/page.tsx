@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { auth, signIn } from "@/lib/auth";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default async function AdminLoginPage({
   searchParams,
@@ -32,7 +33,11 @@ export default async function AdminLoginPage({
   return (
     <main className="admin-login">
       <div className="admin-login-panel">
-        <p className="eyebrow">PaySynk merchant</p>
+        {/* Light panel → black logo v2 */}
+        <BrandLogo variant="black" height={40} />
+        <p className="eyebrow" style={{ marginTop: "1rem" }}>
+          Merchant admin
+        </p>
         <h1>Sign in</h1>
         <p className="muted">Manage catalogue, stock, and orders for your store.</p>
         {error && <p className="error">Invalid email or password.</p>}
