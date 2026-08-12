@@ -22,7 +22,7 @@ export function SiteNav() {
   return (
     <header className="site-nav">
       <Link href="/" className="nav-logo" aria-label="PaySynk home" onClick={close}>
-        <BrandLogo variant="white" height={34} priority />
+        <BrandLogo variant="nav" height={34} priority />
       </Link>
 
       <nav className="site-nav-desktop" aria-label="Primary">

@@ -5,6 +5,8 @@ const LOGOS = {
   white: "/brand/PaySynk-Grey-Logo-3.png",
   /** Light logo, transparent background — for use over photos/hero media */
   "white-transparent": "/brand/PaySynk-Grey-Logo-3-transparent.png",
+  /** PS-Logo-Main, recoloured to white text on a transparent background */
+  "nav": "/brand/PS-Logo-Main-white.png",
   black: "/brand/PaySynk-Blk-Logo-2.png",
 } as const;
 
