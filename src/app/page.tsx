@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BrandLogo } from "@/components/BrandLogo";
 import { SiteNav } from "@/components/SiteNav";
 
 export default function HomePage() {
@@ -20,7 +19,6 @@ export default function HomePage() {
           />
         </div>
         <div className="hero-inner">
-          <BrandLogo variant="white-transparent" height={52} className="hero-brand" priority />
           <p className="eyebrow accent-text">A Paradigm Studio product</p>
           <h1>COMMERCE THAT FITS ANY SITE</h1>
           <p className="lede">

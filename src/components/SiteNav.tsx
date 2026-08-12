@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const LINKS = [
   { href: "/s/slf", label: "Demo store" },
@@ -20,6 +21,10 @@ export function SiteNav() {
 
   return (
     <header className="site-nav">
+      <Link href="/" className="nav-logo" aria-label="PaySynk home" onClick={close}>
+        <BrandLogo variant="white" height={34} priority />
+      </Link>
+
       <nav className="site-nav-desktop" aria-label="Primary">
         {LINKS.map((link) =>
           link.href.startsWith("#") ? (
