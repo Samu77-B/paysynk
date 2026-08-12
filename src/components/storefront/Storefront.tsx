@@ -85,15 +85,24 @@ function ProductCard({
 
   const image = product.images[0];
 
+  function stockPillClass(qty: number) {
+    if (qty <= 0) return "stock-pill stock-pill-out";
+    if (qty <= 10) return "stock-pill stock-pill-low";
+    return "stock-pill";
+  }
+
   return (
     <article className="store-product">
-      <div className="store-product-visual" aria-hidden={!image}>
+      <div
+        className={`store-product-visual${image ? " store-product-visual-photo" : ""}`}
+        aria-hidden={!image}
+      >
         {image ? (
           <Image
             src={image}
             alt={product.title}
             fill
-            sizes="140px"
+            sizes="(min-width: 860px) 33vw, 90vw"
             className="store-product-img"
           />
         ) : (
@@ -106,6 +115,9 @@ function ProductCard({
         <p className="price">
           {formatMoney(product.variants[0]?.priceMinor ?? 0, currency)}
         </p>
+        <span className={stockPillClass(available)}>
+          {available <= 0 ? "Out of stock" : `${available} in stock`}
+        </span>
 
         {colours.length > 0 && (
           <label className="field">
@@ -154,12 +166,6 @@ function ProductCard({
               ))}
             </select>
           </label>
-        )}
-
-        {!hasSizes && (
-          <p className="muted small">
-            {available === 0 ? "Out of stock" : `${available} left`}
-          </p>
         )}
 
         <button

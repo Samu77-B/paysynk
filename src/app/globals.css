@@ -702,25 +702,24 @@ h3 {
 
 .store-grid {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
 }
 
 .store-product {
-  display: grid;
-  grid-template-columns: 140px 1fr;
-  gap: 1rem;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 1rem;
+  overflow: hidden;
   animation: fade-up 0.75s ease both;
 }
 
 .store-product-visual {
   position: relative;
-  min-height: 140px;
-  overflow: hidden;
-  border-radius: 10px;
+  aspect-ratio: 4 / 3;
   background:
     linear-gradient(145deg, rgba(159, 232, 112, 0.35), transparent 55%),
     linear-gradient(160deg, #2a2a2a, #151515);
@@ -729,11 +728,20 @@ h3 {
   place-items: center;
   font-family: var(--font-display), "Syne", system-ui, sans-serif;
   font-size: 1.25rem;
-  border: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.store-product-visual-photo {
+  background: #f2f1ec;
 }
 
 .store-product-img {
-  object-fit: cover;
+  object-fit: contain;
+  padding: 0.85rem;
+}
+
+.store-product-body {
+  padding: 1rem;
 }
 
 .store-product h2 {
@@ -745,6 +753,40 @@ h3 {
   font-weight: 600;
   margin: 0.5rem 0;
   color: var(--accent);
+}
+
+.stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.5rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(159, 232, 112, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(159, 232, 112, 0.25);
+}
+
+.stock-pill::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.stock-pill-low {
+  background: rgba(255, 176, 32, 0.12);
+  color: #ffb020;
+  border-color: rgba(255, 176, 32, 0.28);
+}
+
+.stock-pill-out {
+  background: rgba(255, 107, 107, 0.12);
+  color: var(--danger);
+  border-color: rgba(255, 107, 107, 0.28);
 }
 
 .store-cart {
@@ -1038,8 +1080,8 @@ h3 {
     position: static;
   }
 
-  .store-product {
-    grid-template-columns: 1fr;
+  .store-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
   .admin-stats,
