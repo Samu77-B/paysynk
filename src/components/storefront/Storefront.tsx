@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
@@ -82,10 +83,22 @@ function ProductCard({
     return Math.max(0, stockQty - reserved);
   }
 
+  const image = product.images[0];
+
   return (
     <article className="store-product">
-      <div className="store-product-visual" aria-hidden>
-        <span>{productBadge(product)}</span>
+      <div className="store-product-visual" aria-hidden={!image}>
+        {image ? (
+          <Image
+            src={image}
+            alt={product.title}
+            fill
+            sizes="140px"
+            className="store-product-img"
+          />
+        ) : (
+          <span>{productBadge(product)}</span>
+        )}
       </div>
       <div className="store-product-body">
         <h2>{product.title}</h2>

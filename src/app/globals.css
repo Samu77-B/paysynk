@@ -717,7 +717,9 @@ h3 {
 }
 
 .store-product-visual {
+  position: relative;
   min-height: 140px;
+  overflow: hidden;
   border-radius: 10px;
   background:
     linear-gradient(145deg, rgba(159, 232, 112, 0.35), transparent 55%),
@@ -728,6 +730,10 @@ h3 {
   font-family: var(--font-display), "Syne", system-ui, sans-serif;
   font-size: 1.25rem;
   border: 1px solid var(--line);
+}
+
+.store-product-img {
+  object-fit: cover;
 }
 
 .store-product h2 {

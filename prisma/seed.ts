@@ -19,8 +19,10 @@ async function upsertProduct(opts: {
   description: string;
   kind: ProductKind;
   priceMinor: number;
+  images?: string[];
   variants: VariantSeed[];
 }) {
+  const images = opts.images ?? [];
   const existing = await prisma.product.findFirst({
     where: { storeId: opts.storeId, title: opts.title },
     include: { variants: true },
@@ -34,7 +36,7 @@ async function upsertProduct(opts: {
         description: opts.description,
         kind: opts.kind,
         active: true,
-        images: [],
+        images,
         variants: {
           create: opts.variants.map((v) => ({
             sku: v.sku,
@@ -58,7 +60,7 @@ async function upsertProduct(opts: {
       description: opts.description,
       kind: opts.kind,
       active: true,
-      images: [],
+      images,
       variants: {
         create: opts.variants.map((v) => ({
           sku: v.sku,
@@ -163,6 +165,7 @@ async function main() {
       "450gsm organic French terry cotton. Boxy oversized fit with subtle tonal Acme chest embroidery.",
     kind: "other",
     priceMinor: 6500,
+    images: ["/products/acme-minimalist-heavyweight-hoodie.png"],
     variants: colourSizeVariants("ACME-HOODIE", [
       { colour: "Off-White", sizes: { S: 7, M: 7, L: 7, XL: 7 } },
       { colour: "Charcoal Black", sizes: { S: 7, M: 8, L: 7, XL: 7 } },
@@ -178,6 +181,7 @@ async function main() {
       "Double-wall vacuum insulation keeps drinks cold for 24 hours or hot for 12 hours. BPA-free stainless steel.",
     kind: "other",
     priceMinor: 2200,
+    images: ["/products/acme-insulated-steel-water-bottle.png"],
     variants: colourVariants("ACME-BOTTLE", [
       { colour: "Matte Black", stockQty: 67 },
       { colour: "Raw Silver", stockQty: 67 },
@@ -193,6 +197,7 @@ async function main() {
       "Hand-thrown speckled stoneware mugs. Set of 2 with ergonomic thumb rests. Microwave and dishwasher safe.",
     kind: "other",
     priceMinor: 3400,
+    images: ["/products/acme-artisan-ceramic-mug-set.png"],
     variants: [
       {
         sku: "ACME-MUG-SET",
