@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description:
     "Multi-tenant catalogue, cart, and checkout. Hosted or embedded. Stripe today, more providers next.",
   icons: {
-    icon: "/brand/paysynk-fav.png",
+    icon: "/brand/paysynk-fav.png?v=2",
   },
 };
 

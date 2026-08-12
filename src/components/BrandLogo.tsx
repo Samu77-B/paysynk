@@ -1,8 +1,8 @@
 import Image from "next/image";
 
 const LOGOS = {
-  /** Main logo (PS-Logo-Main), recoloured to white text on a transparent background */
-  white: "/brand/PS-Logo-Main-white.png",
+  /** Main logo (PS-Logo-Main) — white text, transparent background */
+  white: "/brand/PS-Logo-Main.png",
   black: "/brand/PaySynk-Blk-Logo-2.png",
 } as const;
 
