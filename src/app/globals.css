@@ -155,7 +155,7 @@ h3 {
   justify-content: center;
   border: 1px solid transparent;
   padding: 0.75rem 1.2rem;
-  border-radius: 999px;
+  border-radius: 8px;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -308,7 +308,7 @@ h3 {
   color: var(--accent-ink) !important;
   background: var(--accent);
   padding: 0.45rem 0.95rem;
-  border-radius: 999px;
+  border-radius: 8px;
   font-weight: 600;
 }
 
@@ -704,7 +704,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.25rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .store-product {
@@ -741,7 +741,14 @@ h3 {
 }
 
 .store-product-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   padding: 1rem;
+}
+
+.store-product-body .btn {
+  margin-top: auto;
 }
 
 .store-product h2 {
@@ -1086,6 +1093,12 @@ h3 {
   .feature-grid,
   .stats-band,
   .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .store-grid {
     grid-template-columns: 1fr;
   }
 
