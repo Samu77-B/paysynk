@@ -293,7 +293,9 @@ function CartPanel({ store }: { store: StorefrontStore }) {
           onClick={() => setShowPaymentModal(false)}
         >
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 id="payment-modal-title">No payment provider connected</h3>
+            <h3 id="payment-modal-title">
+              No payment provider connected (Demo Only)
+            </h3>
             <p className="muted">
               Connect to Stripe, PayPal, or Bank transfer (if available) to
               enable checkout for this store.
