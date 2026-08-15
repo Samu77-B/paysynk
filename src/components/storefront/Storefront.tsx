@@ -194,9 +194,8 @@ function ProductCard({
 }
 
 function CartPanel({ store }: { store: StorefrontStore }) {
-  const { items, setQuantity, removeItem, clear, itemCount } = useCart();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { items, setQuantity, removeItem, itemCount } = useCart();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const pricing = useMemo(() => {
     return priceCart(
@@ -213,30 +212,6 @@ function CartPanel({ store }: { store: StorefrontStore }) {
       store.shippingFlatMinor,
     );
   }, [items, store.shippingFlatMinor]);
-
-  async function checkout() {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/stores/${store.slug}/checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: items.map((i) => ({
-            variantId: i.variantId,
-            quantity: i.quantity,
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Checkout failed");
-      clear();
-      window.location.href = data.redirectUrl as string;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Checkout failed");
-      setBusy(false);
-    }
-  }
 
   return (
     <aside className="store-cart">
@@ -296,20 +271,42 @@ function CartPanel({ store }: { store: StorefrontStore }) {
             </div>
           </dl>
 
-          {error && <p className="error">{error}</p>}
-
           <button
             type="button"
             className="btn btn-primary btn-block"
-            disabled={busy}
-            onClick={checkout}
+            onClick={() => setShowPaymentModal(true)}
           >
-            {busy ? "Redirecting…" : "Checkout with Stripe"}
+            Checkout
           </button>
           <p className="muted small note">
             Prices and stock re-validated on the server at checkout.
           </p>
         </>
+      )}
+
+      {showPaymentModal && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-modal-title"
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 id="payment-modal-title">No payment provider connected</h3>
+            <p className="muted">
+              Connect to Stripe, PayPal, or Bank transfer (if available) to
+              enable checkout for this store.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowPaymentModal(false)}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
       )}
     </aside>
   );

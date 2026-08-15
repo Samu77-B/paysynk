@@ -794,6 +794,38 @@ h3 {
   color: var(--danger);
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.modal-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  max-width: 26rem;
+  width: 100%;
+  animation: fade-up 0.2s ease both;
+}
+
+.modal-card h3 {
+  margin: 0 0 0.6rem;
+}
+
+.modal-card p {
+  margin: 0 0 1.25rem;
+}
+
+.modal-card .btn {
+  width: 100%;
+}
+
 .store-cart {
   position: sticky;
   top: 1rem;
