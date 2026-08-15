@@ -116,7 +116,8 @@ function ProductCard({
           {formatMoney(product.variants[0]?.priceMinor ?? 0, currency)}
         </p>
         <span className={stockPillClass(available)}>
-          {available <= 0 ? "Out of stock" : `${available} in stock`}
+          <span className="stock-pill-count">{available}</span>
+          {available <= 0 ? "out-of-stock" : "in-stock"}
         </span>
 
         {colours.length > 0 && (

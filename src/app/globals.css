@@ -758,35 +758,33 @@ h3 {
 .stock-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   margin: 0.35rem 0 0.5rem;
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: rgba(159, 232, 112, 0.12);
-  color: var(--accent);
-  border: 1px solid rgba(159, 232, 112, 0.25);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
 }
 
-.stock-pill::before {
-  content: "";
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 50%;
-  background: currentColor;
+.stock-pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.2rem;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-weight: 700;
+  color: var(--ink);
+  background: transparent;
 }
 
-.stock-pill-low {
-  background: rgba(255, 176, 32, 0.12);
+.stock-pill-low .stock-pill-count {
+  border-color: rgba(255, 176, 32, 0.55);
   color: #ffb020;
-  border-color: rgba(255, 176, 32, 0.28);
 }
 
-.stock-pill-out {
-  background: rgba(255, 107, 107, 0.12);
+.stock-pill-out .stock-pill-count {
+  border-color: rgba(255, 107, 107, 0.55);
   color: var(--danger);
-  border-color: rgba(255, 107, 107, 0.28);
 }
 
 .store-cart {
