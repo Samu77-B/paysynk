@@ -23,6 +23,7 @@ enum OrderChannel {
 enum OrderStatus {
   pending
   paid
+  fulfilled
   cancelled
   refunded
 }
@@ -31,6 +32,12 @@ enum ProductKind {
   tee
   tote
   other
+}
+
+enum SignupStatus {
+  pending
+  approved
+  rejected
 }
 
 model Store {
@@ -43,12 +50,19 @@ model Store {
   paymentProvider   PaymentProviderType @default(stripe)
   /// Admin notes for Stripe wiring (keys stay in env / Connect — never exposed to client)
   stripeConfigNotes String?
+  stripeConnectId   String?
+  paypalMerchantId  String?
+  paymentsActive    Boolean             @default(false)
+  signupStatus      SignupStatus        @default(pending)
+  adminNotes        String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
   products Product[]
   orders   Order[]
   users    MerchantUser[]
+
+  @@index([signupStatus])
 }
 
 model MerchantUser {
