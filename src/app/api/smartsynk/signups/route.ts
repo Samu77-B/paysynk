@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import type { Prisma, SignupStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSmartSynkAuth, slugifyStoreName } from "@/lib/smartsynk-auth";
 import { serializeSignup } from "@/lib/smartsynk-serialize";
@@ -14,15 +15,19 @@ const createSchema = z.object({
   approve: z.boolean().optional(),
 });
 
+function parseSignupStatus(value: string | null): SignupStatus | undefined {
+  if (value === "pending" || value === "approved" || value === "rejected") {
+    return value;
+  }
+  return undefined;
+}
+
 export async function GET(request: Request) {
   const denied = requireSmartSynkAuth(request);
   if (denied) return denied;
 
-  const status = new URL(request.url).searchParams.get("status");
-  const where =
-    status === "pending" || status === "approved" || status === "rejected"
-      ? { signupStatus: status }
-      : {};
+  const signupStatus = parseSignupStatus(new URL(request.url).searchParams.get("status"));
+  const where: Prisma.StoreWhereInput = signupStatus ? { signupStatus } : {};
 
   const stores = await prisma.store.findMany({
     where,

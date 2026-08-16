@@ -1,8 +1,10 @@
-import type { MerchantUser, Store } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
-export function serializeSignup(
-  store: Store & { users: MerchantUser[] },
-) {
+type StoreWithUsers = Prisma.StoreGetPayload<{
+  include: { users: true };
+}>;
+
+export function serializeSignup(store: StoreWithUsers) {
   const owner = store.users[0];
   return {
     id: store.id,
