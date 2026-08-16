@@ -1,45 +1,20 @@
-"use client";
-
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, Suspense } from "react";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { loginMerchant } from "@/lib/dashboard/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
-function LoginForm() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const next = params.get("next") || "/app";
-  const [email, setEmail] = useState("merchant@slf.test");
-  const [password, setPassword] = useState("password123");
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-
-    if (!isSupabaseConfigured()) {
-      // Demo unlock — middleware allows /app without session when no Supabase
-      router.push(next);
-      return;
-    }
-
-    const supabase = createClient();
-    const { error: signError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setBusy(false);
-    if (signError) {
-      setError(signError.message);
-      return;
-    }
-    router.push(next);
-    router.refresh();
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; error?: string }>;
+}) {
+  const session = await auth();
+  const { next, error } = await searchParams;
+  if (session?.user) {
+    redirect(next?.startsWith("/") ? next : "/app");
   }
 
   return (
@@ -51,15 +26,20 @@ function LoginForm() {
         Access your PaySynk merchant dashboard.
       </p>
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+      <form action={loginMerchant} className="mt-6 space-y-4">
+        <input
+          type="hidden"
+          name="next"
+          value={next?.startsWith("/") ? next : "/app"}
+        />
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
+            name="email"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             required
+            autoComplete="username"
             className="bg-white"
           />
         </div>
@@ -75,20 +55,21 @@ function LoginForm() {
           </div>
           <Input
             id="password"
+            name="password"
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             required
+            autoComplete="current-password"
             className="bg-white"
           />
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600">Invalid email or password.</p>
+        )}
         <Button
           type="submit"
-          disabled={busy}
           className="w-full bg-[#9FE870] text-[#141414] hover:bg-[#8fd960]"
         >
-          {busy ? "Signing in…" : "Sign in"}
+          Sign in
         </Button>
       </form>
 
@@ -98,19 +79,6 @@ function LoginForm() {
           Create an account
         </Link>
       </p>
-      {!isSupabaseConfigured() && (
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-          Supabase is not configured — continue enters demo dashboard mode.
-        </p>
-      )}
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
   );
 }

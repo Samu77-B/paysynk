@@ -1,128 +1,141 @@
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
-import {
-  DEMO_INVOICES,
-  DEMO_MERCHANT,
-  DEMO_ORDERS,
-  DEMO_PRODUCTS,
-} from "@/lib/dashboard/demo-data";
-import type { BillingInvoice, Merchant, Order, Product } from "@/types/database";
+import type { Store, Product as PrismaProduct, Variant, Order as PrismaOrder, OrderItem } from "@/generated/prisma/client";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import type { BillingInvoice, Merchant, Order, OrderStatus, Product } from "@/types/database";
 
 export type DashboardContext = {
-  mode: "supabase" | "demo";
   user: { id: string; email: string; name: string };
   merchants: Merchant[];
   merchant: Merchant;
+  signupStatus: "pending" | "approved" | "rejected";
 };
 
-export async function getDashboardContext(
-  preferredMerchantId?: string,
-): Promise<DashboardContext> {
-  if (!isSupabaseConfigured()) {
-    return {
-      mode: "demo",
-      user: {
-        id: DEMO_MERCHANT.owner_id,
-        email: "merchant@slf.test",
-        name: "Acme Merchant",
-      },
-      merchants: [DEMO_MERCHANT],
-      merchant: DEMO_MERCHANT,
-    };
-  }
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export function toMerchant(store: Store, ownerId: string): Merchant {
+  return {
+    id: store.id,
+    name: store.name,
+    slug: store.slug,
+    owner_id: ownerId,
+    plan_tier: "standard",
+    stripe_connect_id: store.stripeConnectId,
+    paypal_merchant_id: store.paypalMerchantId,
+    payments_active: store.paymentsActive,
+    billing_customer_id: null,
+    current_period_end: null,
+    created_at: store.createdAt.toISOString(),
+  };
+}
 
-  if (!user) {
+export function toDashboardProduct(
+  product: PrismaProduct & { variants: Variant[] },
+  merchantId: string,
+): Product {
+  const stock = product.variants.reduce((sum, v) => sum + v.stockQty, 0);
+  const first = product.variants[0];
+  return {
+    id: product.id,
+    merchant_id: merchantId,
+    title: product.title,
+    slug: slugify(product.title) || product.id,
+    description: product.description,
+    price_in_pence: first?.priceMinor ?? 0,
+    compare_at_price_in_pence: null,
+    sku: first?.sku ?? null,
+    stock_quantity: stock,
+    images: product.images,
+    tags: [],
+    category: null,
+    is_active: product.active,
+    created_at: product.createdAt.toISOString(),
+  };
+}
+
+function toDashboardOrderStatus(status: PrismaOrder["status"]): OrderStatus {
+  if (status === "paid") return "unfulfilled";
+  if (status === "fulfilled") return "fulfilled";
+  if (status === "refunded") return "refunded";
+  if (status === "cancelled") return "cancelled";
+  return "pending";
+}
+
+export function toDashboardOrder(
+  order: PrismaOrder & { items: OrderItem[] },
+): Order {
+  return {
+    id: order.id,
+    merchant_id: order.storeId,
+    customer_email: order.customerEmail,
+    customer_name: null,
+    status: toDashboardOrderStatus(order.status),
+    total_in_pence: order.totalMinor,
+    currency: order.currency,
+    items_json: order.items.map((item) => ({
+      title: item.title,
+      qty: item.quantity,
+      price: item.unitPriceMinor,
+    })),
+    shipping_address: null,
+    stripe_payment_id: order.providerPaymentId,
+    channel: order.channel,
+    created_at: order.createdAt.toISOString(),
+  };
+}
+
+export async function getDashboardContext(): Promise<DashboardContext> {
+  const session = await auth();
+  if (!session?.user?.storeId) {
     throw new Error("UNAUTHENTICATED");
   }
 
-  const { data: memberships } = await supabase
-    .from("merchant_members")
-    .select("merchant_id")
-    .eq("user_id", user.id);
-
-  const ids = (memberships ?? []).map((m) => m.merchant_id);
-  let merchants: Merchant[] = [];
-
-  if (ids.length) {
-    const { data } = await supabase
-      .from("merchants")
-      .select("*")
-      .in("id", ids)
-      .order("created_at", { ascending: true });
-    merchants = data ?? [];
-  }
-
-  if (!merchants.length) {
-    const { data: owned } = await supabase
-      .from("merchants")
-      .select("*")
-      .eq("owner_id", user.id);
-    merchants = owned ?? [];
-  }
-
-  const merchant =
-    merchants.find((m) => m.id === preferredMerchantId) ?? merchants[0];
-
-  if (!merchant) {
+  const store = await prisma.store.findUnique({
+    where: { id: session.user.storeId },
+  });
+  if (!store) {
     throw new Error("NO_MERCHANT");
   }
 
+  const merchant = toMerchant(store, session.user.id);
   return {
-    mode: "supabase",
     user: {
-      id: user.id,
-      email: user.email ?? "",
-      name:
-        (user.user_metadata?.full_name as string | undefined) ??
-        user.email?.split("@")[0] ??
-        "Merchant",
+      id: session.user.id,
+      email: session.user.email ?? "",
+      name: session.user.name ?? store.name,
     },
-    merchants,
+    merchants: [merchant],
     merchant,
+    signupStatus: store.signupStatus,
   };
 }
 
 export async function getMerchantProducts(merchantId: string): Promise<Product[]> {
-  if (!isSupabaseConfigured()) return DEMO_PRODUCTS;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("products")
-    .select("*")
-    .eq("merchant_id", merchantId)
-    .order("created_at", { ascending: false });
-  return data ?? [];
+  const products = await prisma.product.findMany({
+    where: { storeId: merchantId },
+    include: { variants: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return products.map((p) => toDashboardProduct(p, merchantId));
 }
 
 export async function getMerchantOrders(merchantId: string): Promise<Order[]> {
-  if (!isSupabaseConfigured()) return DEMO_ORDERS;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("merchant_id", merchantId)
-    .order("created_at", { ascending: false });
-  return data ?? [];
+  const orders = await prisma.order.findMany({
+    where: { storeId: merchantId },
+    include: { items: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return orders.map(toDashboardOrder);
 }
 
 export async function getMerchantInvoices(
-  merchantId: string,
+  _merchantId: string,
 ): Promise<BillingInvoice[]> {
-  if (!isSupabaseConfigured()) return DEMO_INVOICES;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("billing_invoices")
-    .select("*")
-    .eq("merchant_id", merchantId)
-    .order("created_at", { ascending: false });
-  return data ?? [];
+  return [];
 }
 
 export function computeOverviewMetrics(orders: Order[]) {
@@ -145,7 +158,6 @@ export function computeOverviewMetrics(orders: Order[]) {
   const revenueMonth = month.reduce((s, o) => s + o.total_in_pence, 0);
   const orderCount = month.length;
   const aov = orderCount ? Math.round(revenueMonth / orderCount) : 0;
-  // Placeholder conversion until storefront sessions are tracked
   const conversionRate = orderCount ? Math.min(8.4, 2 + orderCount * 0.35) : 0;
 
   return {

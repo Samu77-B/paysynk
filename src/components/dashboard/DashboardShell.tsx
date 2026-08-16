@@ -37,7 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PLAN_META } from "@/lib/dashboard/demo-data";
 import type { Merchant } from "@/types/database";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { signOutMerchant } from "@/lib/dashboard/auth-actions";
 
 const NAV = [
   { href: "/app", label: "Overview", icon: LayoutDashboard },
@@ -52,7 +52,6 @@ type Props = {
   merchant: Merchant;
   merchants: Merchant[];
   user: { email: string; name: string };
-  mode: "demo" | "supabase";
   children: React.ReactNode;
 };
 
@@ -60,7 +59,6 @@ function SidebarBody({
   merchant,
   merchants,
   user,
-  mode,
   pathname,
   onNavigate,
   onSignOut,
@@ -69,7 +67,6 @@ function SidebarBody({
   merchant: Merchant;
   merchants: Merchant[];
   user: { email: string; name: string };
-  mode: "demo" | "supabase";
   pathname: string;
   onNavigate?: () => void;
   onSignOut: () => void;
@@ -191,12 +188,6 @@ function SidebarBody({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {mode === "demo" && (
-          <p className="px-1 text-[11px] leading-snug text-zinc-500">
-            Demo mode — add Supabase env vars for live auth & RLS.
-          </p>
-        )}
       </div>
     </>
   );
@@ -206,7 +197,6 @@ export function DashboardShell({
   merchant,
   merchants,
   user,
-  mode,
   children,
 }: Props) {
   const pathname = usePathname();
@@ -214,12 +204,7 @@ export function DashboardShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function signOut() {
-    if (isSupabaseConfigured()) {
-      const supabase = createClient();
-      await supabase.auth.signOut();
-    }
-    router.push("/login");
-    router.refresh();
+    await signOutMerchant();
   }
 
   function selectMerchant(id: string) {
@@ -232,7 +217,6 @@ export function DashboardShell({
     merchant,
     merchants,
     user,
-    mode,
     pathname,
     onSignOut: signOut,
     onSelectMerchant: selectMerchant,
