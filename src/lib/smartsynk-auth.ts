@@ -6,7 +6,7 @@ export function unauthorized() {
 }
 
 export function requireSmartSynkAuth(request: Request): NextResponse | null {
-  const expected = process.env.SMARTSYNK_API_KEY;
+  const expected = process.env.SMARTSYNK_API_KEY?.trim();
   if (!expected) {
     return NextResponse.json(
       { error: "SmartSynk API is not configured" },
