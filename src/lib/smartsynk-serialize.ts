@@ -11,7 +11,7 @@ export function serializeSignup(store: StoreWithUsers) {
     platform: "paysynk" as const,
     name: store.name,
     slug: store.slug,
-    shopUrl: `/s/${store.slug}`,
+    shopUrl: `${(process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://www.paysynk.com")}/s/${store.slug}`,
     signupStatus: store.signupStatus,
     adminNotes: store.adminNotes,
     paymentsActive: store.paymentsActive,
