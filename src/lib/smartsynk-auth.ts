@@ -6,7 +6,7 @@ export function unauthorized() {
 }
 
 export function requireSmartSynkAuth(request: Request): NextResponse | null {
-  const expected = process.env.SMARTSYNK_API_KEY?.trim();
+  const expected = process.env.SMARTSYNK_API_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!expected) {
     return NextResponse.json(
       { error: "SmartSynk API is not configured" },
@@ -15,9 +15,20 @@ export function requireSmartSynkAuth(request: Request): NextResponse | null {
   }
 
   const header = request.headers.get("authorization") ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  const bearer = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  const alt = request.headers.get("x-smartsynk-key")?.trim() ?? "";
+  const token = bearer || alt;
+  if (!token) {
+    return NextResponse.json(
+      { error: "Missing API key (no Authorization header reached PaySynk)" },
+      { status: 401 },
+    );
+  }
   if (!safeEqual(token, expected)) {
-    return unauthorized();
+    return NextResponse.json(
+      { error: "Unauthorized (key does not match SMARTSYNK_API_KEY)" },
+      { status: 401 },
+    );
   }
   return null;
 }
