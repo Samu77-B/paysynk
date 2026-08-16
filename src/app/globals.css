@@ -738,6 +738,7 @@ h3 {
 .store-product-img {
   object-fit: contain;
   padding: 0.85rem;
+  transition: opacity 0.2s ease;
 }
 
 .store-product-body {

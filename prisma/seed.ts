@@ -165,7 +165,11 @@ async function main() {
       "450gsm organic French terry cotton. Boxy oversized fit with subtle tonal Acme chest embroidery.",
     kind: "other",
     priceMinor: 6500,
-    images: ["/products/acme-minimalist-heavyweight-hoodie.png"],
+    images: [
+      "/products/Acme Hoodie Off White.png",
+      "/products/acme-minimalist-heavyweight-hoodie.png",
+      "/products/Acme Hoodie Forrest Green.png",
+    ],
     variants: colourSizeVariants("ACME-HOODIE", [
       { colour: "Off-White", sizes: { S: 7, M: 7, L: 7, XL: 7 } },
       { colour: "Charcoal Black", sizes: { S: 7, M: 8, L: 7, XL: 7 } },
@@ -181,7 +185,11 @@ async function main() {
       "Double-wall vacuum insulation keeps drinks cold for 24 hours or hot for 12 hours. BPA-free stainless steel.",
     kind: "other",
     priceMinor: 2200,
-    images: ["/products/acme-insulated-steel-water-bottle.png"],
+    images: [
+      "/products/acme-insulated-steel-water-bottle.png",
+      "/products/Acme Water Bottle Raw Silver.png",
+      "/products/Acme Water Bottle Sage Green.png",
+    ],
     variants: colourVariants("ACME-BOTTLE", [
       { colour: "Matte Black", stockQty: 67 },
       { colour: "Raw Silver", stockQty: 67 },

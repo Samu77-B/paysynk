@@ -5,6 +5,7 @@ import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
+import { imageForColour } from "@/lib/product-images";
 
 export type StorefrontProduct = {
   id: string;
@@ -83,7 +84,7 @@ function ProductCard({
     return Math.max(0, stockQty - reserved);
   }
 
-  const image = product.images[0];
+  const image = imageForColour(product, colour);
 
   function stockPillClass(qty: number) {
     if (qty <= 0) return "stock-pill stock-pill-out";
@@ -99,8 +100,9 @@ function ProductCard({
       >
         {image ? (
           <Image
-            src={image}
-            alt={product.title}
+            key={image}
+            src={encodeURI(image)}
+            alt={colour ? `${product.title} — ${colour}` : product.title}
             fill
             sizes="(min-width: 860px) 33vw, 90vw"
             className="store-product-img"

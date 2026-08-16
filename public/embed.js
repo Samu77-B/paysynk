@@ -74,6 +74,31 @@
     return parts.join(" · ");
   }
 
+  function slugKey(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function imageForColour(product, colour) {
+    var title = (product.title || "").toLowerCase();
+    var key = slugKey(colour);
+    var hoodie = {
+      offwhite: "/products/Acme Hoodie Off White.png",
+      charcoalblack: "/products/acme-minimalist-heavyweight-hoodie.png",
+      forestgreen: "/products/Acme Hoodie Forrest Green.png",
+      forrestgreen: "/products/Acme Hoodie Forrest Green.png",
+    };
+    var bottle = {
+      matteblack: "/products/acme-insulated-steel-water-bottle.png",
+      rawsilver: "/products/Acme Water Bottle Raw Silver.png",
+      sagegreen: "/products/Acme Water Bottle Sage Green.png",
+    };
+    if (title.indexOf("hoodie") !== -1 && hoodie[key]) return hoodie[key];
+    if (title.indexOf("bottle") !== -1 && bottle[key]) return bottle[key];
+    return (product.images && product.images[0]) || "";
+  }
+
   function addToCart(slug, item) {
     var items = readCart(slug);
     var existing = null;
@@ -234,8 +259,19 @@
         }
       }
 
+      var photo = imageForColour(product, state.colour);
       var html =
-        '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #e4e4e7;border-radius:12px;padding:1.25rem;background:#fff;color:#18181b;max-width:420px">' +
+        '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #e4e4e7;border-radius:12px;padding:1.25rem;background:#fff;color:#18181b;max-width:420px">';
+      if (photo) {
+        html +=
+          '<img src="' +
+          origin +
+          encodeURI(photo) +
+          '" alt="' +
+          escapeAttr(product.title) +
+          '" style="width:100%;aspect-ratio:4/3;object-fit:contain;background:#f2f1ec;border-radius:8px;margin:0 0 0.85rem">';
+      }
+      html +=
         '<div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#65a30d;margin-bottom:0.35rem">PaySynk</div>' +
         '<h3 style="margin:0 0 0.35rem;font-size:1.15rem;line-height:1.3">' +
         escapeHtml(product.title) +
