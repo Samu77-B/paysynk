@@ -215,14 +215,20 @@ export async function savePaymentSettings(input: {
 
   const stripeConnectId = input.stripeConnectId.trim() || null;
   const paypalMerchantId = input.paypalMerchantId.trim() || null;
-  const paymentsActive =
-    input.activate && Boolean(stripeConnectId || paypalMerchantId);
+  const current = await prisma.store.findUnique({
+    where: { id: storeId },
+    select: { paymentsActive: true },
+  });
+  const paymentsActive = input.activate
+    ? true
+    : (current?.paymentsActive ?? false);
 
   await prisma.store.update({
     where: { id: storeId },
     data: { stripeConnectId, paypalMerchantId, paymentsActive },
   });
   revalidatePath("/app/settings/payments");
+  revalidatePath("/app/products");
   return { ok: true as const, paymentsActive };
 }
 

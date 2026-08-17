@@ -53,8 +53,8 @@ export function PaymentsSettings({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Payments</h1>
         <p className="text-sm text-zinc-500">
-          Connect your own processors — PaySynk never holds your customer funds.
-          The public shop and cart stay hidden until you Activate.
+            Connect your own processors — PaySynk never holds your customer funds.
+            Activate to show the public cart. Stripe Connect can be added after.
         </p>
       </div>
 

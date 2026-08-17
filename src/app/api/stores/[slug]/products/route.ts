@@ -6,6 +6,7 @@ import {
   withEmbedCors,
 } from "@/lib/embed-cors";
 import { getActiveStoreOffers } from "@/lib/store-offers";
+import { findStoreByPublicSlug } from "@/lib/store-lookup";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -21,7 +22,7 @@ export async function GET(req: Request, { params }: Params) {
   const productKey = new URL(req.url).searchParams.get("product")?.trim() || "";
 
   try {
-    const store = await prisma.store.findUnique({ where: { slug } });
+    const store = await findStoreByPublicSlug(slug);
     if (!store) {
       return withEmbedCors(
         NextResponse.json({ error: "Store not found" }, { status: 404 }),

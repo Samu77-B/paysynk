@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
 import { priceCart, type PricedLine } from "@/lib/pricing";
-import { getActiveStoreOffers } from "@/lib/store-offers";
+import { findStoreByPublicSlug } from "@/lib/store-lookup";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type CheckoutItemInput = {
@@ -33,7 +33,7 @@ export async function createStoreCheckout(opts: {
     }
   }
 
-  const store = await prisma.store.findUnique({ where: { slug: storeSlug } });
+  const store = await findStoreByPublicSlug(storeSlug);
   if (!store) {
     throw new CheckoutError("Store not found", 404);
   }

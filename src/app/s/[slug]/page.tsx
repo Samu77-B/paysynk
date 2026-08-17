@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Storefront } from "@/components/storefront/Storefront";
 import { getActiveStoreOffers } from "@/lib/store-offers";
+import { findStoreByPublicSlug } from "@/lib/store-lookup";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function StorePage({ params }: Props) {
   const { slug } = await params;
 
-  const store = await prisma.store.findUnique({ where: { slug } });
+  const store = await findStoreByPublicSlug(slug);
   if (!store) notFound();
 
   if (store.signupStatus !== "approved") {
