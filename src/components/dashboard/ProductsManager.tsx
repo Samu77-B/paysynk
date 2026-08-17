@@ -118,60 +118,68 @@ function ImagePicker({
     if (!file) return;
     setBusy(true);
     setErr(null);
-    const body = new FormData();
-    body.set("file", file);
-    const res = await fetch("/api/uploads/product-image", {
-      method: "POST",
-      body,
-    });
-    const data = (await res.json()) as { url?: string; error?: string };
-    setBusy(false);
-    if (!res.ok || !data.url) {
-      setErr(data.error ?? "Upload failed.");
-      return;
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const res = await fetch("/api/uploads/product-image", {
+        method: "POST",
+        body,
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setErr(data.error ?? "Upload failed.");
+        return;
+      }
+      onUrl(data.url);
+    } catch {
+      setErr("Upload failed.");
+    } finally {
+      setBusy(false);
     }
-    onUrl(data.url);
   }
 
   return (
-    <div className="space-y-2">
+    <div className="min-w-0 space-y-1.5">
       <Label>{label}</Label>
-      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
-      <div className="flex items-center gap-3">
-        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
+      {hint ? <p className="text-xs text-zinc-500">{hint}</p> : null}
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
           {url ? (
             <Image
               src={url}
               alt=""
-              width={64}
-              height={64}
-              className="size-16 object-cover"
+              width={48}
+              height={48}
+              className="size-12 object-cover"
             />
           ) : (
             <Package className="size-4 text-zinc-400" />
           )}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <Input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            disabled={busy}
-            onChange={(e) => {
-              void onFile(e.target.files?.[0]);
-              e.target.value = "";
-            }}
-          />
-          {busy && <p className="text-xs text-zinc-500">Uploading…</p>}
-          {err && <p className="text-xs text-red-600">{err}</p>}
-          {url && (
+        <div className="min-w-0 space-y-1">
+          <label className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 hover:bg-zinc-50">
+            {busy ? "Uploading…" : url ? "Change photo" : "Choose photo"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              disabled={busy}
+              className="sr-only"
+              onChange={(e) => {
+                void onFile(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {err ? <p className="text-xs text-red-600">{err}</p> : null}
+          {url ? (
             <button
               type="button"
-              className="text-xs text-zinc-500 underline"
+              className="block text-xs text-zinc-500 underline"
               onClick={() => onUrl("")}
             >
               Remove photo
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -418,8 +426,8 @@ export function ProductsManager({
       </Card>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="overflow-y-auto sm:max-w-xl">
-          <SheetHeader>
+        <SheetContent className="w-full overflow-hidden data-[side=right]:w-full data-[side=right]:sm:max-w-4xl">
+          <SheetHeader className="shrink-0">
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>
               Upload a photo per colour. Sizes share that colour’s photo and keep
@@ -427,154 +435,163 @@ export function ProductsManager({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="grid gap-4 px-4 pb-4">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
-                rows={4}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Price (£)</Label>
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 md:grid-cols-2">
+            <div className="grid min-w-0 content-start gap-3">
+              <div className="space-y-1.5">
+                <Label>Title</Label>
                 <Input
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>SKU</Label>
-                <Input
-                  value={form.sku}
-                  onChange={(e) => setForm({ ...form, sku: e.target.value })}
+              <div className="space-y-1.5">
+                <Label>Description</Label>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm({ ...form, description: e.target.value })
+                  }
+                  rows={2}
                 />
               </div>
-            </div>
-            {!showStockGrid && (
-              <div className="space-y-2">
-                <Label>Stock count</Label>
-                <Input
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Price (£)</Label>
+                  <Input
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>SKU</Label>
+                  <Input
+                    value={form.sku}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                  />
+                </div>
               </div>
-            )}
-            {showStockGrid && (
-              <div className="space-y-2">
-                <Label>Default stock</Label>
-                <Input
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                />
-                <p className="text-xs text-zinc-500">
-                  Used for any colour/size cell you leave blank.
-                </p>
-              </div>
-            )}
-            {colours.length === 0 && (
-              <ImagePicker
-                label="Product photo"
-                hint="Shown on the shop for this item."
-                url={form.defaultImage}
-                onUrl={(defaultImage) => setForm({ ...form, defaultImage })}
-              />
-            )}
-            <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2">
-              <div>
-                <p className="text-sm font-medium">Active</p>
-                <p className="text-xs text-zinc-500">Visible on storefront</p>
-              </div>
-              <Switch
-                checked={form.isActive}
-                onCheckedChange={(isActive) => setForm({ ...form, isActive })}
-              />
-            </div>
-            <div className="space-y-3 rounded-lg border border-zinc-200 p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Variants</p>
+              {showStockGrid ? (
+                <div className="space-y-1.5">
+                  <Label>Default stock</Label>
+                  <Input
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                  />
                   <p className="text-xs text-zinc-500">
-                    Colours get their own photo. Sizes share it.
+                    Used for any colour/size cell you leave blank.
                   </p>
                 </div>
-                <Switch
-                  checked={form.enableVariants}
-                  onCheckedChange={(enableVariants) =>
-                    setForm({ ...form, enableVariants })
-                  }
-                />
-              </div>
-              {form.enableVariants && (
-                <div className="grid gap-3">
-                  <div className="space-y-2">
-                    <Label>Sizes</Label>
-                    <Input
-                      value={form.variantSize}
-                      onChange={(e) =>
-                        setForm({ ...form, variantSize: e.target.value })
-                      }
-                      placeholder="S, M, L"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Colours</Label>
-                    <Input
-                      value={form.variantColor}
-                      onChange={(e) =>
-                        setForm({ ...form, variantColor: e.target.value })
-                      }
-                      placeholder="Red, Green"
-                    />
-                  </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label>Stock count</Label>
+                  <Input
+                    value={form.stock}
+                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                  />
                 </div>
               )}
-            </div>
-            {colours.length > 0 && (
-              <div className="space-y-3 rounded-lg border border-zinc-200 p-3">
+              {colours.length === 0 ? (
+                <ImagePicker
+                  label="Product photo"
+                  hint="Shown on the shop for this item."
+                  url={form.defaultImage}
+                  onUrl={(defaultImage) => setForm({ ...form, defaultImage })}
+                />
+              ) : null}
+              <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2">
                 <div>
-                  <p className="text-sm font-medium">Photo per colour</p>
-                  <p className="text-xs text-zinc-500">
-                    Red small and red large both use the red photo.
-                  </p>
+                  <p className="text-sm font-medium">Active</p>
+                  <p className="text-xs text-zinc-500">Visible on storefront</p>
                 </div>
-                {colours.map((colour) => (
-                  <ImagePicker
-                    key={colour}
-                    label={colour}
-                    url={form.colourImages[colour] ?? ""}
-                    onUrl={(url) =>
-                      setForm({
-                        ...form,
-                        colourImages: { ...form.colourImages, [colour]: url },
-                      })
+                <Switch
+                  checked={form.isActive}
+                  onCheckedChange={(isActive) => setForm({ ...form, isActive })}
+                />
+              </div>
+              <div className="space-y-3 rounded-lg border border-zinc-200 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Variants</p>
+                    <p className="text-xs text-zinc-500">
+                      Colours get their own photo. Sizes share it.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.enableVariants}
+                    onCheckedChange={(enableVariants) =>
+                      setForm({ ...form, enableVariants })
                     }
                   />
-                ))}
+                </div>
+                {form.enableVariants ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Sizes</Label>
+                      <Input
+                        value={form.variantSize}
+                        onChange={(e) =>
+                          setForm({ ...form, variantSize: e.target.value })
+                        }
+                        placeholder="S, M, L"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Colours</Label>
+                      <Input
+                        value={form.variantColor}
+                        onChange={(e) =>
+                          setForm({ ...form, variantColor: e.target.value })
+                        }
+                        placeholder="Red, Green"
+                      />
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            )}
-            {showStockGrid && (
-              <div className="space-y-2 rounded-lg border border-zinc-200 p-3">
-                <p className="text-sm font-medium">Stock by selection</p>
-                <p className="text-xs text-zinc-500">
-                  Set 0 to hide that colour/size on the shop.
-                </p>
-                <div className="overflow-x-auto">
+            </div>
+
+            <div className="grid min-w-0 content-start gap-3">
+              {colours.length > 0 ? (
+                <div className="space-y-3 rounded-lg border border-zinc-200 p-3">
+                  <div>
+                    <p className="text-sm font-medium">Photo per colour</p>
+                    <p className="text-xs text-zinc-500">
+                      Red small and red large both use the red photo.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {colours.map((colour) => (
+                      <ImagePicker
+                        key={colour}
+                        label={colour}
+                        url={form.colourImages[colour] ?? ""}
+                        onUrl={(url) =>
+                          setForm({
+                            ...form,
+                            colourImages: {
+                              ...form.colourImages,
+                              [colour]: url,
+                            },
+                          })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {showStockGrid ? (
+                <div className="space-y-2 rounded-lg border border-zinc-200 p-3">
+                  <p className="text-sm font-medium">Stock by selection</p>
+                  <p className="text-xs text-zinc-500">
+                    Set 0 to hide that colour/size on the shop.
+                  </p>
                   {colours.length > 0 && sizes.length > 0 ? (
                     <table className="w-full text-sm">
                       <thead>
                         <tr>
-                          <th className="px-1 py-1 text-left font-medium">Colour</th>
+                          <th className="px-1 py-1 text-left font-medium">
+                            Colour
+                          </th>
                           {sizes.map((size) => (
                             <th key={size} className="px-1 py-1 font-medium">
                               {size}
@@ -633,44 +650,38 @@ export function ProductsManager({
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-            {form.id && (
-              <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <div>
-                  <p className="text-sm font-medium">Product embed code</p>
-                  <p className="text-xs text-zinc-500">
-                    Paste on any page with this shop’s cart.js for a shared basket
-                  </p>
+              ) : null}
+              {form.id ? (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Product embed</p>
+                    <p className="text-xs text-zinc-500">
+                      Copy this onto any page with cart.js
+                    </p>
+                  </div>
+                  <CopySnippetButton
+                    snippet={productEmbedSnippet(
+                      storeSlug,
+                      products.find((p) => p.id === form.id)?.slug ??
+                        form.title
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, "-")
+                          .replace(/(^-|-$)/g, ""),
+                    )}
+                    label="Copy"
+                  />
                 </div>
-                <pre className="overflow-x-auto rounded-lg bg-[#141414] p-3 text-[11px] leading-relaxed text-[#9FE870]">
-                  {productEmbedSnippet(
-                    storeSlug,
-                    products.find((p) => p.id === form.id)?.slug ??
-                      form.title
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/(^-|-$)/g, ""),
-                  )}
-                </pre>
-                <CopySnippetButton
-                  snippet={productEmbedSnippet(
-                    storeSlug,
-                    products.find((p) => p.id === form.id)?.slug ??
-                      form.title
-                        .toLowerCase()
-                        .replace(/[^a-z0-9]+/g, "-")
-                        .replace(/(^-|-$)/g, ""),
-                  )}
-                  label="Copy product embed"
-                />
-              </div>
-            )}
-            {error && <p className="text-sm text-red-600">{error}</p>}
+              ) : null}
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            </div>
           </div>
 
-          <SheetFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
+          <SheetFooter className="shrink-0 flex-row justify-end">
+            <Button
+              variant="outline"
+              className="bg-white text-zinc-900"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
             <Button
