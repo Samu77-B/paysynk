@@ -167,6 +167,25 @@ export async function saveDashboardProduct(input: {
   return { product: toDashboardProduct(product, storeId) };
 }
 
+export async function deleteDashboardProduct(
+  productId: string,
+): Promise<{ ok?: true; error?: string }> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to manage products." };
+
+  const existing = await prisma.product.findFirst({
+    where: { id: productId, storeId },
+    select: { id: true },
+  });
+  if (!existing) return { error: "Product not found." };
+
+  await prisma.product.delete({ where: { id: existing.id } });
+  revalidatePath("/app/products");
+  revalidatePath(`/s/${session.user.storeSlug}`);
+  return { ok: true };
+}
+
 export async function markOrderFulfilled(orderId: string) {
   const session = await auth();
   const storeId = session?.user?.storeId;

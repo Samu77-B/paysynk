@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,7 +37,7 @@ import {
   productEmbedSnippet,
 } from "@/components/dashboard/embed-snippets";
 import { formatGbp } from "@/lib/dashboard/demo-data";
-import { saveDashboardProduct } from "@/lib/dashboard/actions";
+import { saveDashboardProduct, deleteDashboardProduct } from "@/lib/dashboard/actions";
 import { compressProductImage } from "@/lib/compress-image";
 import type { CatalogProduct } from "@/lib/dashboard/data";
 
@@ -341,6 +341,25 @@ export function ProductsManager({
     });
   }
 
+  function removeProduct() {
+    if (!form.id) return;
+    const ok = window.confirm(
+      `Delete “${form.title || "this product"}”? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    startTransition(async () => {
+      setError(null);
+      const result = await deleteDashboardProduct(form.id!);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setProducts((prev) => prev.filter((p) => p.id !== form.id));
+      setOpen(false);
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -571,10 +590,11 @@ export function ProductsManager({
                   <div>
                     <p className="text-sm font-medium">Photo per colour</p>
                     <p className="text-xs text-zinc-500">
-                      Red small and red large both use the red photo.
+                      Each colour below gets its own photo. Type another colour
+                      in Colours to add a slot. Sizes share that colour’s photo.
                     </p>
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-3">
                     {colours.map((colour) => (
                       <ImagePicker
                         key={colour}
@@ -691,7 +711,18 @@ export function ProductsManager({
             </div>
           </div>
 
-          <SheetFooter className="shrink-0 flex-row justify-end">
+          <SheetFooter className="shrink-0 flex-row flex-wrap justify-end gap-2">
+            {form.id ? (
+              <Button
+                variant="outline"
+                className="mr-auto border-red-200 bg-white text-red-700 hover:bg-red-50"
+                disabled={pending}
+                onClick={removeProduct}
+              >
+                <Trash2 className="size-4" />
+                Delete product
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               className="bg-white text-zinc-900"
