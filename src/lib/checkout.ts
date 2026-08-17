@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
 import { priceCart, type PricedLine } from "@/lib/pricing";
+import { getActiveStoreOffers } from "@/lib/store-offers";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
 import type { Prisma } from "@/generated/prisma/client";
 
