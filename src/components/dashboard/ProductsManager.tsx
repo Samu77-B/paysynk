@@ -39,6 +39,7 @@ import {
 import { formatGbp } from "@/lib/dashboard/demo-data";
 import { saveDashboardProduct } from "@/lib/dashboard/actions";
 import { compressProductImage } from "@/lib/compress-image";
+import type { CatalogProduct } from "@/lib/dashboard/data";
 
 type FormState = {
   id?: string;

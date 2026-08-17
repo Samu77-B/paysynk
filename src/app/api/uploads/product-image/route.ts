@@ -12,18 +12,11 @@ export async function POST(request: Request) {
 
     const form = await request.formData();
     const file = form.get("file");
-    if (!(file instanceof Blob) || file.size === 0) {
+    if (!(file instanceof File) || file.size === 0) {
       return NextResponse.json({ error: "Choose an image file." }, { status: 400 });
     }
 
-    const named =
-      file instanceof File
-        ? file
-        : new File([file], "photo.jpg", {
-            type: file.type || "image/jpeg",
-          });
-
-    const saved = await saveProductImageFile({ storeId, file: named });
+    const saved = await saveProductImageFile({ storeId, file });
     if (saved.error) {
       return NextResponse.json({ error: saved.error }, { status: 400 });
     }
