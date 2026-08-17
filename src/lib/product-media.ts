@@ -38,16 +38,21 @@ export async function saveProductImageFile(opts: {
 
   const name = `${randomBytes(8).toString("hex")}.${extensionFor(type)}`;
   const pathname = `products/${opts.storeId}/${name}`;
+  const blobStoreId =
+    process.env["BLOB2_STORE_ID"] || process.env["BLOB_STORE_ID"];
 
-  // On Vercel always use Blob. Do not branch on BLOB_READ_WRITE_TOKEN here —
-  // Next can inline that check at build time as empty if the token was added later.
+  const blobOptions = {
+    access: "public" as const,
+    contentType: type,
+    addRandomSuffix: false,
+    ...(blobStoreId ? { storeId: blobStoreId } : {}),
+  };
+
+  // On Vercel always use Blob. Pass storeId explicitly because this project
+  // connected the public store as BLOB2_STORE_ID, not BLOB_STORE_ID.
   if (process.env.VERCEL) {
     try {
-      const blob = await put(pathname, opts.file, {
-        access: "public",
-        contentType: type,
-        addRandomSuffix: false,
-      });
+      const blob = await put(pathname, opts.file, blobOptions);
       return { url: blob.url };
     } catch (err) {
       console.error("blob upload failed", err);
@@ -58,12 +63,8 @@ export async function saveProductImageFile(opts: {
     }
   }
 
-  if (process.env["BLOB_READ_WRITE_TOKEN"]) {
-    const blob = await put(pathname, opts.file, {
-      access: "public",
-      contentType: type,
-      addRandomSuffix: false,
-    });
+  if (process.env["BLOB_READ_WRITE_TOKEN"] || blobStoreId) {
+    const blob = await put(pathname, opts.file, blobOptions);
     return { url: blob.url };
   }
 
