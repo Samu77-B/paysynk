@@ -38,7 +38,7 @@ import {
 } from "@/components/dashboard/embed-snippets";
 import { formatGbp } from "@/lib/dashboard/demo-data";
 import { saveDashboardProduct } from "@/lib/dashboard/actions";
-import type { CatalogProduct } from "@/lib/dashboard/data";
+import { compressProductImage } from "@/lib/compress-image";
 
 type FormState = {
   id?: string;
@@ -119,20 +119,32 @@ function ImagePicker({
     setBusy(true);
     setErr(null);
     try {
+      const compressed = await compressProductImage(file);
       const body = new FormData();
-      body.set("file", file);
+      body.set("file", compressed);
       const res = await fetch("/api/uploads/product-image", {
         method: "POST",
         body,
       });
-      const data = (await res.json()) as { url?: string; error?: string };
+      const text = await res.text();
+      let data: { url?: string; error?: string } = {};
+      try {
+        data = JSON.parse(text) as { url?: string; error?: string };
+      } catch {
+        data = {};
+      }
       if (!res.ok || !data.url) {
-        setErr(data.error ?? "Upload failed.");
+        setErr(
+          data.error ??
+            (res.status === 413
+              ? "Image is too large. Use a JPG under 4MB."
+              : `Upload failed (${res.status}).`),
+        );
         return;
       }
       onUrl(data.url);
-    } catch {
-      setErr("Upload failed.");
+    } catch (err) {
+      setErr(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setBusy(false);
     }
@@ -150,6 +162,7 @@ function ImagePicker({
               alt=""
               width={48}
               height={48}
+              unoptimized={url.startsWith("http")}
               className="size-12 object-cover"
             />
           ) : (
@@ -382,6 +395,7 @@ export function ProductsManager({
                             alt=""
                             width={40}
                             height={40}
+                            unoptimized={thumb.startsWith("http")}
                             className="size-10 object-cover"
                           />
                         ) : (

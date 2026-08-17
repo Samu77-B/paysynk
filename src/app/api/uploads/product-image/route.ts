@@ -3,21 +3,35 @@ import { auth } from "@/lib/auth";
 import { saveProductImageFile } from "@/lib/product-media";
 
 export async function POST(request: Request) {
-  const session = await auth();
-  const storeId = session?.user?.storeId;
-  if (!storeId) {
-    return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
-  }
+  try {
+    const session = await auth();
+    const storeId = session?.user?.storeId;
+    if (!storeId) {
+      return NextResponse.json({ error: "Sign in to upload." }, { status: 401 });
+    }
 
-  const form = await request.formData();
-  const file = form.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "Choose an image file." }, { status: 400 });
-  }
+    const form = await request.formData();
+    const file = form.get("file");
+    if (!(file instanceof Blob) || file.size === 0) {
+      return NextResponse.json({ error: "Choose an image file." }, { status: 400 });
+    }
 
-  const saved = await saveProductImageFile({ storeId, file });
-  if (saved.error) {
-    return NextResponse.json({ error: saved.error }, { status: 400 });
+    const named =
+      file instanceof File
+        ? file
+        : new File([file], "photo.jpg", {
+            type: file.type || "image/jpeg",
+          });
+
+    const saved = await saveProductImageFile({ storeId, file: named });
+    if (saved.error) {
+      return NextResponse.json({ error: saved.error }, { status: 400 });
+    }
+    return NextResponse.json({ url: saved.url });
+  } catch (err) {
+    console.error("product-image upload failed", err);
+    const message =
+      err instanceof Error ? err.message : "Upload failed. Try a JPG under 4MB.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-  return NextResponse.json({ url: saved.url });
 }

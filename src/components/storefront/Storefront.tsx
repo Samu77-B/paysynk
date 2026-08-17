@@ -106,6 +106,7 @@ function ProductCard({
             alt={colour ? `${product.title} — ${colour}` : product.title}
             fill
             sizes="(min-width: 860px) 33vw, 90vw"
+            unoptimized={image.startsWith("http")}
             className="store-product-img"
           />
         ) : (

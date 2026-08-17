@@ -1,30 +1,60 @@
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomBytes } from "crypto";
+import { put } from "@vercel/blob";
 
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const MAX_BYTES = 6 * 1024 * 1024;
+
+function resolveType(file: File): string | null {
+  if (file.type === "image/jpg") return "image/jpeg";
+  if (ALLOWED.has(file.type)) return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "webp") return "image/webp";
+  if (ext === "gif") return "image/gif";
+  return null;
+}
+
+function extensionFor(type: string) {
+  if (type === "image/png") return "png";
+  if (type === "image/webp") return "webp";
+  if (type === "image/gif") return "gif";
+  return "jpg";
+}
 
 export async function saveProductImageFile(opts: {
   storeId: string;
   file: File;
 }): Promise<{ url: string; error?: undefined } | { url?: undefined; error: string }> {
-  if (!ALLOWED.has(opts.file.type)) {
+  const type = resolveType(opts.file);
+  if (!type) {
     return { error: "Use a JPG, PNG, WebP, or GIF." };
   }
   if (opts.file.size > MAX_BYTES) {
     return { error: "Image must be under 6MB." };
   }
 
-  const ext =
-    opts.file.type === "image/png"
-      ? "png"
-      : opts.file.type === "image/webp"
-        ? "webp"
-        : opts.file.type === "image/gif"
-          ? "gif"
-          : "jpg";
-  const name = `${randomBytes(8).toString("hex")}.${ext}`;
+  const name = `${randomBytes(8).toString("hex")}.${extensionFor(type)}`;
+  const pathname = `products/${opts.storeId}/${name}`;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(pathname, opts.file, {
+      access: "public",
+      contentType: type,
+      addRandomSuffix: false,
+    });
+    return { url: blob.url };
+  }
+
+  if (process.env.VERCEL) {
+    return {
+      error:
+        "Photo storage is not set up on the live site yet. Add a Vercel Blob store so uploads can save.",
+    };
+  }
+
   const dir = path.join(process.cwd(), "public", "uploads", opts.storeId);
   await mkdir(dir, { recursive: true });
   const buffer = Buffer.from(await opts.file.arrayBuffer());
