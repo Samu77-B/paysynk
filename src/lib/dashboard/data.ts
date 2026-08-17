@@ -1,6 +1,7 @@
-import type { Store, Product as PrismaProduct, Variant, Order as PrismaOrder, OrderItem } from "@/generated/prisma/client";
+import type { Store, Product as PrismaProduct, Variant, Order as PrismaOrder, OrderItem, Offer } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { toPublicOffer, type PublicOffer } from "@/lib/offers";
 import type { BillingInvoice, Merchant, Order, OrderStatus, Product } from "@/types/database";
 
 export type CatalogVariant = {
@@ -150,6 +151,39 @@ export async function getMerchantProducts(
     orderBy: { createdAt: "desc" },
   });
   return products.map((p) => toDashboardProduct(p, merchantId));
+}
+
+export type DashboardOffer = PublicOffer & {
+  active: boolean;
+  createdAt: string;
+};
+
+export async function getMerchantOffers(
+  merchantId: string,
+): Promise<DashboardOffer[]> {
+  const rows = await prisma.offer.findMany({
+    where: { storeId: merchantId },
+    orderBy: { createdAt: "desc" },
+  });
+  const giftIds = rows
+    .map((row) => row.giftProductId)
+    .filter((id): id is string => Boolean(id));
+  const giftProducts =
+    giftIds.length === 0
+      ? []
+      : await prisma.product.findMany({
+          where: { id: { in: giftIds }, storeId: merchantId },
+          select: { id: true, title: true },
+        });
+  const giftTitleById = new Map(giftProducts.map((p) => [p.id, p.title]));
+  return rows.map((row: Offer) => ({
+    ...toPublicOffer(
+      row,
+      row.giftProductId ? giftTitleById.get(row.giftProductId) ?? null : null,
+    ),
+    active: row.active,
+    createdAt: row.createdAt.toISOString(),
+  }));
 }
 
 export async function getMerchantOrders(merchantId: string): Promise<Order[]> {

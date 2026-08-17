@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPaymentProvider } from "@/lib/payments";
 import { priceCart, type PricedLine } from "@/lib/pricing";
+import { getActiveStoreOffers } from "@/lib/store-offers";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type CheckoutItemInput = {
@@ -10,11 +11,12 @@ export type CheckoutItemInput = {
 
 /**
  * Server-side checkout: load store + variants from DB, re-validate stock/prices,
- * apply bundle + shipping, create pending Order, then redirect via payment provider.
+ * apply offers + shipping, create pending Order, then redirect via payment provider.
  */
 export async function createStoreCheckout(opts: {
   storeSlug: string;
   items: CheckoutItemInput[];
+  discountCode?: string | null;
   channel?: "online" | "pos";
   appUrl: string;
 }) {
@@ -75,7 +77,55 @@ export async function createStoreCheckout(opts: {
     });
   }
 
-  const pricing = priceCart(pricedInput, store.shippingFlatMinor);
+  const offers = await getActiveStoreOffers(store.id);
+  const pricing = priceCart(pricedInput, store.shippingFlatMinor, {
+    offers,
+    discountCode: opts.discountCode,
+  });
+
+  if (opts.discountCode?.trim() && pricing.codeError) {
+    throw new CheckoutError(pricing.codeError, 400);
+  }
+
+  const giftItems: Array<{
+    variantId: string;
+    title: string;
+    optionsSnapshot: Prisma.InputJsonValue;
+    sku: string;
+    unitPriceMinor: number;
+    quantity: number;
+    lineTotalMinor: number;
+  }> = [];
+  for (const gift of pricing.gifts) {
+    const giftProduct = await prisma.product.findFirst({
+      where: { id: gift.productId, storeId: store.id },
+      include: {
+        variants: {
+          where: { stockQty: { gt: 0 } },
+          orderBy: { stockQty: "desc" },
+        },
+      },
+    });
+    const variant = giftProduct?.variants[0];
+    if (!giftProduct || !variant) continue;
+
+    const alreadyReserved = items
+      .filter((item) => item.variantId === variant.id)
+      .reduce((sum, item) => sum + item.quantity, 0);
+    const available = variant.stockQty - alreadyReserved;
+    const quantity = Math.min(gift.quantity, available);
+    if (quantity < 1) continue;
+
+    giftItems.push({
+      variantId: variant.id,
+      title: `Free: ${giftProduct.title}`,
+      optionsSnapshot: (variant.options ?? {}) as Prisma.InputJsonValue,
+      sku: variant.sku,
+      unitPriceMinor: 0,
+      quantity,
+      lineTotalMinor: 0,
+    });
+  }
 
   const order = await prisma.order.create({
     data: {
@@ -87,19 +137,29 @@ export async function createStoreCheckout(opts: {
       subtotalMinor: pricing.subtotalMinor,
       shippingMinor: pricing.shippingMinor,
       totalMinor: pricing.totalMinor,
+      discountMinor: pricing.discountMinor,
+      discountCode: pricing.appliedCode,
       items: {
-        create: pricing.lines.map((line) => ({
-          variantId: line.variantId,
-          title: line.title,
-          optionsSnapshot: line.options as Prisma.InputJsonValue,
-          sku: line.sku,
-          unitPriceMinor: line.unitPriceMinor,
-          quantity: line.quantity,
-          lineTotalMinor: line.lineTotalMinor,
-        })),
+        create: [
+          ...pricing.lines.map((line) => ({
+            variantId: line.variantId,
+            title: line.title,
+            optionsSnapshot: line.options as Prisma.InputJsonValue,
+            sku: line.sku,
+            unitPriceMinor: line.unitPriceMinor,
+            quantity: line.quantity,
+            lineTotalMinor: line.lineTotalMinor,
+          })),
+          ...giftItems,
+        ],
       },
     },
   });
+
+  const giftNote =
+    giftItems.length > 0
+      ? giftItems.map((g) => `${g.quantity}× ${g.title}`).join(", ")
+      : undefined;
 
   const provider = getPaymentProvider(store.paymentProvider);
   const checkout = await provider.createCheckout({
@@ -122,10 +182,7 @@ export async function createStoreCheckout(opts: {
     }),
     discountMinor: pricing.discountMinor,
     bundlePairs: pricing.bundlePairs,
-    discountLabel:
-      pricing.bundlePairs > 0
-        ? `Bundle discount (${pricing.bundlePairs}× tee + tote)`
-        : undefined,
+    discountLabel: [pricing.discountLabel, giftNote].filter(Boolean).join(" · ") || undefined,
     successUrl: `${appUrl}/s/${store.slug}/success?order=${order.id}`,
     cancelUrl: `${appUrl}/s/${store.slug}?cancelled=1`,
   });

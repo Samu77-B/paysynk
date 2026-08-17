@@ -6,6 +6,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
+import type { PublicOffer } from "@/lib/offers";
 
 export type StorefrontProduct = {
   id: string;
@@ -197,9 +198,18 @@ function ProductCard({
   );
 }
 
-function CartPanel({ store }: { store: StorefrontStore }) {
-  const { items, setQuantity, removeItem, itemCount } = useCart();
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+function CartPanel({
+  store,
+  offers,
+}: {
+  store: StorefrontStore;
+  offers: PublicOffer[];
+}) {
+  const { items, setQuantity, removeItem, itemCount, clear } = useCart();
+  const [discountCode, setDiscountCode] = useState("");
+  const [codeDraft, setCodeDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const pricing = useMemo(() => {
     return priceCart(
@@ -214,8 +224,42 @@ function CartPanel({ store }: { store: StorefrontStore }) {
         quantity: i.quantity,
       })),
       store.shippingFlatMinor,
+      { offers, discountCode },
     );
-  }, [items, store.shippingFlatMinor]);
+  }, [items, store.shippingFlatMinor, offers, discountCode]);
+
+  async function checkout() {
+    if (!items.length || busy) return;
+    setBusy(true);
+    setCheckoutError(null);
+    try {
+      const res = await fetch(`/api/stores/${store.slug}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+          discountCode: discountCode || undefined,
+        }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        redirectUrl?: string;
+      };
+      if (!res.ok || !data.redirectUrl) {
+        throw new Error(data.error || "Checkout failed");
+      }
+      clear();
+      window.location.href = data.redirectUrl;
+    } catch (err) {
+      setBusy(false);
+      setCheckoutError(
+        err instanceof Error ? err.message : "Checkout failed",
+      );
+    }
+  }
 
   return (
     <aside className="store-cart">
@@ -256,7 +300,39 @@ function CartPanel({ store }: { store: StorefrontStore }) {
                 </div>
               </li>
             ))}
+            {pricing.gifts.map((gift) => (
+              <li key={gift.offerId} className="cart-gift">
+                <div>
+                  <strong>Free: {gift.title}</strong>
+                  <div className="muted small">×{gift.quantity}</div>
+                </div>
+              </li>
+            ))}
           </ul>
+
+          <form
+            className="cart-promo"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setDiscountCode(codeDraft);
+            }}
+          >
+            <input
+              type="text"
+              value={codeDraft}
+              onChange={(e) => setCodeDraft(e.target.value.toUpperCase())}
+              placeholder="Discount code"
+              aria-label="Discount code"
+            />
+            <button type="submit" className="btn btn-ghost">
+              Apply
+            </button>
+          </form>
+          {pricing.codeError && (
+            <p className="muted small note" style={{ color: "#b91c1c" }}>
+              {pricing.codeError}
+            </p>
+          )}
 
           <dl className="totals">
             <div>
@@ -265,6 +341,14 @@ function CartPanel({ store }: { store: StorefrontStore }) {
                 {formatMoney(pricing.catalogueSubtotalMinor, store.currency)}
               </dd>
             </div>
+            {pricing.discountMinor > 0 && (
+              <div>
+                <dt>{pricing.discountLabel || "Discount"}</dt>
+                <dd>
+                  −{formatMoney(pricing.discountMinor, store.currency)}
+                </dd>
+              </div>
+            )}
             <div>
               <dt>UK shipping</dt>
               <dd>{formatMoney(pricing.shippingMinor, store.currency)}</dd>
@@ -278,41 +362,20 @@ function CartPanel({ store }: { store: StorefrontStore }) {
           <button
             type="button"
             className="btn btn-primary btn-block"
-            onClick={() => setShowPaymentModal(true)}
+            disabled={busy}
+            onClick={() => void checkout()}
           >
-            Checkout
+            {busy ? "Redirecting…" : "Checkout with Stripe"}
           </button>
+          {checkoutError && (
+            <p className="muted small note" style={{ color: "#b91c1c" }}>
+              {checkoutError}
+            </p>
+          )}
           <p className="muted small note">
             Prices and stock re-validated on the server at checkout.
           </p>
         </>
-      )}
-
-      {showPaymentModal && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="payment-modal-title"
-          onClick={() => setShowPaymentModal(false)}
-        >
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 id="payment-modal-title">
-              No payment provider connected (Demo Only)
-            </h3>
-            <p className="muted">
-              Connect to Stripe, PayPal, or Bank transfer (if available) to
-              enable checkout for this store.
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setShowPaymentModal(false)}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
       )}
     </aside>
   );
@@ -321,9 +384,11 @@ function CartPanel({ store }: { store: StorefrontStore }) {
 export function Storefront({
   store,
   products,
+  offers = [],
 }: {
   store: StorefrontStore;
   products: StorefrontProduct[];
+  offers?: PublicOffer[];
 }) {
   return (
     <CartProvider storeSlug={store.slug}>
@@ -353,7 +418,7 @@ export function Storefront({
               <ProductCard key={p.id} product={p} currency={store.currency} />
             ))}
           </div>
-          <CartPanel store={store} />
+          <CartPanel store={store} offers={offers} />
         </div>
       </div>
     </CartProvider>

@@ -14,6 +14,7 @@ const bodySchema = z.object({
       }),
     )
     .min(1),
+  discountCode: z.string().max(40).optional(),
 });
 
 export async function OPTIONS() {
@@ -43,6 +44,7 @@ export async function POST(req: Request, { params }: Params) {
     const result = await createStoreCheckout({
       storeSlug: slug,
       items: parsed.data.items,
+      discountCode: parsed.data.discountCode,
       appUrl,
       channel: "online",
     });
@@ -57,6 +59,8 @@ export async function POST(req: Request, { params }: Params) {
           totalMinor: result.pricing.totalMinor,
           bundlePairs: result.pricing.bundlePairs,
           discountMinor: result.pricing.discountMinor,
+          appliedCode: result.pricing.appliedCode,
+          gifts: result.pricing.gifts,
         },
       }),
     );

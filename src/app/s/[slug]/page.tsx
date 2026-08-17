@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Storefront } from "@/components/storefront/Storefront";
+import { getActiveStoreOffers } from "@/lib/store-offers";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -53,6 +54,8 @@ export default async function StorePage({ params }: Props) {
       })),
     }));
 
+  const offers = await getActiveStoreOffers(store.id);
+
   return (
     <Storefront
       store={{
@@ -62,6 +65,7 @@ export default async function StorePage({ params }: Props) {
         shippingFlatMinor: store.shippingFlatMinor,
       }}
       products={sellable}
+      offers={offers}
     />
   );
 }

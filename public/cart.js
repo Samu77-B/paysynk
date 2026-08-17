@@ -86,12 +86,154 @@
     }
   }
 
+  function codeKey() {
+    return "paysynk-code:" + storeSlug;
+  }
+
+  function readCode() {
+    try {
+      return localStorage.getItem(codeKey()) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function writeCode(value) {
+    try {
+      localStorage.setItem(codeKey(), String(value || "").trim().toUpperCase());
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function qtyForProduct(items, productId) {
+    var n = 0;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].productId === productId) n += items[i].quantity || 0;
+    }
+    return n;
+  }
+
+  function previewCart(items, offers, code, shippingFlat) {
+    var catalogue = 0;
+    var i;
+    for (i = 0; i < items.length; i++) {
+      catalogue += (items[i].priceMinor || 0) * (items[i].quantity || 0);
+    }
+    offers = offers || [];
+    var bundleDiscount = 0;
+    var labels = [];
+    for (i = 0; i < offers.length; i++) {
+      var offer = offers[i];
+      if (
+        offer.kind === "bundle" &&
+        offer.productIdA &&
+        offer.productIdB &&
+        offer.bundleOffMinor
+      ) {
+        var pairs = Math.min(
+          qtyForProduct(items, offer.productIdA),
+          qtyForProduct(items, offer.productIdB),
+        );
+        if (pairs > 0) {
+          bundleDiscount += pairs * offer.bundleOffMinor;
+          labels.push(offer.title);
+        }
+      }
+    }
+    var teeQty = 0;
+    var toteQty = 0;
+    for (i = 0; i < items.length; i++) {
+      if (items[i].kind === "tee") teeQty += items[i].quantity || 0;
+      if (items[i].kind === "tote") toteQty += items[i].quantity || 0;
+    }
+    var legacy = Math.min(teeQty, toteQty);
+    if (legacy > 0) {
+      bundleDiscount += legacy * 300;
+      labels.push("Tee + tote bundle");
+    }
+    var afterBundle = Math.max(0, catalogue - bundleDiscount);
+    var codeDiscount = 0;
+    var codeError = "";
+    var applied = "";
+    var raw = String(code || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "");
+    if (raw) {
+      var match = null;
+      for (i = 0; i < offers.length; i++) {
+        if (offers[i].kind === "code" && offers[i].code === raw) {
+          match = offers[i];
+          break;
+        }
+      }
+      if (!match) codeError = "That code is not valid.";
+      else if (match.minSubtotalMinor && afterBundle < match.minSubtotalMinor) {
+        codeError = "This code needs a higher spend.";
+      } else {
+        var value = match.discountValue || 0;
+        if (match.discountKind === "percent") {
+          codeDiscount = Math.floor(
+            (afterBundle * Math.min(100, value)) / 100,
+          );
+        } else {
+          codeDiscount = Math.min(afterBundle, value);
+        }
+        applied = raw;
+        if (codeDiscount > 0) labels.push(match.title);
+      }
+    }
+    var discount = Math.min(
+      catalogue,
+      bundleDiscount + (codeError ? 0 : codeDiscount),
+    );
+    var subtotal = catalogue - discount;
+    var shipping = items.length ? shippingFlat || 0 : 0;
+    var paidQty = 0;
+    for (i = 0; i < items.length; i++) {
+      var isGiftSku = false;
+      for (var g = 0; g < offers.length; g++) {
+        if (
+          offers[g].kind === "gift" &&
+          offers[g].giftProductId === items[i].productId
+        ) {
+          isGiftSku = true;
+        }
+      }
+      if (!isGiftSku) paidQty += items[i].quantity || 0;
+    }
+    var gifts = [];
+    if (paidQty > 0) {
+      for (i = 0; i < offers.length; i++) {
+        var gf = offers[i];
+        if (gf.kind !== "gift" || !gf.giftProductId) continue;
+        gifts.push({
+          title: gf.giftTitle || gf.title,
+          quantity: gf.giftMode === "per_order" ? 1 : paidQty,
+        });
+      }
+    }
+    return {
+      catalogueSubtotalMinor: catalogue,
+      discountMinor: discount,
+      subtotalMinor: subtotal,
+      shippingMinor: shipping,
+      totalMinor: subtotal + shipping,
+      discountLabel: labels.join(" · "),
+      codeError: codeError,
+      appliedCode: codeError ? "" : applied,
+      gifts: gifts,
+    };
+  }
+
   var storeMeta = {
     slug: storeSlug,
     name: storeSlug,
     currency: "gbp",
     shippingFlatMinor: 525,
   };
+  var storeOffers = [];
   var open = false;
   var busy = false;
   var root = null;
@@ -157,6 +299,7 @@
         items: items.map(function (item) {
           return { variantId: item.variantId, quantity: item.quantity };
         }),
+        discountCode: readCode() || undefined,
       }),
     })
       .then(function (res) {
@@ -187,12 +330,26 @@
       return;
     }
 
-    var subtotal = 0;
-    for (var i = 0; i < items.length; i++) {
-      subtotal += (items[i].priceMinor || 0) * (items[i].quantity || 0);
+    var preview = previewCart(
+      items,
+      storeOffers,
+      readCode(),
+      storeMeta.shippingFlatMinor || 0,
+    );
+    var subtotal = preview.catalogueSubtotalMinor;
+    var shipping = preview.shippingMinor;
+    var total = preview.totalMinor;
+
+    var giftLines = "";
+    for (var gi = 0; gi < preview.gifts.length; gi++) {
+      giftLines +=
+        '<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #f4f4f5;color:#3f6212">' +
+        '<div style="font-weight:600;font-size:0.85rem">Free: ' +
+        escapeHtml(preview.gifts[gi].title) +
+        '</div><div style="font-size:0.8rem">×' +
+        preview.gifts[gi].quantity +
+        "</div></div>";
     }
-    var shipping = items.length ? storeMeta.shippingFlatMinor || 0 : 0;
-    var total = subtotal + shipping;
 
     var lines = "";
     if (!items.length) {
@@ -243,12 +400,31 @@
       "</div>" +
       '<div style="flex:1;overflow:auto;padding:0 18px">' +
       lines +
+      giftLines +
       "</div>" +
       (items.length
         ? '<div style="padding:16px 18px;border-top:1px solid #f4f4f5">' +
+          '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+          '<input data-ps-code type="text" placeholder="Discount code" value="' +
+          escapeAttr(readCode()) +
+          '" style="flex:1;height:36px;border:1px solid #e4e4e7;border-radius:8px;padding:0 10px;font-size:0.85rem" />' +
+          '<button type="button" data-ps-apply-code style="border:1px solid #e4e4e7;background:#fff;border-radius:8px;padding:0 12px;font-size:0.8rem;cursor:pointer">Apply</button>' +
+          "</div>" +
+          (preview.codeError
+            ? '<p style="color:#b91c1c;font-size:0.78rem;margin:0 0 8px">' +
+              escapeHtml(preview.codeError) +
+              "</p>"
+            : "") +
           '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#52525b;margin-bottom:6px"><span>Items</span><span>' +
           formatMoney(subtotal, storeMeta.currency) +
           "</span></div>" +
+          (preview.discountMinor
+            ? '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#3f6212;margin-bottom:6px"><span>' +
+              escapeHtml(preview.discountLabel || "Discount") +
+              "</span><span>−" +
+              formatMoney(preview.discountMinor, storeMeta.currency) +
+              "</span></div>"
+            : "") +
           '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#52525b;margin-bottom:6px"><span>UK shipping</span><span>' +
           formatMoney(shipping, storeMeta.currency) +
           "</span></div>" +
@@ -295,6 +471,15 @@
       })(removeBtns[ri]);
     }
 
+    var applyBtn = root.querySelector("[data-ps-apply-code]");
+    if (applyBtn) {
+      applyBtn.onclick = function () {
+        var input = root.querySelector("[data-ps-code]");
+        writeCode(input ? input.value : "");
+        render();
+      };
+    }
+
     var checkoutBtn = root.querySelector("[data-ps-checkout]");
     if (checkoutBtn) checkoutBtn.onclick = checkout;
   }
@@ -322,6 +507,7 @@
         if (data && data.store) {
           storeMeta = data.store;
         }
+        storeOffers = (data && data.offers) || [];
       })
       .catch(function () {
         /* keep defaults */

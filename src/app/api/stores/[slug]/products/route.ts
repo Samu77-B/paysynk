@@ -5,6 +5,7 @@ import {
   slugifyProductKey,
   withEmbedCors,
 } from "@/lib/embed-cors";
+import { getActiveStoreOffers } from "@/lib/store-offers";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -78,6 +79,8 @@ export async function GET(req: Request, { params }: Params) {
       );
     }
 
+    const offers = await getActiveStoreOffers(store.id);
+
     return withEmbedCors(
       NextResponse.json({
         store: {
@@ -88,6 +91,7 @@ export async function GET(req: Request, { params }: Params) {
           shippingFlatMinor: store.shippingFlatMinor,
         },
         products: filtered,
+        offers,
       }),
     );
   } catch (err) {

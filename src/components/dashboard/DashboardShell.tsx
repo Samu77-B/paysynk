@@ -15,6 +15,7 @@ import {
   LogOut,
   Store,
   Menu,
+  Tag,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,6 +43,7 @@ import { signOutMerchant } from "@/lib/dashboard/auth-actions";
 const NAV = [
   { href: "/app", label: "Overview", icon: LayoutDashboard },
   { href: "/app/products", label: "Products", icon: Package },
+  { href: "/app/offers", label: "Offers", icon: Tag },
   { href: "/app/orders", label: "Orders", icon: ShoppingBag },
   { href: "/app/integration", label: "Integration", icon: Code2 },
   { href: "/app/settings", label: "Settings", icon: Settings },

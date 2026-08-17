@@ -40,6 +40,22 @@ enum SignupStatus {
   rejected
 }
 
+enum OfferKind {
+  code
+  bundle
+  gift
+}
+
+enum DiscountKind {
+  percent
+  amount
+}
+
+enum GiftMode {
+  per_item
+  per_order
+}
+
 model Store {
   id                String              @id @default(cuid())
   slug              String              @unique
@@ -61,6 +77,7 @@ model Store {
   products Product[]
   orders   Order[]
   users    MerchantUser[]
+  offers   Offer[]
 
   @@index([signupStatus])
 }
@@ -122,6 +139,8 @@ model Order {
   subtotalMinor     Int
   shippingMinor     Int
   totalMinor        Int
+  discountMinor     Int                 @default(0)
+  discountCode      String?
   customerEmail     String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
@@ -146,4 +165,36 @@ model OrderItem {
   lineTotalMinor  Int
 
   @@index([orderId])
+}
+
+/// Store-scoped promo: typed codes, buy-X-with-Y bundles, or a free gift.
+model Offer {
+  id               String         @id @default(cuid())
+  storeId          String
+  store            Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind             OfferKind
+  title            String
+  active           Boolean        @default(true)
+
+  /// Promo code (stored uppercase). Unique per store when set.
+  code             String?
+  discountKind     DiscountKind?
+  /// Percent 1–100, or amount in minor units (pence)
+  discountValue    Int?
+  minSubtotalMinor Int?
+
+  /// Bundle: one of product A + one of product B → bundleOffMinor off per pair
+  productIdA       String?
+  productIdB       String?
+  bundleOffMinor   Int?
+
+  /// Gift: add giftProduct at £0. per_item = one per paid item; per_order = one per checkout
+  giftProductId    String?
+  giftMode         GiftMode?
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([storeId, active])
+  @@index([storeId, kind])
 }

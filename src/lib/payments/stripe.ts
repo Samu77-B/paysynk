@@ -22,7 +22,8 @@ export function getStripe(): Stripe {
  * Stripe Checkout Sessions provider.
  *
  * Shipping: Checkout `shipping_options` with a fixed amount (not a product line item).
- * Bundle discount: baked into line unit amounts before create (Stripe disallows negative prices).
+ * Discounts: baked into line unit amounts (Stripe disallows negative / £0 prices).
+ * Free gifts stay on the PaySynk order, not as Stripe line items.
  *
  * TODO: Stripe Connect / per-merchant keys — currently uses platform STRIPE_SECRET_KEY.
  */
@@ -32,9 +33,31 @@ export class StripePaymentProvider implements PaymentProvider {
   ): Promise<CreateCheckoutResult> {
     const stripe = getStripe();
 
-    // Use quantity 1 + exact line total so bundle rounding never drifts vs our Order totals.
+    const payable = input.lines.filter((line) => line.lineTotalMinor > 0);
+    // Stripe rejects £0 line items. Free gifts stay on our Order, not on Stripe.
+    let stripeLines = payable;
+    let shippingAmount = input.shippingMinor;
+    if (stripeLines.length === 0) {
+      if (input.shippingMinor < 1) {
+        throw new Error("Cannot create a Stripe checkout for a £0 order");
+      }
+      // 100% off merchandise: charge shipping as the only line so it is not added twice.
+      stripeLines = [
+        {
+          name: input.shippingLabel ?? "UK shipping",
+          quantity: 1,
+          unitAmountMinor: input.shippingMinor,
+          lineTotalMinor: input.shippingMinor,
+        },
+      ];
+      shippingAmount = 0;
+    }
+
+    const extraNote = input.discountLabel || undefined;
+
+    // Use quantity 1 + exact line total so discount rounding never drifts vs our Order totals.
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] =
-      input.lines.map((line) => ({
+      stripeLines.map((line) => ({
         quantity: 1,
         price_data: {
           currency: input.currency,
@@ -44,10 +67,7 @@ export class StripePaymentProvider implements PaymentProvider {
               line.quantity > 1
                 ? `${line.quantity}× ${line.name}`
                 : line.name,
-            description:
-              input.bundlePairs && input.bundlePairs > 0
-                ? "Includes tee+tote bundle pricing where applicable"
-                : undefined,
+            description: extraNote,
           },
         },
       }));
@@ -63,6 +83,7 @@ export class StripePaymentProvider implements PaymentProvider {
         storeSlug: input.storeSlug,
         bundlePairs: String(input.bundlePairs ?? 0),
         discountMinor: String(input.discountMinor ?? 0),
+        discountLabel: (input.discountLabel ?? "").slice(0, 500),
         ...input.metadata,
       },
       line_items,
@@ -74,7 +95,7 @@ export class StripePaymentProvider implements PaymentProvider {
           shipping_rate_data: {
             type: "fixed_amount",
             fixed_amount: {
-              amount: input.shippingMinor,
+              amount: shippingAmount,
               currency: input.currency,
             },
             display_name: input.shippingLabel ?? "UK shipping",
