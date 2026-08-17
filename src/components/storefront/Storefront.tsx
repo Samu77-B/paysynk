@@ -29,6 +29,7 @@ export type StorefrontStore = {
   name: string;
   currency: string;
   shippingFlatMinor: number;
+  paymentsActive: boolean;
 };
 
 function optionLabel(options: Record<string, string>) {
@@ -359,14 +360,21 @@ function CartPanel({
             </div>
           </dl>
 
-          <button
-            type="button"
-            className="btn btn-primary btn-block"
-            disabled={busy}
-            onClick={() => void checkout()}
-          >
-            {busy ? "Redirecting…" : "Checkout with Stripe"}
-          </button>
+          {store.paymentsActive ? (
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={busy}
+              onClick={() => void checkout()}
+            >
+              {busy ? "Redirecting…" : "Checkout with Stripe"}
+            </button>
+          ) : (
+            <p className="muted small note">
+              Checkout stays off until you connect Stripe in Settings → Payments.
+              You can still add items and check totals here.
+            </p>
+          )}
           {checkoutError && (
             <p className="muted small note" style={{ color: "#b91c1c" }}>
               {checkoutError}

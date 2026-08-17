@@ -89,6 +89,7 @@ export async function GET(req: Request, { params }: Params) {
           name: store.name,
           currency: store.currency,
           shippingFlatMinor: store.shippingFlatMinor,
+          paymentsActive: store.paymentsActive,
         },
         products: filtered,
         offers,

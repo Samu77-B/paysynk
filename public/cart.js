@@ -232,12 +232,38 @@
     name: storeSlug,
     currency: "gbp",
     shippingFlatMinor: 525,
+    paymentsActive: false,
   };
   var storeOffers = [];
   var open = false;
   var busy = false;
   var root = null;
   var button = null;
+
+  function previewStorageKey() {
+    return "paysynk-preview-cart:" + storeSlug;
+  }
+
+  function wantsPreview() {
+    try {
+      var q = new URLSearchParams(window.location.search);
+      if (q.get("paysynk-cart") === "1") {
+        localStorage.setItem(previewStorageKey(), "1");
+        return true;
+      }
+      if (q.get("paysynk-cart") === "0") {
+        localStorage.removeItem(previewStorageKey());
+        return false;
+      }
+      return localStorage.getItem(previewStorageKey()) === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function cartVisible() {
+    return wantsPreview() || Boolean(storeMeta.paymentsActive);
+  }
 
   function ensureUi() {
     if (root) return;
@@ -290,6 +316,10 @@
   function checkout() {
     var items = readCart(storeSlug);
     if (!items.length || busy) return;
+    if (!storeMeta.paymentsActive) {
+      render("Checkout stays off until payments are connected.");
+      return;
+    }
     busy = true;
     render();
     fetch(origin + "/api/stores/" + encodeURIComponent(storeSlug) + "/checkout", {
@@ -319,7 +349,18 @@
   }
 
   function render(errorMessage) {
+    if (!cartVisible()) {
+      if (button) button.style.display = "none";
+      if (root) {
+        open = false;
+        root.innerHTML = "";
+        root.style.display = "none";
+      }
+      return;
+    }
+
     ensureUi();
+    button.style.display = "";
     var items = readCart(storeSlug);
     var count = itemCount(items);
     button.textContent = count ? "Cart (" + count + ")" : "Cart";
@@ -436,11 +477,14 @@
               escapeHtml(errorMessage) +
               "</p>"
             : "") +
-          '<button type="button" data-ps-checkout ' +
-          (busy ? "disabled " : "") +
-          'style="width:100%;border:0;border-radius:999px;padding:0.75rem 1rem;font-weight:600;cursor:pointer;background:#9FE870;color:#141414">' +
-          (busy ? "Redirecting…" : "Checkout with Stripe") +
-          "</button></div>"
+          (storeMeta.paymentsActive
+            ? '<button type="button" data-ps-checkout ' +
+              (busy ? "disabled " : "") +
+              'style="width:100%;border:0;border-radius:999px;padding:0.75rem 1rem;font-weight:600;cursor:pointer;background:#9FE870;color:#141414">' +
+              (busy ? "Redirecting…" : "Checkout with Stripe") +
+              "</button>"
+            : '<p style="margin:0;font-size:0.82rem;color:#71717a">Preview only — checkout turns on after Stripe is connected in PaySynk Settings.</p>') +
+          "</div>"
         : "") +
       "</aside>";
 
@@ -517,6 +561,7 @@
   window.PaySynkCart = {
     open: function (slug) {
       if (slug && slug !== storeSlug) return;
+      if (!cartVisible()) return;
       open = true;
       render();
     },
@@ -530,10 +575,9 @@
   };
 
   function boot() {
-    ensureUi();
-    render();
+    if (wantsPreview()) render();
     loadStoreMeta().then(function () {
-      if (open) render();
+      render();
     });
   }
 

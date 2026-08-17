@@ -40,6 +40,9 @@ export async function createStoreCheckout(opts: {
   if (store.signupStatus !== "approved") {
     throw new CheckoutError("This shop is not live yet", 403);
   }
+  if (!store.paymentsActive) {
+    throw new CheckoutError("This shop is not taking payments yet", 403);
+  }
 
   const variantIds = items.map((i) => i.variantId);
   const variants = await prisma.variant.findMany({

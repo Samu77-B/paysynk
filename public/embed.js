@@ -14,6 +14,27 @@
 (function () {
   var EVENT = "paysynk:cart-updated";
 
+  function cartShoppingOn(store) {
+    if (store && store.paymentsActive) return true;
+    var slug = (store && store.slug) || "";
+    try {
+      var q = new URLSearchParams(window.location.search);
+      if (q.get("paysynk-cart") === "1") {
+        if (slug) localStorage.setItem("paysynk-preview-cart:" + slug, "1");
+        return true;
+      }
+      if (q.get("paysynk-cart") === "0") {
+        if (slug) localStorage.removeItem("paysynk-preview-cart:" + slug);
+        return false;
+      }
+      return Boolean(
+        slug && localStorage.getItem("paysynk-preview-cart:" + slug) === "1",
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   function appOrigin() {
     var scripts = document.getElementsByTagName("script");
     for (var i = 0; i < scripts.length; i++) {
@@ -356,15 +377,23 @@
           "</p>";
       }
 
+      var shoppingOn = cartShoppingOn(store);
+      var addDisabled = !shoppingOn || left <= 0;
+      var addLabel = !shoppingOn
+        ? "Coming soon"
+        : left <= 0
+          ? "Out of stock"
+          : "Add to cart";
+
       html +=
         '<button type="button" data-ps-add ' +
-        (left <= 0 ? "disabled " : "") +
+        (addDisabled ? "disabled " : "") +
         'style="width:100%;border:0;border-radius:999px;padding:0.7rem 1rem;font-weight:600;cursor:' +
-        (left <= 0 ? "not-allowed" : "pointer") +
+        (addDisabled ? "not-allowed" : "pointer") +
         ";background:" +
-        (left <= 0 ? "#d4d4d8" : "#9FE870") +
+        (addDisabled ? "#d4d4d8" : "#9FE870") +
         ';color:#141414">' +
-        (left <= 0 ? "Out of stock" : "Add to cart") +
+        addLabel +
         "</button>" +
         '<p data-ps-status style="margin:0.65rem 0 0;min-height:1.2em;font-size:0.8rem;color:#65a30d">' +
         escapeHtml(state.flash || "") +
@@ -393,6 +422,7 @@
       var addBtn = el.querySelector("[data-ps-add]");
       if (addBtn) {
         addBtn.onclick = function () {
+          if (!cartShoppingOn(store)) return;
           var current = selected();
           if (!current || available(current) <= 0) return;
           addToCart(store.slug, {

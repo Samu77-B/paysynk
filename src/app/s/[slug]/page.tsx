@@ -63,6 +63,7 @@ export default async function StorePage({ params }: Props) {
         name: store.name,
         currency: store.currency,
         shippingFlatMinor: store.shippingFlatMinor,
+        paymentsActive: store.paymentsActive,
       }}
       products={sellable}
       offers={offers}
