@@ -29,21 +29,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatGbp } from "@/lib/dashboard/demo-data";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { markOrderFulfilled } from "@/lib/dashboard/actions";
 import type { Order, OrderStatus } from "@/types/database";
 
 type Filter = "all" | "unfulfilled" | "fulfilled" | "refunded";
 
 export function OrdersManager({
-  merchantId,
   initialOrders,
   paymentsActive,
-  mode,
 }: {
   merchantId: string;
   initialOrders: Order[];
   paymentsActive: boolean;
-  mode: "demo" | "supabase";
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<Filter>("all");
@@ -58,31 +55,16 @@ export function OrdersManager({
   function markFulfilled(order: Order) {
     startTransition(async () => {
       const nextStatus: OrderStatus = "fulfilled";
-      if (mode === "demo" || !isSupabaseConfigured()) {
-        setOrders((prev) =>
-          prev.map((o) =>
-            o.id === order.id ? { ...o, status: nextStatus } : o,
-          ),
-        );
-        setSelected((cur) =>
-          cur?.id === order.id ? { ...cur, status: nextStatus } : cur,
-        );
-        return;
-      }
-
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("orders")
-        .update({ status: nextStatus })
-        .eq("id", order.id)
-        .eq("merchant_id", merchantId)
-        .select("*")
-        .single();
-      if (error || !data) return;
+      const result = await markOrderFulfilled(order.id);
+      if (result.error) return;
       setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? (data as Order) : o)),
+        prev.map((o) =>
+          o.id === order.id ? { ...o, status: nextStatus } : o,
+        ),
       );
-      setSelected(data as Order);
+      setSelected((cur) =>
+        cur?.id === order.id ? { ...cur, status: nextStatus } : cur,
+      );
     });
   }
 

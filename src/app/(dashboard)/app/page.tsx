@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import {
   computeOverviewMetrics,
   getDashboardContext,
@@ -31,9 +30,7 @@ function statusVariant(status: string) {
 }
 
 export default async function OverviewPage() {
-  const cookieStore = await cookies();
-  const preferred = cookieStore.get("paysynk_merchant")?.value;
-  const ctx = await getDashboardContext(preferred);
+  const ctx = await getDashboardContext();
   const orders = await getMerchantOrders(ctx.merchant.id);
   const metrics = computeOverviewMetrics(orders);
   const recent = orders.slice(0, 6);
@@ -52,6 +49,14 @@ export default async function OverviewPage() {
           storeSlug={ctx.merchant.slug}
         />
       </div>
+
+      {ctx.signupStatus !== "approved" && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {ctx.signupStatus === "rejected"
+            ? "This store was not approved. Contact PaySynk support."
+            : "Your shop is pending approval. You can add products here; the public storefront stays hidden until SmartSynk approves it."}
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard

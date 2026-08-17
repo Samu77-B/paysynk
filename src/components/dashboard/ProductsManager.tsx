@@ -37,7 +37,7 @@ import {
   productEmbedSnippet,
 } from "@/components/dashboard/embed-snippets";
 import { formatGbp } from "@/lib/dashboard/demo-data";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { saveDashboardProduct } from "@/lib/dashboard/actions";
 import type { Product } from "@/types/database";
 
 type FormState = {
@@ -72,15 +72,12 @@ const emptyForm = (): FormState => ({
 });
 
 export function ProductsManager({
-  merchantId,
   storeSlug,
   initialProducts,
-  mode,
 }: {
   merchantId: string;
   storeSlug: string;
   initialProducts: Product[];
-  mode: "demo" | "supabase";
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [open, setOpen] = useState(false);
@@ -125,105 +122,39 @@ export function ProductsManager({
     startTransition(async () => {
       setError(null);
       const pricePence = Math.round(Number(form.price) * 100);
-      const comparePence = form.compareAt
-        ? Math.round(Number(form.compareAt) * 100)
-        : null;
       const stock = Number(form.stock);
       if (!form.title || Number.isNaN(pricePence) || Number.isNaN(stock)) {
         setError("Title, price, and stock are required.");
         return;
       }
 
-      const slug = form.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      const colours = form.enableVariants
+        ? form.variantColor.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      const sizes = form.enableVariants
+        ? form.variantSize.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
 
-      const payload = {
-        merchant_id: merchantId,
+      const result = await saveDashboardProduct({
+        id: form.id,
         title: form.title,
-        slug: form.id ? undefined : `${slug}-${Date.now().toString(36).slice(-4)}`,
         description: form.description,
-        price_in_pence: pricePence,
-        compare_at_price_in_pence: comparePence,
+        priceMinor: pricePence,
         sku: form.sku || null,
-        stock_quantity: stock,
-        category: form.category || null,
-        tags: form.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
-        is_active: form.isActive,
-        images: [] as string[],
-      };
-
-      if (mode === "demo" || !isSupabaseConfigured()) {
-        const optimistic: Product = {
-          id: form.id ?? `local_${Date.now()}`,
-          merchant_id: merchantId,
-          title: payload.title,
-          slug: payload.slug ?? slug,
-          description: payload.description,
-          price_in_pence: payload.price_in_pence,
-          compare_at_price_in_pence: payload.compare_at_price_in_pence,
-          sku: payload.sku,
-          stock_quantity: payload.stock_quantity,
-          images: [],
-          tags: payload.tags,
-          category: payload.category,
-          is_active: payload.is_active,
-          created_at: new Date().toISOString(),
-        };
-        setProducts((prev) =>
-          form.id
-            ? prev.map((p) => (p.id === form.id ? { ...p, ...optimistic } : p))
-            : [optimistic, ...prev],
-        );
-        setOpen(false);
+        stockQty: stock,
+        isActive: form.isActive,
+        colours,
+        sizes,
+      });
+      if (result.error || !result.product) {
+        setError(result.error ?? "Could not save product.");
         return;
       }
-
-      const supabase = createClient();
-      if (form.id) {
-        const { data, error: updateError } = await supabase
-          .from("products")
-          .update({
-            title: payload.title,
-            description: payload.description,
-            price_in_pence: payload.price_in_pence,
-            compare_at_price_in_pence: payload.compare_at_price_in_pence,
-            sku: payload.sku,
-            stock_quantity: payload.stock_quantity,
-            category: payload.category,
-            tags: payload.tags,
-            is_active: payload.is_active,
-          })
-          .eq("id", form.id)
-          .eq("merchant_id", merchantId)
-          .select("*")
-          .single();
-        if (updateError) {
-          setError(updateError.message);
-          return;
-        }
-        setProducts((prev) =>
-          prev.map((p) => (p.id === form.id ? (data as Product) : p)),
-        );
-      } else {
-        const { data, error: insertError } = await supabase
-          .from("products")
-          .insert({
-            ...payload,
-            slug: payload.slug!,
-          })
-          .select("*")
-          .single();
-        if (insertError) {
-          setError(insertError.message);
-          return;
-        }
-        setProducts((prev) => [data as Product, ...prev]);
-      }
+      setProducts((prev) =>
+        form.id
+          ? prev.map((p) => (p.id === form.id ? result.product! : p))
+          : [result.product!, ...prev],
+      );
       setOpen(false);
     });
   }
@@ -446,7 +377,8 @@ export function ProductsManager({
               )}
             </div>
             <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4 text-center text-sm text-zinc-500">
-              Product images upload — connect Supabase Storage bucket `product-images`
+              Product photos: drop files in <code>public/products</code> and we
+              can wire colour images next.
             </div>
             {form.id && (
               <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">

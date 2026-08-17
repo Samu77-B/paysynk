@@ -14,15 +14,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { savePaymentSettings } from "@/lib/dashboard/actions";
 import type { Merchant } from "@/types/database";
 
 export function PaymentsSettings({
   merchant,
-  mode,
 }: {
   merchant: Merchant;
-  mode: "demo" | "supabase";
 }) {
   const [stripeId, setStripeId] = useState(merchant.stripe_connect_id ?? "");
   const [paypalId, setPaypalId] = useState(merchant.paypal_merchant_id ?? "");
@@ -33,31 +31,16 @@ export function PaymentsSettings({
   function save(activate: boolean) {
     startTransition(async () => {
       setMessage(null);
-      if (mode === "demo" || !isSupabaseConfigured()) {
-        setActive(activate && Boolean(stripeId || paypalId));
-        setMessage(
-          activate
-            ? "Demo: payments marked active. Wire Stripe Connect OAuth for production."
-            : "Demo: payments connection saved locally.",
-        );
+      const result = await savePaymentSettings({
+        stripeConnectId: stripeId,
+        paypalMerchantId: paypalId,
+        activate,
+      });
+      if (result.error) {
+        setMessage(result.error);
         return;
       }
-
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("merchants")
-        .update({
-          stripe_connect_id: stripeId || null,
-          paypal_merchant_id: paypalId || null,
-          payments_active: activate && Boolean(stripeId || paypalId),
-        })
-        .eq("id", merchant.id);
-
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
-      setActive(activate && Boolean(stripeId || paypalId));
+      setActive(Boolean(result.paymentsActive));
       setMessage("Payment settings saved.");
     });
   }

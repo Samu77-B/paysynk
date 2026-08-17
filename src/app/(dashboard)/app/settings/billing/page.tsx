@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import {
   getDashboardContext,
   getMerchantInvoices,
@@ -24,9 +23,7 @@ import {
 } from "@/components/ui/table";
 
 export default async function BillingPage() {
-  const cookieStore = await cookies();
-  const preferred = cookieStore.get("paysynk_merchant")?.value;
-  const ctx = await getDashboardContext(preferred);
+  const ctx = await getDashboardContext();
   const invoices = await getMerchantInvoices(ctx.merchant.id);
   const plan = PLAN_META[ctx.merchant.plan_tier];
   const nextBill = ctx.merchant.current_period_end

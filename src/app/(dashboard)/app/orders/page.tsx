@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import {
   getDashboardContext,
   getMerchantOrders,
@@ -6,9 +5,7 @@ import {
 import { OrdersManager } from "@/components/dashboard/OrdersManager";
 
 export default async function OrdersPage() {
-  const cookieStore = await cookies();
-  const preferred = cookieStore.get("paysynk_merchant")?.value;
-  const ctx = await getDashboardContext(preferred);
+  const ctx = await getDashboardContext();
   const orders = await getMerchantOrders(ctx.merchant.id);
 
   return (
@@ -16,7 +13,6 @@ export default async function OrdersPage() {
       merchantId={ctx.merchant.id}
       initialOrders={orders}
       paymentsActive={ctx.merchant.payments_active}
-      mode={ctx.mode}
     />
   );
 }

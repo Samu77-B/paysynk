@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { CreditCard, Wallet, ChevronRight } from "lucide-react";
 import { getDashboardContext } from "@/lib/dashboard/data";
 import { PLAN_META } from "@/lib/dashboard/demo-data";
@@ -11,9 +10,7 @@ import {
 } from "@/components/ui/card";
 
 export default async function SettingsPage() {
-  const cookieStore = await cookies();
-  const preferred = cookieStore.get("paysynk_merchant")?.value;
-  const ctx = await getDashboardContext(preferred);
+  const ctx = await getDashboardContext();
   const plan = PLAN_META[ctx.merchant.plan_tier];
 
   return (
