@@ -39,20 +39,32 @@ export async function saveProductImageFile(opts: {
   const name = `${randomBytes(8).toString("hex")}.${extensionFor(type)}`;
   const pathname = `products/${opts.storeId}/${name}`;
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  // On Vercel always use Blob. Do not branch on BLOB_READ_WRITE_TOKEN here —
+  // Next can inline that check at build time as empty if the token was added later.
+  if (process.env.VERCEL) {
+    try {
+      const blob = await put(pathname, opts.file, {
+        access: "public",
+        contentType: type,
+        addRandomSuffix: false,
+      });
+      return { url: blob.url };
+    } catch (err) {
+      console.error("blob upload failed", err);
+      const detail = err instanceof Error ? err.message : "unknown error";
+      return {
+        error: `Could not save photo. ${detail}`,
+      };
+    }
+  }
+
+  if (process.env["BLOB_READ_WRITE_TOKEN"]) {
     const blob = await put(pathname, opts.file, {
       access: "public",
       contentType: type,
       addRandomSuffix: false,
     });
     return { url: blob.url };
-  }
-
-  if (process.env.VERCEL) {
-    return {
-      error:
-        "Photo storage is not set up on the live site yet. Add a Vercel Blob store so uploads can save.",
-    };
   }
 
   const dir = path.join(process.cwd(), "public", "uploads", opts.storeId);
