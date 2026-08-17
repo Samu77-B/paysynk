@@ -19,11 +19,12 @@
     var slug = (store && store.slug) || "";
     try {
       var q = new URLSearchParams(window.location.search);
-      if (q.get("paysynk-cart") === "1") {
+      var flag = q.get("paysynk-preview") || q.get("paysynk-cart") || "";
+      if (flag === "1") {
         if (slug) localStorage.setItem("paysynk-preview-cart:" + slug, "1");
         return true;
       }
-      if (q.get("paysynk-cart") === "0") {
+      if (flag === "0") {
         if (slug) localStorage.removeItem("paysynk-preview-cart:" + slug);
         return false;
       }
@@ -33,6 +34,14 @@
     } catch (e) {
       return false;
     }
+  }
+
+  function renderOpeningSoon(el) {
+    el.innerHTML =
+      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px dashed #d4d4d8;border-radius:12px;padding:1.1rem;background:#fafafa;color:#71717a;text-align:center">' +
+      '<div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#a1a1aa;margin-bottom:0.35rem">PaySynk</div>' +
+      '<p style="margin:0;font-size:0.9rem">Shop opening soon</p>' +
+      "</div>";
   }
 
   function appOrigin() {
@@ -239,6 +248,10 @@
       .then(function (data) {
         var product = data.products && data.products[0];
         if (!product) throw new Error("Product not found");
+        if (!cartShoppingOn(data.store)) {
+          renderOpeningSoon(el);
+          return;
+        }
         renderProductWidget(el, origin, data.store, product);
       })
       .catch(function (err) {

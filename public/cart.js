@@ -244,14 +244,23 @@
     return "paysynk-preview-cart:" + storeSlug;
   }
 
-  function wantsPreview() {
+  function previewQueryFlag() {
     try {
       var q = new URLSearchParams(window.location.search);
-      if (q.get("paysynk-cart") === "1") {
+      return q.get("paysynk-preview") || q.get("paysynk-cart") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function wantsPreview() {
+    try {
+      var flag = previewQueryFlag();
+      if (flag === "1") {
         localStorage.setItem(previewStorageKey(), "1");
         return true;
       }
-      if (q.get("paysynk-cart") === "0") {
+      if (flag === "0") {
         localStorage.removeItem(previewStorageKey());
         return false;
       }

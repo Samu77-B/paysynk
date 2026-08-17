@@ -203,10 +203,12 @@ function ImagePicker({
 export function ProductsManager({
   storeSlug,
   initialProducts,
+  paymentsActive,
 }: {
   merchantId: string;
   storeSlug: string;
   initialProducts: CatalogProduct[];
+  paymentsActive: boolean;
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [open, setOpen] = useState(false);
@@ -368,6 +370,16 @@ export function ProductsManager({
           <p className="text-sm text-zinc-500">
             Catalogue, stock, and a copyable embed code per product
           </p>
+          {!paymentsActive && (
+            <p className="mt-2 max-w-xl text-sm text-amber-800">
+              Test merch here and on{" "}
+              <a className="underline" href={`/s/${storeSlug}`} target="_blank">
+                your preview shop
+              </a>
+              . The public cart stays hidden until you connect Stripe in
+              Settings → Payments and Activate.
+            </p>
+          )}
         </div>
         <Button
           onClick={openCreate}

@@ -414,6 +414,12 @@ export function Storefront({
               Currency {store.currency.toUpperCase()} · UK shipping{" "}
               {formatMoney(store.shippingFlatMinor, store.currency)}
             </p>
+            {!store.paymentsActive && (
+              <p className="store-preview-note">
+                Merch preview — customers will not see this shop or the cart
+                until you connect Stripe in Settings → Payments and Activate.
+              </p>
+            )}
           </div>
           <a className="btn btn-ghost" href="/">
             PaySynk home

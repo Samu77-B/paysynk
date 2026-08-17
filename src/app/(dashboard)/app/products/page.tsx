@@ -13,6 +13,7 @@ export default async function ProductsPage() {
       merchantId={ctx.merchant.id}
       storeSlug={ctx.merchant.slug}
       initialProducts={products}
+      paymentsActive={ctx.merchant.payments_active}
     />
   );
 }
