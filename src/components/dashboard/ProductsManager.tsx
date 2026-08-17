@@ -426,7 +426,7 @@ export function ProductsManager({
       </Card>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full overflow-hidden data-[side=right]:w-full data-[side=right]:sm:max-w-4xl">
+        <SheetContent className="w-full overflow-x-hidden overflow-y-hidden data-[side=right]:w-full data-[side=right]:max-w-none data-[side=right]:sm:max-w-4xl">
           <SheetHeader className="shrink-0">
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>
@@ -435,7 +435,7 @@ export function ProductsManager({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden px-4 md:grid-cols-2">
+          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 lg:grid-cols-2">
             <div className="grid min-w-0 content-start gap-3">
               <div className="space-y-1.5">
                 <Label>Title</Label>
