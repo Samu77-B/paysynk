@@ -50,13 +50,23 @@
       var src = scripts[i].src || "";
       if (src.indexOf("embed.js") !== -1) {
         try {
-          return new URL(src).origin;
+          return canonicalPaysynkOrigin(new URL(src).origin);
         } catch (e) {
           /* ignore */
         }
       }
     }
-    return window.location.origin;
+    return canonicalPaysynkOrigin(window.location.origin);
+  }
+
+  function canonicalPaysynkOrigin(origin) {
+    try {
+      var url = new URL(origin);
+      if (url.hostname === "paysynk.com") url.hostname = "www.paysynk.com";
+      return url.origin;
+    } catch (e) {
+      return origin;
+    }
   }
 
   function storageKey(slug) {

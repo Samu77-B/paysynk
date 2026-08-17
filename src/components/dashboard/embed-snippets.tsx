@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 
 export function productEmbedSnippet(storeSlug: string, productSlug: string) {
   return `<div data-paysynk-product="${productSlug}" data-store="${storeSlug}"></div>
-<script src="https://paysynk.com/embed.js" defer></script>`;
+<script src="https://www.paysynk.com/embed.js" defer></script>`;
 }
 
 export function cartEmbedSnippet(storeSlug: string, merchantId: string) {
-  return `<script src="https://paysynk.com/cart.js" data-store="${storeSlug}" data-merchant-id="${merchantId}" async></script>`;
+  return `<script src="https://www.paysynk.com/cart.js" data-store="${storeSlug}" data-merchant-id="${merchantId}" async></script>`;
 }
 
 export function CopySnippetButton({

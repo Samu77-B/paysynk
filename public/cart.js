@@ -26,11 +26,21 @@
   }
 
   function originFrom(script) {
-    if (!script || !script.src) return window.location.origin;
+    if (!script || !script.src) return canonicalPaysynkOrigin(window.location.origin);
     try {
-      return new URL(script.src).origin;
+      return canonicalPaysynkOrigin(new URL(script.src).origin);
     } catch (e) {
-      return window.location.origin;
+      return canonicalPaysynkOrigin(window.location.origin);
+    }
+  }
+
+  function canonicalPaysynkOrigin(origin) {
+    try {
+      var url = new URL(origin);
+      if (url.hostname === "paysynk.com") url.hostname = "www.paysynk.com";
+      return url.origin;
+    } catch (e) {
+      return origin;
     }
   }
 
