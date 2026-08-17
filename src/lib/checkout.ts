@@ -35,6 +35,9 @@ export async function createStoreCheckout(opts: {
   if (!store) {
     throw new CheckoutError("Store not found", 404);
   }
+  if (store.signupStatus !== "approved") {
+    throw new CheckoutError("This shop is not live yet", 403);
+  }
 
   const variantIds = items.map((i) => i.variantId);
   const variants = await prisma.variant.findMany({

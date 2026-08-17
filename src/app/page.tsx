@@ -28,11 +28,11 @@ export default function HomePage() {
             POS on the same inventory next.
           </p>
           <div className="cta-row">
-            <Link className="btn btn-primary" href="/s/slf">
-              Explore demo store
+            <Link className="btn btn-primary" href="/register">
+              Create your store
             </Link>
-            <Link className="btn btn-ghost" href="/login">
-              Merchant sign in
+            <Link className="btn btn-ghost" href="/s/slf">
+              Explore demo store
             </Link>
           </div>
         </div>

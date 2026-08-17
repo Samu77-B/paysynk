@@ -43,8 +43,16 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/login") ||
     path.startsWith("/register") ||
     path.startsWith("/forgot-password");
+  const isUpdatePassword = path.startsWith("/update-password");
 
-  if (isApp && !user) {
+  if ((isApp || isUpdatePassword) && !user) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("next", path);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (isAuth && user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", path);

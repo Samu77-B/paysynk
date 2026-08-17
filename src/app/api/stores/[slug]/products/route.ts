@@ -26,6 +26,11 @@ export async function GET(req: Request, { params }: Params) {
         NextResponse.json({ error: "Store not found" }, { status: 404 }),
       );
     }
+    if (store.signupStatus !== "approved") {
+      return withEmbedCors(
+        NextResponse.json({ error: "Store is not live yet" }, { status: 403 }),
+      );
+    }
 
     const products = await prisma.product.findMany({
       where: { storeId: store.id, active: true },
@@ -53,6 +58,7 @@ export async function GET(req: Request, { params }: Params) {
           options: v.options as Record<string, string>,
           priceMinor: v.priceMinor,
           stockQty: v.stockQty,
+          imageUrl: v.imageUrl,
         })),
       }));
 

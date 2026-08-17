@@ -101,6 +101,7 @@ model Variant {
   sku        String
   priceMinor Int
   stockQty   Int     @default(0)
+  imageUrl   String?
 
   orderItems OrderItem[]
 

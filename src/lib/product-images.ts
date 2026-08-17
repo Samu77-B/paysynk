@@ -15,6 +15,30 @@ const BOTTLE_BY_COLOUR: Record<string, string> = {
   sagegreen: "/products/Acme Water Bottle Sage Green.png",
 };
 
+type ImageVariant = {
+  options: Record<string, string>;
+  imageUrl?: string | null;
+};
+
+/** Merchant-uploaded photo for this colour, then filename maps, then gallery. */
+export function imageForSelection(
+  product: { title: string; images: string[]; variants: ImageVariant[] },
+  colour: string,
+  selected?: { imageUrl?: string | null } | null,
+): string | undefined {
+  if (selected?.imageUrl) return selected.imageUrl;
+  if (colour) {
+    const match = product.variants.find(
+      (v) => v.options.colour === colour && v.imageUrl,
+    );
+    if (match?.imageUrl) return match.imageUrl;
+    return imageForColour(product, colour);
+  }
+  const anyUpload = product.variants.find((v) => v.imageUrl)?.imageUrl;
+  if (anyUpload) return anyUpload;
+  return imageForColour(product, colour);
+}
+
 /** Product photo that matches the selected colour, falling back to the first gallery image. */
 export function imageForColour(
   product: { title: string; images: string[] },

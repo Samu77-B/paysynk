@@ -123,6 +123,7 @@ async function main() {
       currency: "gbp",
       shippingFlatMinor: 525,
       paymentProvider: "stripe",
+      signupStatus: "approved",
       stripeConfigNotes:
         "MVP: platform STRIPE_SECRET_KEY in env. TODO: Stripe Connect / per-merchant keys.",
     },
@@ -132,6 +133,7 @@ async function main() {
       currency: "gbp",
       shippingFlatMinor: 525,
       paymentProvider: "stripe",
+      signupStatus: "approved",
       stripeConfigNotes:
         "MVP: platform STRIPE_SECRET_KEY in env. TODO: Stripe Connect / per-merchant keys.",
     },

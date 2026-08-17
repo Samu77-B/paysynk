@@ -3,6 +3,20 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { BillingInvoice, Merchant, Order, OrderStatus, Product } from "@/types/database";
 
+export type CatalogVariant = {
+  id: string;
+  sku: string;
+  colour?: string;
+  size?: string;
+  stockQty: number;
+  priceMinor: number;
+  imageUrl: string | null;
+};
+
+export type CatalogProduct = Product & {
+  variants: CatalogVariant[];
+};
+
 export type DashboardContext = {
   user: { id: string; email: string; name: string };
   merchants: Merchant[];
@@ -36,9 +50,21 @@ export function toMerchant(store: Store, ownerId: string): Merchant {
 export function toDashboardProduct(
   product: PrismaProduct & { variants: Variant[] },
   merchantId: string,
-): Product {
+): CatalogProduct {
   const stock = product.variants.reduce((sum, v) => sum + v.stockQty, 0);
   const first = product.variants[0];
+  const variants: CatalogVariant[] = product.variants.map((v) => {
+    const options = (v.options ?? {}) as Record<string, string>;
+    return {
+      id: v.id,
+      sku: v.sku,
+      colour: options.colour || undefined,
+      size: options.size || undefined,
+      stockQty: v.stockQty,
+      priceMinor: v.priceMinor,
+      imageUrl: v.imageUrl,
+    };
+  });
   return {
     id: product.id,
     merchant_id: merchantId,
@@ -54,6 +80,7 @@ export function toDashboardProduct(
     category: null,
     is_active: product.active,
     created_at: product.createdAt.toISOString(),
+    variants,
   };
 }
 
@@ -114,7 +141,9 @@ export async function getDashboardContext(): Promise<DashboardContext> {
   };
 }
 
-export async function getMerchantProducts(merchantId: string): Promise<Product[]> {
+export async function getMerchantProducts(
+  merchantId: string,
+): Promise<CatalogProduct[]> {
   const products = await prisma.product.findMany({
     where: { storeId: merchantId },
     include: { variants: true },

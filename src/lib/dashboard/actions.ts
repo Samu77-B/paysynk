@@ -4,13 +4,45 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { toDashboardProduct } from "@/lib/dashboard/data";
-import type { Product } from "@/types/database";
+import type { CatalogProduct } from "@/lib/dashboard/data";
 
 function slugify(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+function skuToken(value: string) {
+  return value.replace(/\s+/g, "").slice(0, 8).toUpperCase();
+}
+
+function stockKey(colour?: string, size?: string) {
+  return `${colour ?? ""}|${size ?? ""}`;
+}
+
+function lookupStock(
+  stockByKey: Record<string, number> | undefined,
+  colour: string | undefined,
+  size: string | undefined,
+  fallback: number,
+) {
+  const key = stockKey(colour, size);
+  if (stockByKey && Object.hasOwn(stockByKey, key)) {
+    const n = stockByKey[key];
+    if (Number.isFinite(n)) return Math.max(0, Math.floor(n));
+  }
+  return fallback;
+}
+
+function collectImages(
+  defaultImage: string | null | undefined,
+  colourImages: Record<string, string> | undefined,
+) {
+  const urls = [defaultImage, ...Object.values(colourImages ?? {})].filter(
+    (url): url is string => Boolean(url?.trim()),
+  );
+  return Array.from(new Set(urls));
 }
 
 export async function saveDashboardProduct(input: {
@@ -23,7 +55,10 @@ export async function saveDashboardProduct(input: {
   isActive: boolean;
   colours: string[];
   sizes: string[];
-}): Promise<{ product?: Product; error?: string }> {
+  colourImages?: Record<string, string>;
+  defaultImage?: string | null;
+  stockByKey?: Record<string, number>;
+}): Promise<{ product?: CatalogProduct; error?: string }> {
   const session = await auth();
   const storeId = session?.user?.storeId;
   if (!storeId) return { error: "Sign in to manage products." };
@@ -32,33 +67,50 @@ export async function saveDashboardProduct(input: {
     return { error: "Title and price are required." };
   }
 
-  const colours = input.colours.length ? input.colours : [];
-  const sizes = input.sizes.length ? input.sizes : [];
+  const colours = input.colours.filter(Boolean);
+  const sizes = input.sizes.filter(Boolean);
+  const baseSku = (input.sku || slugify(input.title) || "SKU").toUpperCase();
+  const fallbackStock = Number.isFinite(input.stockQty)
+    ? Math.max(0, Math.floor(input.stockQty))
+    : 0;
   const variantRows: Array<{
     sku: string;
     stockQty: number;
     priceMinor: number;
     options: Record<string, string>;
+    imageUrl: string | null;
   }> = [];
 
   if (colours.length && sizes.length) {
     for (const colour of colours) {
       for (const size of sizes) {
         variantRows.push({
-          sku: `${(input.sku || slugify(input.title) || "SKU").toUpperCase()}-${colour.replace(/\s+/g, "").slice(0, 8).toUpperCase()}-${size}`,
-          stockQty: input.stockQty,
+          sku: `${baseSku}-${skuToken(colour)}-${size}`,
+          stockQty: lookupStock(input.stockByKey, colour, size, fallbackStock),
           priceMinor: input.priceMinor,
           options: { colour, size },
+          imageUrl: input.colourImages?.[colour]?.trim() || null,
         });
       }
     }
   } else if (colours.length) {
     for (const colour of colours) {
       variantRows.push({
-        sku: `${(input.sku || slugify(input.title) || "SKU").toUpperCase()}-${colour.replace(/\s+/g, "").slice(0, 8).toUpperCase()}`,
-        stockQty: input.stockQty,
+        sku: `${baseSku}-${skuToken(colour)}`,
+        stockQty: lookupStock(input.stockByKey, colour, undefined, fallbackStock),
         priceMinor: input.priceMinor,
         options: { colour },
+        imageUrl: input.colourImages?.[colour]?.trim() || null,
+      });
+    }
+  } else if (sizes.length) {
+    for (const size of sizes) {
+      variantRows.push({
+        sku: `${baseSku}-${skuToken(size)}`,
+        stockQty: lookupStock(input.stockByKey, undefined, size, fallbackStock),
+        priceMinor: input.priceMinor,
+        options: { size },
+        imageUrl: input.defaultImage?.trim() || null,
       });
     }
   } else {
@@ -66,11 +118,14 @@ export async function saveDashboardProduct(input: {
       sku:
         input.sku ||
         `${(slugify(input.title) || "item").toUpperCase()}-${Date.now().toString(36).slice(-4)}`,
-      stockQty: input.stockQty,
+      stockQty: fallbackStock,
       priceMinor: input.priceMinor,
       options: {},
+      imageUrl: input.defaultImage?.trim() || null,
     });
   }
+
+  const images = collectImages(input.defaultImage, input.colourImages);
 
   if (input.id) {
     const existing = await prisma.product.findFirst({
@@ -85,6 +140,7 @@ export async function saveDashboardProduct(input: {
         title: input.title.trim(),
         description: input.description,
         active: input.isActive,
+        images,
         variants: { create: variantRows },
       },
       include: { variants: true },
@@ -101,6 +157,7 @@ export async function saveDashboardProduct(input: {
       description: input.description,
       active: input.isActive,
       kind: "other",
+      images,
       variants: { create: variantRows },
     },
     include: { variants: true },

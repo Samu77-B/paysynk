@@ -10,6 +10,20 @@ export default async function StorePage({ params }: Props) {
   const store = await prisma.store.findUnique({ where: { slug } });
   if (!store) notFound();
 
+  if (store.signupStatus !== "approved") {
+    return (
+      <main className="success-page">
+        <p className="eyebrow accent-text">PaySynk</p>
+        <h1>{store.name}</h1>
+        <p className="muted">
+          {store.signupStatus === "rejected"
+            ? "This shop is not available."
+            : "This shop is awaiting approval. You can still set up products in your merchant dashboard."}
+        </p>
+      </main>
+    );
+  }
+
   const products = await prisma.product.findMany({
     where: { storeId: store.id, active: true },
     orderBy: { title: "asc" },
@@ -35,6 +49,7 @@ export default async function StorePage({ params }: Props) {
         options: (v.options ?? {}) as Record<string, string>,
         priceMinor: v.priceMinor,
         stockQty: v.stockQty,
+        imageUrl: v.imageUrl,
       })),
     }));
 

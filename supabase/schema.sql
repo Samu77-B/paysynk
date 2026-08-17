@@ -1,3 +1,7 @@
+-- UNUSED. PaySynk runs on Neon via Prisma (`prisma/schema.prisma` + DATABASE_URL).
+-- This file was a draft for a Supabase-hosted dashboard and is not applied.
+-- Do not run this against the live Neon database.
+
 -- PaySynk multi-tenant schema for Supabase
 -- Run in Supabase SQL Editor after creating a project.
 -- Every tenant-scoped table uses merchant_id + RLS.
@@ -213,6 +217,10 @@ create policy "merchants_select_member"
   on public.merchants for select
   using (public.is_merchant_member(id) or owner_id = auth.uid());
 
+create policy "merchants_insert_own"
+  on public.merchants for insert
+  with check (owner_id = auth.uid());
+
 create policy "merchants_update_owner"
   on public.merchants for update
   using (owner_id = auth.uid());
@@ -220,6 +228,10 @@ create policy "merchants_update_owner"
 create policy "members_select_own"
   on public.merchant_members for select
   using (user_id = auth.uid() or public.is_merchant_member(merchant_id));
+
+create policy "members_insert_own"
+  on public.merchant_members for insert
+  with check (user_id = auth.uid());
 
 create policy "products_all_member"
   on public.products for all

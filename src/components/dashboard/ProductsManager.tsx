@@ -38,7 +38,7 @@ import {
 } from "@/components/dashboard/embed-snippets";
 import { formatGbp } from "@/lib/dashboard/demo-data";
 import { saveDashboardProduct } from "@/lib/dashboard/actions";
-import type { Product } from "@/types/database";
+import type { CatalogProduct } from "@/lib/dashboard/data";
 
 type FormState = {
   id?: string;
@@ -54,6 +54,9 @@ type FormState = {
   enableVariants: boolean;
   variantSize: string;
   variantColor: string;
+  defaultImage: string;
+  colourImages: Record<string, string>;
+  stockByKey: Record<string, string>;
 };
 
 const emptyForm = (): FormState => ({
@@ -69,7 +72,111 @@ const emptyForm = (): FormState => ({
   enableVariants: false,
   variantSize: "S,M,L",
   variantColor: "",
+  defaultImage: "",
+  colourImages: {},
+  stockByKey: {},
 });
+
+function parseList(value: string) {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function unique(values: (string | undefined)[]) {
+  return Array.from(new Set(values.filter((v): v is string => Boolean(v))));
+}
+
+function stockKey(colour?: string, size?: string) {
+  return `${colour ?? ""}|${size ?? ""}`;
+}
+
+function productThumb(product: CatalogProduct) {
+  return (
+    product.images[0] ||
+    product.variants.find((v) => v.imageUrl)?.imageUrl ||
+    ""
+  );
+}
+
+function ImagePicker({
+  label,
+  hint,
+  url,
+  onUrl,
+}: {
+  label: string;
+  hint?: string;
+  url: string;
+  onUrl: (url: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onFile(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setErr(null);
+    const body = new FormData();
+    body.set("file", file);
+    const res = await fetch("/api/uploads/product-image", {
+      method: "POST",
+      body,
+    });
+    const data = (await res.json()) as { url?: string; error?: string };
+    setBusy(false);
+    if (!res.ok || !data.url) {
+      setErr(data.error ?? "Upload failed.");
+      return;
+    }
+    onUrl(data.url);
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {hint && <p className="text-xs text-zinc-500">{hint}</p>}
+      <div className="flex items-center gap-3">
+        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
+          {url ? (
+            <Image
+              src={url}
+              alt=""
+              width={64}
+              height={64}
+              className="size-16 object-cover"
+            />
+          ) : (
+            <Package className="size-4 text-zinc-400" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <Input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={busy}
+            onChange={(e) => {
+              void onFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          {busy && <p className="text-xs text-zinc-500">Uploading…</p>}
+          {err && <p className="text-xs text-red-600">{err}</p>}
+          {url && (
+            <button
+              type="button"
+              className="text-xs text-zinc-500 underline"
+              onClick={() => onUrl("")}
+            >
+              Remove photo
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ProductsManager({
   storeSlug,
@@ -77,7 +184,7 @@ export function ProductsManager({
 }: {
   merchantId: string;
   storeSlug: string;
-  initialProducts: Product[];
+  initialProducts: CatalogProduct[];
 }) {
   const [products, setProducts] = useState(initialProducts);
   const [open, setOpen] = useState(false);
@@ -90,13 +197,31 @@ export function ProductsManager({
     [form.id],
   );
 
+  const colours = form.enableVariants ? parseList(form.variantColor) : [];
+  const sizes = form.enableVariants ? parseList(form.variantSize) : [];
+  const showStockGrid = colours.length > 0 || sizes.length > 0;
+
   function openCreate() {
     setForm(emptyForm());
     setError(null);
     setOpen(true);
   }
 
-  function openEdit(product: Product) {
+  function openEdit(product: CatalogProduct) {
+    const colourList = unique(product.variants.map((v) => v.colour));
+    const sizeList = unique(product.variants.map((v) => v.size));
+    const colourImages: Record<string, string> = {};
+    const stockByKey: Record<string, string> = {};
+    for (const v of product.variants) {
+      if (v.colour && v.imageUrl && !colourImages[v.colour]) {
+        colourImages[v.colour] = v.imageUrl;
+      }
+      stockByKey[stockKey(v.colour, v.size)] = String(v.stockQty);
+    }
+    const defaultImage = colourList.length
+      ? ""
+      : (product.variants[0]?.imageUrl ?? product.images[0] ?? "");
+
     setForm({
       id: product.id,
       title: product.title,
@@ -110,12 +235,28 @@ export function ProductsManager({
       category: product.category ?? "",
       tags: product.tags.join(", "),
       isActive: product.is_active,
-      enableVariants: false,
-      variantSize: "S,M,L",
-      variantColor: "",
+      enableVariants: colourList.length > 0 || sizeList.length > 0,
+      variantSize: sizeList.length ? sizeList.join(", ") : "S,M,L",
+      variantColor: colourList.join(", "),
+      defaultImage,
+      colourImages,
+      stockByKey,
     });
     setError(null);
     setOpen(true);
+  }
+
+  function cellStock(colour?: string, size?: string) {
+    const key = stockKey(colour, size);
+    if (Object.hasOwn(form.stockByKey, key)) return form.stockByKey[key];
+    return form.stock;
+  }
+
+  function setCellStock(colour: string | undefined, size: string | undefined, value: string) {
+    setForm({
+      ...form,
+      stockByKey: { ...form.stockByKey, [stockKey(colour, size)]: value },
+    });
   }
 
   function save() {
@@ -128,12 +269,28 @@ export function ProductsManager({
         return;
       }
 
-      const colours = form.enableVariants
-        ? form.variantColor.split(",").map((s) => s.trim()).filter(Boolean)
-        : [];
-      const sizes = form.enableVariants
-        ? form.variantSize.split(",").map((s) => s.trim()).filter(Boolean)
-        : [];
+      const stockByKey: Record<string, number> = {};
+      if (colours.length && sizes.length) {
+        for (const colour of colours) {
+          for (const size of sizes) {
+            stockByKey[stockKey(colour, size)] = Number(cellStock(colour, size));
+          }
+        }
+      } else if (colours.length) {
+        for (const colour of colours) {
+          stockByKey[stockKey(colour)] = Number(cellStock(colour));
+        }
+      } else if (sizes.length) {
+        for (const size of sizes) {
+          stockByKey[stockKey(undefined, size)] = Number(cellStock(undefined, size));
+        }
+      }
+
+      const colourImages: Record<string, string> = {};
+      for (const colour of colours) {
+        const url = form.colourImages[colour];
+        if (url) colourImages[colour] = url;
+      }
 
       const result = await saveDashboardProduct({
         id: form.id,
@@ -145,6 +302,9 @@ export function ProductsManager({
         isActive: form.isActive,
         colours,
         sizes,
+        colourImages,
+        defaultImage: form.defaultImage || null,
+        stockByKey,
       });
       if (result.error || !result.product) {
         setError(result.error ?? "Could not save product.");
@@ -198,68 +358,72 @@ export function ProductsManager({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
-                <TableRow
-                  key={product.id}
-                  className="cursor-pointer"
-                  onClick={() => openEdit(product)}
-                >
-                  <TableCell>
-                    <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
-                      {product.images[0] ? (
-                        <Image
-                          src={product.images[0]}
-                          alt=""
-                          width={40}
-                          height={40}
-                          className="size-10 object-cover"
-                        />
-                      ) : (
-                        <Package className="size-4 text-zinc-400" />
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{product.title}</TableCell>
-                  <TableCell className="font-mono text-xs text-zinc-500">
-                    {product.sku ?? "—"}
-                  </TableCell>
-                  <TableCell>{formatGbp(product.price_in_pence)}</TableCell>
-                  <TableCell>
-                    <span
-                      className={
-                        product.stock_quantity <= 3
-                          ? "font-medium text-amber-700"
-                          : ""
-                      }
-                    >
-                      {product.stock_quantity}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={product.is_active ? "default" : "secondary"}>
-                      {product.is_active ? "Active" : "Draft"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <CopySnippetButton
-                      snippet={productEmbedSnippet(storeSlug, product.slug)}
-                      label="Copy"
-                      className="h-8 bg-zinc-900 text-white hover:bg-zinc-800"
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
+              {products.map((product) => {
+                const thumb = productThumb(product);
+                return (
+                  <TableRow
+                    key={product.id}
+                    className="cursor-pointer"
+                    onClick={() => openEdit(product)}
+                  >
+                    <TableCell>
+                      <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
+                        {thumb ? (
+                          <Image
+                            src={thumb}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className="size-10 object-cover"
+                          />
+                        ) : (
+                          <Package className="size-4 text-zinc-400" />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{product.title}</TableCell>
+                    <TableCell className="font-mono text-xs text-zinc-500">
+                      {product.sku ?? "—"}
+                    </TableCell>
+                    <TableCell>{formatGbp(product.price_in_pence)}</TableCell>
+                    <TableCell>
+                      <span
+                        className={
+                          product.stock_quantity <= 3
+                            ? "font-medium text-amber-700"
+                            : ""
+                        }
+                      >
+                        {product.stock_quantity}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={product.is_active ? "default" : "secondary"}>
+                        {product.is_active ? "Active" : "Draft"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <CopySnippetButton
+                        snippet={productEmbedSnippet(storeSlug, product.slug)}
+                        label="Copy"
+                        className="h-8 bg-zinc-900 text-white hover:bg-zinc-800"
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="overflow-y-auto sm:max-w-lg">
+        <SheetContent className="overflow-y-auto sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>
-              Prices in GBP. Image upload hooks into Supabase Storage next.
+              Upload a photo per colour. Sizes share that colour’s photo and keep
+              their own stock.
             </SheetDescription>
           </SheetHeader>
 
@@ -290,23 +454,14 @@ export function ProductsManager({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Compare-at (£)</Label>
-                <Input
-                  value={form.compareAt}
-                  onChange={(e) =>
-                    setForm({ ...form, compareAt: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
                 <Label>SKU</Label>
                 <Input
                   value={form.sku}
                   onChange={(e) => setForm({ ...form, sku: e.target.value })}
                 />
               </div>
+            </div>
+            {!showStockGrid && (
               <div className="space-y-2">
                 <Label>Stock count</Label>
                 <Input
@@ -314,21 +469,27 @@ export function ProductsManager({
                   onChange={(e) => setForm({ ...form, stock: e.target.value })}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Input
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+            )}
+            {showStockGrid && (
+              <div className="space-y-2">
+                <Label>Default stock</Label>
+                <Input
+                  value={form.stock}
+                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                />
+                <p className="text-xs text-zinc-500">
+                  Used for any colour/size cell you leave blank.
+                </p>
+              </div>
+            )}
+            {colours.length === 0 && (
+              <ImagePicker
+                label="Product photo"
+                hint="Shown on the shop for this item."
+                url={form.defaultImage}
+                onUrl={(defaultImage) => setForm({ ...form, defaultImage })}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Tags (comma separated)</Label>
-              <Input
-                value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
-              />
-            </div>
+            )}
             <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2">
               <div>
                 <p className="text-sm font-medium">Active</p>
@@ -343,7 +504,9 @@ export function ProductsManager({
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Variants</p>
-                  <p className="text-xs text-zinc-500">Size / colour options</p>
+                  <p className="text-xs text-zinc-500">
+                    Colours get their own photo. Sizes share it.
+                  </p>
                 </div>
                 <Switch
                   checked={form.enableVariants}
@@ -361,6 +524,7 @@ export function ProductsManager({
                       onChange={(e) =>
                         setForm({ ...form, variantSize: e.target.value })
                       }
+                      placeholder="S, M, L"
                     />
                   </div>
                   <div className="space-y-2">
@@ -370,16 +534,107 @@ export function ProductsManager({
                       onChange={(e) =>
                         setForm({ ...form, variantColor: e.target.value })
                       }
-                      placeholder="Red, Green, Blue"
+                      placeholder="Red, Green"
                     />
                   </div>
                 </div>
               )}
             </div>
-            <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-4 text-center text-sm text-zinc-500">
-              Product photos: drop files in <code>public/products</code> and we
-              can wire colour images next.
-            </div>
+            {colours.length > 0 && (
+              <div className="space-y-3 rounded-lg border border-zinc-200 p-3">
+                <div>
+                  <p className="text-sm font-medium">Photo per colour</p>
+                  <p className="text-xs text-zinc-500">
+                    Red small and red large both use the red photo.
+                  </p>
+                </div>
+                {colours.map((colour) => (
+                  <ImagePicker
+                    key={colour}
+                    label={colour}
+                    url={form.colourImages[colour] ?? ""}
+                    onUrl={(url) =>
+                      setForm({
+                        ...form,
+                        colourImages: { ...form.colourImages, [colour]: url },
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            )}
+            {showStockGrid && (
+              <div className="space-y-2 rounded-lg border border-zinc-200 p-3">
+                <p className="text-sm font-medium">Stock by selection</p>
+                <p className="text-xs text-zinc-500">
+                  Set 0 to hide that colour/size on the shop.
+                </p>
+                <div className="overflow-x-auto">
+                  {colours.length > 0 && sizes.length > 0 ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr>
+                          <th className="px-1 py-1 text-left font-medium">Colour</th>
+                          {sizes.map((size) => (
+                            <th key={size} className="px-1 py-1 font-medium">
+                              {size}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {colours.map((colour) => (
+                          <tr key={colour}>
+                            <td className="px-1 py-1">{colour}</td>
+                            {sizes.map((size) => (
+                              <td key={size} className="px-1 py-1">
+                                <Input
+                                  className="h-8 w-16"
+                                  value={cellStock(colour, size)}
+                                  onChange={(e) =>
+                                    setCellStock(colour, size, e.target.value)
+                                  }
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : colours.length > 0 ? (
+                    <div className="grid gap-2">
+                      {colours.map((colour) => (
+                        <div key={colour} className="flex items-center gap-2">
+                          <span className="w-24 text-sm">{colour}</span>
+                          <Input
+                            className="h-8 w-24"
+                            value={cellStock(colour)}
+                            onChange={(e) =>
+                              setCellStock(colour, undefined, e.target.value)
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid gap-2">
+                      {sizes.map((size) => (
+                        <div key={size} className="flex items-center gap-2">
+                          <span className="w-24 text-sm">{size}</span>
+                          <Input
+                            className="h-8 w-24"
+                            value={cellStock(undefined, size)}
+                            onChange={(e) =>
+                              setCellStock(undefined, size, e.target.value)
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {form.id && (
               <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                 <div>

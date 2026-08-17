@@ -37,8 +37,11 @@ export function SiteNav() {
             </Link>
           ),
         )}
-        <Link href="/login" className="nav-cta">
+        <Link href="/login">
           Sign in
+        </Link>
+        <Link href="/register" className="nav-cta">
+          Create store
         </Link>
       </nav>
 
@@ -66,8 +69,11 @@ export function SiteNav() {
               </Link>
             ),
           )}
-          <Link href="/login" className="nav-cta" onClick={close}>
+          <Link href="/login" onClick={close}>
             Sign in
+          </Link>
+          <Link href="/register" className="nav-cta" onClick={close}>
+            Create store
           </Link>
         </nav>
       )}

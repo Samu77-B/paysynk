@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BrandLogo } from "@/components/BrandLogo";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
-import { imageForColour } from "@/lib/product-images";
+import { imageForSelection } from "@/lib/product-images";
 
 export type StorefrontProduct = {
   id: string;
@@ -19,6 +19,7 @@ export type StorefrontProduct = {
     options: Record<string, string>;
     priceMinor: number;
     stockQty: number;
+    imageUrl?: string | null;
   }>;
 };
 
@@ -84,7 +85,7 @@ function ProductCard({
     return Math.max(0, stockQty - reserved);
   }
 
-  const image = imageForColour(product, colour);
+  const image = imageForSelection(product, colour, selected);
 
   function stockPillClass(qty: number) {
     if (qty <= 0) return "stock-pill stock-pill-out";
