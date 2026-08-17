@@ -336,10 +336,9 @@
           imageSrc(origin, photo) +
           '" alt="' +
           escapeAttr(product.title) +
-          '" style="width:100%;aspect-ratio:4/3;object-fit:contain;background:#f2f1ec;border-radius:8px;margin:0 0 0.85rem">';
+          '" style="width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;border-radius:8px;margin:0 0 0.85rem">';
       }
       html +=
-        '<div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#65a30d;margin-bottom:0.35rem">PaySynk</div>' +
         '<h3 style="margin:0 0 0.35rem;font-size:1.15rem;line-height:1.3">' +
         escapeHtml(product.title) +
         "</h3>" +
@@ -421,7 +420,6 @@
         '<p data-ps-status style="margin:0.65rem 0 0;min-height:1.2em;font-size:0.8rem;color:#65a30d">' +
         escapeHtml(state.flash || "") +
         "</p>" +
-        '<p style="margin:0.25rem 0 0;font-size:0.75rem;color:#a1a1aa">Powered by PaySynk · cart works with cart.js on any page</p>' +
         "</div>";
 
       el.innerHTML = html;

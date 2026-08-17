@@ -21,6 +21,8 @@ export async function compressProductImage(file: File): Promise<File> {
     bitmap.close();
     return file;
   }
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
   ctx.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
 
