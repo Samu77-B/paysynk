@@ -4,10 +4,12 @@ import { getDashboardContext } from "@/lib/dashboard/data";
 import { PLAN_META } from "@/lib/dashboard/demo-data";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ShippingSettings } from "@/components/dashboard/ShippingSettings";
 
 export default async function SettingsPage() {
   const ctx = await getDashboardContext();
@@ -18,7 +20,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500">
-          Store profile, payments, and subscription
+          Store profile, delivery charge, payments, and subscription
         </p>
       </div>
 
@@ -70,6 +72,12 @@ export default async function SettingsPage() {
             </code>
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <ShippingSettings
+            currency={ctx.currency}
+            shippingFlatMinor={ctx.shippingFlatMinor}
+          />
+        </CardContent>
       </Card>
     </div>
   );

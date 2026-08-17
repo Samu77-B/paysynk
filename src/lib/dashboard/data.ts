@@ -23,6 +23,8 @@ export type DashboardContext = {
   merchants: Merchant[];
   merchant: Merchant;
   signupStatus: "pending" | "approved" | "rejected";
+  currency: string;
+  shippingFlatMinor: number;
 };
 
 function slugify(value: string) {
@@ -139,6 +141,8 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     merchants: [merchant],
     merchant,
     signupStatus: store.signupStatus,
+    currency: store.currency,
+    shippingFlatMinor: store.shippingFlatMinor,
   };
 }
 

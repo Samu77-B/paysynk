@@ -225,3 +225,27 @@ export async function savePaymentSettings(input: {
   revalidatePath("/app/settings/payments");
   return { ok: true as const, paymentsActive };
 }
+
+export async function saveShippingSettings(input: {
+  pounds: string;
+}): Promise<{ error?: string; shippingFlatMinor?: number }> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update delivery." };
+
+  const pounds = Number(input.pounds);
+  if (!Number.isFinite(pounds) || pounds < 0 || pounds > 999.99) {
+    return { error: "Enter a delivery charge from £0.00 to £999.99." };
+  }
+
+  const shippingFlatMinor = Math.round(pounds * 100);
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { shippingFlatMinor },
+  });
+  revalidatePath("/app/settings");
+  if (session.user.storeSlug) {
+    revalidatePath(`/s/${session.user.storeSlug}`);
+  }
+  return { shippingFlatMinor };
+}
