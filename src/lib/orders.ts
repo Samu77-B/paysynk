@@ -8,6 +8,7 @@ export async function markOrderPaidIdempotent(opts: {
   orderId: string;
   providerPaymentId: string;
   customerEmail?: string | null;
+  customerName?: string | null;
 }) {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({
@@ -54,6 +55,7 @@ export async function markOrderPaidIdempotent(opts: {
         status: "paid",
         providerPaymentId: opts.providerPaymentId,
         customerEmail: opts.customerEmail ?? order.customerEmail,
+        customerName: opts.customerName ?? order.customerName,
       },
       include: { items: true },
     });

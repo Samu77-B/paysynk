@@ -276,3 +276,51 @@ export async function saveStoreLogo(input: {
   revalidatePath("/s/slf");
   return { logoUrl };
 }
+
+const REPORT_FREQUENCIES = ["none", "daily", "weekly", "monthly"] as const;
+type SalesReportFrequency = (typeof REPORT_FREQUENCIES)[number];
+
+function isReportFrequency(value: string): value is SalesReportFrequency {
+  return (REPORT_FREQUENCIES as readonly string[]).includes(value);
+}
+
+function validEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+export async function saveStoreProfileSettings(input: {
+  vatNumber: string;
+  notifyEmail: string;
+  salesReportFrequency: string;
+}): Promise<{
+  error?: string;
+  vatNumber?: string | null;
+  notifyEmail?: string | null;
+  salesReportFrequency?: SalesReportFrequency;
+}> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update store details." };
+
+  const vatNumber = input.vatNumber.trim().slice(0, 32) || null;
+  const notifyRaw = input.notifyEmail.trim();
+  if (notifyRaw && !validEmail(notifyRaw)) {
+    return { error: "Enter a valid notification email, or leave it blank." };
+  }
+  if (!isReportFrequency(input.salesReportFrequency)) {
+    return { error: "Choose a sales report frequency." };
+  }
+
+  const notifyEmail = notifyRaw || null;
+  const salesReportFrequency = input.salesReportFrequency;
+
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { vatNumber, notifyEmail, salesReportFrequency },
+  });
+  revalidatePath("/app/settings");
+  if (session.user.storeSlug) {
+    revalidatePath(`/s/${session.user.storeSlug}/success`);
+  }
+  return { vatNumber, notifyEmail, salesReportFrequency };
+}

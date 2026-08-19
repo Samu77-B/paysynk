@@ -26,6 +26,9 @@ export type DashboardContext = {
   currency: string;
   shippingFlatMinor: number;
   logoUrl: string | null;
+  vatNumber: string | null;
+  notifyEmail: string | null;
+  salesReportFrequency: Store["salesReportFrequency"];
 };
 
 function slugify(value: string) {
@@ -103,7 +106,7 @@ export function toDashboardOrder(
     id: order.id,
     merchant_id: order.storeId,
     customer_email: order.customerEmail,
-    customer_name: null,
+    customer_name: order.customerName,
     status: toDashboardOrderStatus(order.status),
     total_in_pence: order.totalMinor,
     currency: order.currency,
@@ -149,6 +152,9 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     currency: store.currency,
     shippingFlatMinor: store.shippingFlatMinor,
     logoUrl: store.logoUrl,
+    vatNumber: store.vatNumber,
+    notifyEmail: store.notifyEmail,
+    salesReportFrequency: store.salesReportFrequency,
   };
 }
 

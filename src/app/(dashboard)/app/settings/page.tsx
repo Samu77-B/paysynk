@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { ShippingSettings } from "@/components/dashboard/ShippingSettings";
 import { StoreLogoSettings } from "@/components/dashboard/StoreLogoSettings";
+import { StoreProfileSettings } from "@/components/dashboard/StoreProfileSettings";
 
 export default async function SettingsPage() {
   const ctx = await getDashboardContext();
@@ -21,7 +22,8 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500">
-          Store profile, delivery charge, payments, and subscription
+          Store profile, VAT, order emails, delivery charge, payments, and
+          subscription
         </p>
       </div>
 
@@ -75,6 +77,12 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <StoreLogoSettings logoUrl={ctx.logoUrl} />
+          <StoreProfileSettings
+            vatNumber={ctx.vatNumber}
+            notifyEmail={ctx.notifyEmail}
+            ownerEmail={ctx.user.email}
+            salesReportFrequency={ctx.salesReportFrequency}
+          />
           <ShippingSettings
             currency={ctx.currency}
             shippingFlatMinor={ctx.shippingFlatMinor}

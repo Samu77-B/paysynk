@@ -49,8 +49,8 @@ export default async function SuccessPage({ params, searchParams }: Props) {
       <h1>Thanks for your order</h1>
       <p className="muted">
         {paid
-          ? "Payment received. A receipt is sent by Stripe to the email you entered at checkout."
-          : "Stripe has taken the payment. Your receipt is sent to the email you entered at checkout."}
+          ? `Payment received. A confirmation email is on its way from ${storeName}.`
+          : `Stripe has taken the payment. A confirmation email from ${storeName} will follow once the order is marked paid.`}
       </p>
 
       {order ? (
@@ -94,6 +94,11 @@ export default async function SuccessPage({ params, searchParams }: Props) {
             <strong>Total</strong>
             <strong>{formatMoney(order.totalMinor, order.currency)}</strong>
           </p>
+          {store?.vatNumber ? (
+            <p className="muted small" style={{ marginTop: "1rem" }}>
+              VAT: {store.vatNumber}
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="muted">Order details unavailable.</p>

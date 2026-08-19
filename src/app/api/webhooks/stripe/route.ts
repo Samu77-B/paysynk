@@ -2,8 +2,28 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/payments";
 import { markOrderPaidIdempotent } from "@/lib/orders";
+import { prisma } from "@/lib/prisma";
+import {
+  sendPaidOrderEmails,
+  type ShippingBits,
+} from "@/lib/email/order-emails";
 
 export const runtime = "nodejs";
+
+function shippingFromSession(session: Stripe.Checkout.Session): ShippingBits | null {
+  const details = session.collected_information?.shipping_details;
+  const address = details?.address ?? session.customer_details?.address;
+  const name = details?.name ?? session.customer_details?.name;
+  if (!name && !address) return null;
+  return {
+    name,
+    line1: address?.line1,
+    line2: address?.line2,
+    city: address?.city,
+    postalCode: address?.postal_code,
+    country: address?.country,
+  };
+}
 
 /**
  * Stripe webhook — verify signature, mark order paid, decrement stock.
@@ -50,10 +70,16 @@ export async function POST(req: Request) {
         }
       }
 
+      const customerName =
+        session.customer_details?.name ??
+        session.collected_information?.shipping_details?.name ??
+        null;
+
       const result = await markOrderPaidIdempotent({
         orderId,
         providerPaymentId: session.id,
         customerEmail: session.customer_details?.email ?? session.customer_email,
+        customerName,
       });
 
       console.log(
@@ -61,6 +87,23 @@ export async function POST(req: Request) {
           ? `Order ${orderId} already paid (idempotent)`
           : `Order ${orderId} marked paid; stock decremented`,
       );
+
+      if (!result.alreadyPaid) {
+        const paidOrder = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: { items: true, store: { include: { users: true } } },
+        });
+        if (paidOrder) {
+          try {
+            await sendPaidOrderEmails({
+              order: paidOrder,
+              shipping: shippingFromSession(session),
+            });
+          } catch (err) {
+            console.error("Order emails failed", orderId, err);
+          }
+        }
+      }
     }
 
     return NextResponse.json({ received: true });
