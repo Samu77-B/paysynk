@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
-import { BrandLogo } from "@/components/BrandLogo";
+import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
@@ -27,6 +27,7 @@ export type StorefrontProduct = {
 export type StorefrontStore = {
   slug: string;
   name: string;
+  logoUrl?: string | null;
   currency: string;
   shippingFlatMinor: number;
   paymentsActive: boolean;
@@ -403,14 +404,8 @@ export function Storefront({
       <div className="store-shell">
         <header className="store-header">
           <div>
-            <a href="/" aria-label="PaySynk home">
-              <BrandLogo variant="white" height={28} />
-            </a>
-            <p className="eyebrow accent-text" style={{ marginTop: "1rem" }}>
-              Hosted storefront
-            </p>
-            <h1>{store.name}</h1>
-            <p className="muted">
+            <StoreBrand name={store.name} logoUrl={store.logoUrl} />
+            <p className="muted" style={{ marginTop: "0.75rem" }}>
               Currency {store.currency.toUpperCase()} · UK shipping{" "}
               {formatMoney(store.shippingFlatMinor, store.currency)}
             </p>

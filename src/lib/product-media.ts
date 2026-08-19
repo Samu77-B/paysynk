@@ -27,6 +27,7 @@ function extensionFor(type: string) {
 export async function saveProductImageFile(opts: {
   storeId: string;
   file: File;
+  folder?: "products" | "logos";
 }): Promise<{ url: string; error?: undefined } | { url?: undefined; error: string }> {
   const type = resolveType(opts.file);
   if (!type) {
@@ -36,8 +37,9 @@ export async function saveProductImageFile(opts: {
     return { error: "Image must be under 6MB." };
   }
 
+  const folder = opts.folder ?? "products";
   const name = `${randomBytes(8).toString("hex")}.${extensionFor(type)}`;
-  const pathname = `products/${opts.storeId}/${name}`;
+  const pathname = `${folder}/${opts.storeId}/${name}`;
   const blobStoreId =
     process.env["BLOB2_STORE_ID"] || process.env["BLOB_STORE_ID"];
 

@@ -88,6 +88,7 @@ export async function GET(req: Request, { params }: Params) {
           id: store.id,
           slug: store.slug,
           name: store.name,
+          logoUrl: store.logoUrl,
           currency: store.currency,
           shippingFlatMinor: store.shippingFlatMinor,
           paymentsActive: store.paymentsActive,

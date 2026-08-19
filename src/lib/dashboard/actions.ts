@@ -255,3 +255,24 @@ export async function saveShippingSettings(input: {
   }
   return { shippingFlatMinor };
 }
+
+export async function saveStoreLogo(input: {
+  logoUrl: string | null;
+}): Promise<{ error?: string; logoUrl?: string | null }> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update your logo." };
+
+  const logoUrl = input.logoUrl?.trim() || null;
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { logoUrl },
+  });
+  revalidatePath("/app/settings");
+  if (session.user.storeSlug) {
+    revalidatePath(`/s/${session.user.storeSlug}`);
+    revalidatePath(`/s/${session.user.storeSlug}/success`);
+  }
+  revalidatePath("/s/slf");
+  return { logoUrl };
+}

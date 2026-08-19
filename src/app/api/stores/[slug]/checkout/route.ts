@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 import { z } from "zod";
+import { resolveAppOrigin } from "@/lib/app-url";
 import { CheckoutError, createStoreCheckout } from "@/lib/checkout";
 import { embedCorsPreflight, withEmbedCors } from "@/lib/embed-cors";
+
+function publicCheckoutError(err: unknown): string {
+  if (err instanceof Stripe.errors.StripeError) {
+    return err.message;
+  }
+  if (err instanceof Error && err.message.includes("STRIPE_SECRET_KEY")) {
+    return "Stripe is not configured on the server.";
+  }
+  return "Checkout failed";
+}
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -37,9 +49,7 @@ export async function POST(req: Request, { params }: Params) {
       );
     }
 
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-      new URL(req.url).origin;
+    const appUrl = resolveAppOrigin(req.url);
 
     const result = await createStoreCheckout({
       storeSlug: slug,
@@ -72,7 +82,10 @@ export async function POST(req: Request, { params }: Params) {
     }
     console.error(err);
     return withEmbedCors(
-      NextResponse.json({ error: "Checkout failed" }, { status: 500 }),
+      NextResponse.json(
+        { error: publicCheckoutError(err) },
+        { status: 500 },
+      ),
     );
   }
 }

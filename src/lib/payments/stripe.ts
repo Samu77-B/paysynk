@@ -77,6 +77,7 @@ export class StripePaymentProvider implements PaymentProvider {
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       client_reference_id: input.orderId,
+      customer_creation: "always",
       metadata: {
         orderId: input.orderId,
         storeId: input.storeId,

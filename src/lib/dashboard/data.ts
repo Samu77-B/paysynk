@@ -25,6 +25,7 @@ export type DashboardContext = {
   signupStatus: "pending" | "approved" | "rejected";
   currency: string;
   shippingFlatMinor: number;
+  logoUrl: string | null;
 };
 
 function slugify(value: string) {
@@ -106,11 +107,15 @@ export function toDashboardOrder(
     status: toDashboardOrderStatus(order.status),
     total_in_pence: order.totalMinor,
     currency: order.currency,
-    items_json: order.items.map((item) => ({
-      title: item.title,
-      qty: item.quantity,
-      price: item.unitPriceMinor,
-    })),
+    items_json: order.items.map((item) => {
+      const options = (item.optionsSnapshot ?? {}) as Record<string, string>;
+      const detail = [options.colour, options.size].filter(Boolean).join(" · ");
+      return {
+        title: detail ? `${item.title} — ${detail}` : item.title,
+        qty: item.quantity,
+        price: item.unitPriceMinor,
+      };
+    }),
     shipping_address: null,
     stripe_payment_id: order.providerPaymentId,
     channel: order.channel,
@@ -143,6 +148,7 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     signupStatus: store.signupStatus,
     currency: store.currency,
     shippingFlatMinor: store.shippingFlatMinor,
+    logoUrl: store.logoUrl,
   };
 }
 

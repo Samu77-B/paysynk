@@ -71,6 +71,8 @@ model Store {
   paymentsActive    Boolean             @default(false)
   signupStatus      SignupStatus        @default(pending)
   adminNotes        String?
+  /// Public shop logo (Blob or /uploads/…). Shown on the storefront and success page.
+  logoUrl           String?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 

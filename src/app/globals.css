@@ -688,9 +688,35 @@ h3 {
   animation: fade-up 0.7s ease both;
 }
 
-.store-header h1 {
+.store-header h1,
+.store-brand-name {
   margin: 0.35rem 0 0;
   font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.store-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.store-brand-compact .store-brand-name {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.store-logo {
+  display: block;
+  height: 72px;
+  width: auto;
+  max-width: min(100%, 280px);
+  object-fit: contain;
+}
+
+.store-brand-compact .store-logo {
+  height: 48px;
+  max-width: 200px;
 }
 
 .store-preview-note {
@@ -919,15 +945,68 @@ h3 {
 .success-page {
   max-width: 640px;
   margin: 0 auto;
-  padding: 3rem 1.25rem;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.success-store-name {
+  margin: 0 0 1.5rem;
+  font-family: var(--font-display), "Syne", system-ui, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
 }
 
 .success-card {
   background: var(--bg-panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 1rem;
+  padding: 1.15rem 1.2rem;
   margin: 1.25rem 0;
+}
+
+.success-ref {
+  margin: 0 0 0.9rem;
+  font-size: 0.9rem;
+}
+
+.success-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.success-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.success-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.85rem 0 0;
+  font-size: 1.05rem;
+}
+
+.success-powered {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 2.75rem;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.success-powered a {
+  display: inline-flex;
+  text-decoration: none;
 }
 
 /* —— Admin —— */

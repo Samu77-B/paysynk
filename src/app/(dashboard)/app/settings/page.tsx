@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ShippingSettings } from "@/components/dashboard/ShippingSettings";
+import { StoreLogoSettings } from "@/components/dashboard/StoreLogoSettings";
 
 export default async function SettingsPage() {
   const ctx = await getDashboardContext();
@@ -72,7 +73,8 @@ export default async function SettingsPage() {
             </code>
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          <StoreLogoSettings logoUrl={ctx.logoUrl} />
           <ShippingSettings
             currency={ctx.currency}
             shippingFlatMinor={ctx.shippingFlatMinor}

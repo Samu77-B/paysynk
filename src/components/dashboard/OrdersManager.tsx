@@ -236,7 +236,11 @@ export function OrdersManager({
                 </p>
               </div>
               <SheetFooter>
-                <Button variant="outline" onClick={() => printSlip(selected)}>
+                <Button
+                  variant="outline"
+                  className="border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-100"
+                  onClick={() => printSlip(selected)}
+                >
                   <Printer className="size-4" />
                   Print packing slip
                 </Button>
