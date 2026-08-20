@@ -29,7 +29,7 @@ export async function createStoreCheckout(opts: {
   }
 
   for (const item of items) {
-    if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
       throw new CheckoutError("Invalid quantity", 400);
     }
   }

@@ -3,14 +3,38 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { authConfig } from "@/lib/auth.config";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
 
+/** Valid bcrypt hash so unknown-email logins take the same time as known ones. */
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$g.Ymq0pUMBLUr1RQkekAs.ELBExf9BBjH1X1BDPdhxzNQAZOhdDtu";
+
+const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_MAX_ATTEMPTS = 10;
+
+function loginThrottled(email: string) {
+  const now = Date.now();
+  const rec = loginAttempts.get(email);
+  if (!rec || now >= rec.resetAt) {
+    loginAttempts.set(email, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return false;
+  }
+  rec.count += 1;
+  return rec.count > LOGIN_MAX_ATTEMPTS;
+}
+
+function clearLoginThrottle(email: string) {
+  loginAttempts.delete(email);
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true,
+  ...authConfig,
   providers: [
     Credentials({
       name: "Credentials",
@@ -22,15 +46,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
+        const email = parsed.data.email.toLowerCase();
+        if (loginThrottled(email)) return null;
+
         const user = await prisma.merchantUser.findUnique({
-          where: { email: parsed.data.email.toLowerCase() },
+          where: { email },
           include: { store: true },
         });
-        if (!user) return null;
 
-        const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!ok) return null;
+        const hash = user?.passwordHash ?? DUMMY_PASSWORD_HASH;
+        const ok = await bcrypt.compare(parsed.data.password, hash);
+        if (!user || !ok) return null;
 
+        clearLoginThrottle(email);
         return {
           id: user.id,
           email: user.email,
@@ -41,29 +69,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        const u = user as {
-          storeId?: string;
-          storeSlug?: string;
-        };
-        token.storeId = u.storeId;
-        token.storeSlug = u.storeSlug;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub ?? "";
-        session.user.storeId = (token.storeId as string) ?? "";
-        session.user.storeSlug = (token.storeSlug as string) ?? "";
-      }
-      return session;
-    },
-  },
 });

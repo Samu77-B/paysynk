@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { loginMerchant } from "@/lib/dashboard/auth-actions";
+import { safeInternalPath } from "@/lib/safe-path";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +14,9 @@ export default async function LoginPage({
 }) {
   const session = await auth();
   const { next, error } = await searchParams;
+  const nextPath = safeInternalPath(next);
   if (session?.user) {
-    redirect(next?.startsWith("/") ? next : "/app");
+    redirect(nextPath);
   }
 
   return (
@@ -30,7 +32,7 @@ export default async function LoginPage({
         <input
           type="hidden"
           name="next"
-          value={next?.startsWith("/") ? next : "/app"}
+          value={nextPath}
         />
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

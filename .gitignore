@@ -39,6 +39,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local docs and security reports — excluded from git and Vercel
+/_Do-Not-Upload/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

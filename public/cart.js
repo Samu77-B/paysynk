@@ -358,6 +358,9 @@
         });
       })
       .then(function (data) {
+        if (!data.redirectUrl || data.redirectUrl.indexOf("https://") !== 0) {
+          throw new Error("Checkout failed");
+        }
         writeCart(storeSlug, []);
         window.location.href = data.redirectUrl;
       })

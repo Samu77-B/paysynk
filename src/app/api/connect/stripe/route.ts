@@ -22,11 +22,9 @@ export async function GET(req: Request) {
     res.cookies.set(connectStateCookieName(), state, connectCookieOptions());
     return res;
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Stripe Connect is not configured";
     return NextResponse.redirect(
       new URL(
-        `/app/settings/payments?error=${encodeURIComponent(message)}`,
+        `/app/settings/payments?error=${encodeURIComponent("Stripe Connect is not configured")}`,
         req.url,
       ),
     );

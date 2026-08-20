@@ -122,7 +122,23 @@
 
   function imageSrc(origin, photo) {
     if (!photo) return "";
-    if (/^https?:\/\//i.test(photo)) return photo;
+    try {
+      if (/^https:\/\//i.test(photo)) {
+        var host = new URL(photo).hostname;
+        if (
+          host.endsWith(".public.blob.vercel-storage.com") ||
+          host.endsWith(".blob.vercel-storage.com")
+        ) {
+          return photo;
+        }
+        return "";
+      }
+    } catch (e) {
+      return "";
+    }
+    if (photo.charAt(0) !== "/" || photo.indexOf("//") !== -1 || photo.indexOf("..") !== -1) {
+      return "";
+    }
     return origin + encodeURI(photo);
   }
 
@@ -217,13 +233,13 @@
       '" alt="PaySynk" style="height:28px;width:auto;display:block;margin-bottom:0.85rem" />' +
       '<div style="font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:#9FE870">Store</div>' +
       '<div style="font-family:Syne,system-ui,sans-serif;font-size:1.35rem;margin:0.35rem 0 0.75rem;font-weight:700">' +
-      slug +
+      escapeHtml(slug) +
       "</div>" +
       '<a href="' +
       href +
       '" style="display:inline-block;background:#9FE870;color:#141414;text-decoration:none;padding:0.65rem 1rem;border-radius:999px;font-weight:600">Open shop</a>' +
       '<p style="margin:0.75rem 0 0;font-size:0.85rem;color:#a3a3a3">Shop cart: include cart.js with data-store=&quot;' +
-      slug +
+      escapeHtml(slug) +
       '&quot; on any page</p></div>';
   }
 
@@ -267,7 +283,7 @@
       .catch(function (err) {
         el.innerHTML =
           '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #fecaca;border-radius:12px;padding:1.25rem;background:#fff;color:#b91c1c">' +
-          (err.message || "Could not load product") +
+          escapeHtml(err.message || "Could not load product") +
           "</div>";
       });
   }

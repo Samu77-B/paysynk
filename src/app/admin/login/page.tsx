@@ -48,7 +48,6 @@ export default async function AdminLoginPage({
               name="email"
               type="email"
               required
-              defaultValue="merchant@slf.test"
               autoComplete="username"
             />
           </label>
@@ -58,7 +57,6 @@ export default async function AdminLoginPage({
               name="password"
               type="password"
               required
-              defaultValue="password123"
               autoComplete="current-password"
             />
           </label>
@@ -66,9 +64,7 @@ export default async function AdminLoginPage({
             Sign in
           </button>
         </form>
-        <p className="muted small">
-          Seed demo: merchant@slf.test / password123
-        </p>
+        <p className="muted small">Use the merchant email you registered with.</p>
       </div>
     </main>
   );

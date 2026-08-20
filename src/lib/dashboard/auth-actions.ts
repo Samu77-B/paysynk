@@ -5,6 +5,7 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
+import { safeInternalPath } from "@/lib/safe-path";
 
 function slugify(value: string) {
   return value
@@ -72,8 +73,7 @@ export async function registerMerchant(formData: FormData) {
 export async function loginMerchant(formData: FormData) {
   const email = String(formData.get("email") || "");
   const password = String(formData.get("password") || "");
-  const nextRaw = String(formData.get("next") || "/app");
-  const next = nextRaw.startsWith("/") ? nextRaw : "/app";
+  const next = safeInternalPath(formData.get("next"));
 
   try {
     await signIn("credentials", {

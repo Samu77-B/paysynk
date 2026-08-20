@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { sendDueSalesReports } from "@/lib/email/sales-report";
+import { secretsEqual } from "@/lib/secret-compare";
 
 export const runtime = "nodejs";
 
 function authorized(req: Request) {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return false;
-  return req.headers.get("authorization") === `Bearer ${secret}`;
+  const header = req.headers.get("authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  return secretsEqual(token, secret);
 }
 
 export async function GET(req: Request) {

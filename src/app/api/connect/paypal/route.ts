@@ -26,11 +26,9 @@ export async function GET(req: Request) {
     return res;
   } catch (err) {
     console.error("PayPal Connect start failed", err);
-    const message =
-      err instanceof Error ? err.message : "PayPal Connect is not configured";
     return NextResponse.redirect(
       new URL(
-        `/app/settings/payments?error=${encodeURIComponent(message)}`,
+        `/app/settings/payments?error=${encodeURIComponent("PayPal Connect is not configured")}`,
         req.url,
       ),
     );

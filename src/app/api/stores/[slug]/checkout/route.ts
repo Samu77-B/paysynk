@@ -7,10 +7,10 @@ import { embedCorsPreflight, withEmbedCors } from "@/lib/embed-cors";
 
 function publicCheckoutError(err: unknown): string {
   if (err instanceof Stripe.errors.StripeError) {
-    return err.message;
+    return "Payment provider rejected this checkout. Try again.";
   }
   if (err instanceof Error && err.message.includes("STRIPE_SECRET_KEY")) {
-    return "Stripe is not configured on the server.";
+    return "Checkout is not configured on the server.";
   }
   return "Checkout failed";
 }
@@ -22,10 +22,11 @@ const bodySchema = z.object({
     .array(
       z.object({
         variantId: z.string().min(1),
-        quantity: z.number().int().positive(),
+        quantity: z.number().int().positive().max(99),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(50),
   discountCode: z.string().max(40).optional(),
 });
 

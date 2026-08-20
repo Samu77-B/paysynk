@@ -23,8 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: saved.url });
   } catch (err) {
     console.error("product-image upload failed", err);
-    const message =
-      err instanceof Error ? err.message : "Upload failed. Try a JPG under 4MB.";
+    const message = "Upload failed. Try a JPG under 4MB.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { toDashboardProduct } from "@/lib/dashboard/data";
 import type { CatalogProduct } from "@/lib/dashboard/data";
+import { isAllowedMediaUrl, sanitizeMediaUrl } from "@/lib/media-url";
 
 function slugify(value: string) {
   return value
@@ -39,9 +40,9 @@ function collectImages(
   defaultImage: string | null | undefined,
   colourImages: Record<string, string> | undefined,
 ) {
-  const urls = [defaultImage, ...Object.values(colourImages ?? {})].filter(
-    (url): url is string => Boolean(url?.trim()),
-  );
+  const urls = [defaultImage, ...Object.values(colourImages ?? {})]
+    .map((url) => sanitizeMediaUrl(url))
+    .filter((url): url is string => Boolean(url));
   return Array.from(new Set(urls));
 }
 
@@ -63,8 +64,13 @@ export async function saveDashboardProduct(input: {
   const storeId = session?.user?.storeId;
   if (!storeId) return { error: "Sign in to manage products." };
 
-  if (!input.title.trim() || Number.isNaN(input.priceMinor)) {
-    return { error: "Title and price are required." };
+  if (
+    !input.title.trim() ||
+    !Number.isFinite(input.priceMinor) ||
+    input.priceMinor < 0 ||
+    input.priceMinor > 10_000_000
+  ) {
+    return { error: "Title and a valid price are required." };
   }
 
   const colours = input.colours.filter(Boolean);
@@ -89,7 +95,7 @@ export async function saveDashboardProduct(input: {
           stockQty: lookupStock(input.stockByKey, colour, size, fallbackStock),
           priceMinor: input.priceMinor,
           options: { colour, size },
-          imageUrl: input.colourImages?.[colour]?.trim() || null,
+          imageUrl: sanitizeMediaUrl(input.colourImages?.[colour]),
         });
       }
     }
@@ -100,7 +106,7 @@ export async function saveDashboardProduct(input: {
         stockQty: lookupStock(input.stockByKey, colour, undefined, fallbackStock),
         priceMinor: input.priceMinor,
         options: { colour },
-        imageUrl: input.colourImages?.[colour]?.trim() || null,
+        imageUrl: sanitizeMediaUrl(input.colourImages?.[colour]),
       });
     }
   } else if (sizes.length) {
@@ -110,7 +116,7 @@ export async function saveDashboardProduct(input: {
         stockQty: lookupStock(input.stockByKey, undefined, size, fallbackStock),
         priceMinor: input.priceMinor,
         options: { size },
-        imageUrl: input.defaultImage?.trim() || null,
+        imageUrl: sanitizeMediaUrl(input.defaultImage),
       });
     }
   } else {
@@ -121,7 +127,7 @@ export async function saveDashboardProduct(input: {
       stockQty: fallbackStock,
       priceMinor: input.priceMinor,
       options: {},
-      imageUrl: input.defaultImage?.trim() || null,
+      imageUrl: sanitizeMediaUrl(input.defaultImage),
     });
   }
 
@@ -299,7 +305,11 @@ export async function saveStoreLogo(input: {
   const storeId = session?.user?.storeId;
   if (!storeId) return { error: "Sign in to update your logo." };
 
-  const logoUrl = input.logoUrl?.trim() || null;
+  const raw = input.logoUrl?.trim() || null;
+  if (raw && !isAllowedMediaUrl(raw)) {
+    return { error: "That logo URL is not allowed." };
+  }
+  const logoUrl = raw;
   await prisma.store.update({
     where: { id: storeId },
     data: { logoUrl },

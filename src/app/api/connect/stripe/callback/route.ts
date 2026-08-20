@@ -52,8 +52,9 @@ export async function GET(req: Request) {
     return paymentsRedirect(req, "connected=stripe");
   } catch (err) {
     console.error("Stripe Connect callback failed", err);
-    const message =
-      err instanceof Error ? err.message : "Could not connect Stripe";
-    return paymentsRedirect(req, `error=${encodeURIComponent(message)}`);
+    return paymentsRedirect(
+      req,
+      `error=${encodeURIComponent("Could not connect Stripe. Try again.")}`,
+    );
   }
 }
