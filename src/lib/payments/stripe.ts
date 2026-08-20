@@ -25,7 +25,9 @@ export function getStripe(): Stripe {
  * Discounts: baked into line unit amounts (Stripe disallows negative / £0 prices).
  * Free gifts stay on the PaySynk order, not as Stripe line items.
  *
- * TODO: Stripe Connect / per-merchant keys — currently uses platform STRIPE_SECRET_KEY.
+ * Direct charges: when the shop has connected Stripe, Checkout runs on their
+ * account (`stripeAccount`) so funds land with them. No platform application fee.
+ * TODO: FAC / PowerTranz.
  */
 export class StripePaymentProvider implements PaymentProvider {
   async createCheckout(
@@ -72,38 +74,43 @@ export class StripePaymentProvider implements PaymentProvider {
         },
       }));
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      success_url: input.successUrl,
-      cancel_url: input.cancelUrl,
-      client_reference_id: input.orderId,
-      customer_creation: "always",
-      metadata: {
-        orderId: input.orderId,
-        storeId: input.storeId,
-        storeSlug: input.storeSlug,
-        bundlePairs: String(input.bundlePairs ?? 0),
-        discountMinor: String(input.discountMinor ?? 0),
-        discountLabel: (input.discountLabel ?? "").slice(0, 500),
-        ...input.metadata,
-      },
-      line_items,
-      shipping_address_collection: {
-        allowed_countries: ["GB"],
-      },
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: {
-              amount: shippingAmount,
-              currency: input.currency,
-            },
-            display_name: input.shippingLabel ?? "UK shipping",
-          },
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
+        client_reference_id: input.orderId,
+        customer_creation: "always",
+        metadata: {
+          orderId: input.orderId,
+          storeId: input.storeId,
+          storeSlug: input.storeSlug,
+          bundlePairs: String(input.bundlePairs ?? 0),
+          discountMinor: String(input.discountMinor ?? 0),
+          discountLabel: (input.discountLabel ?? "").slice(0, 500),
+          ...input.metadata,
         },
-      ],
-    });
+        line_items,
+        shipping_address_collection: {
+          allowed_countries: ["GB"],
+        },
+        shipping_options: [
+          {
+            shipping_rate_data: {
+              type: "fixed_amount",
+              fixed_amount: {
+                amount: shippingAmount,
+                currency: input.currency,
+              },
+              display_name: input.shippingLabel ?? "UK shipping",
+            },
+          },
+        ],
+      },
+      input.stripeAccountId
+        ? { stripeAccount: input.stripeAccountId }
+        : undefined,
+    );
 
     if (!session.url) {
       throw new Error("Stripe Checkout Session missing redirect URL");

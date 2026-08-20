@@ -131,12 +131,19 @@ export async function createStoreCheckout(opts: {
     });
   }
 
+  const checkoutProvider =
+    store.paymentProvider === "fac"
+      ? "fac"
+      : store.paypalMerchantId && !store.stripeConnectId
+        ? "paypal"
+        : "stripe";
+
   const order = await prisma.order.create({
     data: {
       storeId: store.id,
       status: "pending",
       channel,
-      paymentProvider: store.paymentProvider,
+      paymentProvider: checkoutProvider,
       currency: store.currency,
       subtotalMinor: pricing.subtotalMinor,
       shippingMinor: pricing.shippingMinor,
@@ -165,12 +172,15 @@ export async function createStoreCheckout(opts: {
       ? giftItems.map((g) => `${g.quantity}× ${g.title}`).join(", ")
       : undefined;
 
-  const provider = getPaymentProvider(store.paymentProvider);
+  const provider = getPaymentProvider(checkoutProvider);
   const checkout = await provider.createCheckout({
     storeId: store.id,
     storeSlug: store.slug,
+    storeName: store.name,
     currency: store.currency,
     orderId: order.id,
+    stripeAccountId: store.stripeConnectId,
+    paypalMerchantId: store.paypalMerchantId,
     subtotalMinor: pricing.subtotalMinor,
     shippingMinor: pricing.shippingMinor,
     totalMinor: pricing.totalMinor,
@@ -189,6 +199,7 @@ export async function createStoreCheckout(opts: {
     discountLabel: [pricing.discountLabel, giftNote].filter(Boolean).join(" · ") || undefined,
     successUrl: `${appUrl}/s/${store.slug}/success?order=${order.id}`,
     cancelUrl: `${appUrl}/s/${store.slug}?cancelled=1`,
+    completeUrl: `${appUrl}/api/paypal/complete?order=${order.id}`,
   });
 
   await prisma.order.update({

@@ -205,31 +205,67 @@ export async function markOrderFulfilled(orderId: string) {
 }
 
 export async function savePaymentSettings(input: {
-  stripeConnectId: string;
-  paypalMerchantId: string;
   activate: boolean;
 }) {
   const session = await auth();
   const storeId = session?.user?.storeId;
   if (!storeId) return { error: "Sign in to update payments." };
 
-  const stripeConnectId = input.stripeConnectId.trim() || null;
-  const paypalMerchantId = input.paypalMerchantId.trim() || null;
   const current = await prisma.store.findUnique({
     where: { id: storeId },
-    select: { paymentsActive: true },
+    select: {
+      paymentsActive: true,
+      stripeConnectId: true,
+      paypalMerchantId: true,
+    },
   });
-  const paymentsActive = input.activate
-    ? true
-    : (current?.paymentsActive ?? false);
+  if (!current) return { error: "Store not found." };
+
+  if (input.activate && !current.stripeConnectId && !current.paypalMerchantId) {
+    return {
+      error: "Connect Stripe or PayPal first, then activate checkout.",
+    };
+  }
+
+  const paymentsActive = input.activate ? true : current.paymentsActive;
 
   await prisma.store.update({
     where: { id: storeId },
-    data: { stripeConnectId, paypalMerchantId, paymentsActive },
+    data: { paymentsActive },
   });
   revalidatePath("/app/settings/payments");
   revalidatePath("/app/products");
   return { ok: true as const, paymentsActive };
+}
+
+export async function disconnectPaymentProvider(provider: "stripe" | "paypal") {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update payments." };
+
+  const current = await prisma.store.findUnique({
+    where: { id: storeId },
+    select: { stripeConnectId: true, paypalMerchantId: true },
+  });
+  if (!current) return { error: "Store not found." };
+
+  const stripeConnectId =
+    provider === "stripe" ? null : current.stripeConnectId;
+  const paypalMerchantId =
+    provider === "paypal" ? null : current.paypalMerchantId;
+  const stillConnected = Boolean(stripeConnectId || paypalMerchantId);
+
+  await prisma.store.update({
+    where: { id: storeId },
+    data: {
+      stripeConnectId,
+      paypalMerchantId,
+      paymentsActive: stillConnected,
+    },
+  });
+  revalidatePath("/app/settings/payments");
+  revalidatePath("/app/products");
+  return { ok: true as const };
 }
 
 export async function saveShippingSettings(input: {

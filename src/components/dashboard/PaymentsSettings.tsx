@@ -12,36 +12,72 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { savePaymentSettings } from "@/lib/dashboard/actions";
+import {
+  disconnectPaymentProvider,
+  savePaymentSettings,
+} from "@/lib/dashboard/actions";
 import type { Merchant } from "@/types/database";
+
+function connectedLabel(id: string) {
+  return id.length > 8 ? `Connected · …${id.slice(-6)}` : `Connected`;
+}
 
 export function PaymentsSettings({
   merchant,
+  stripeConnectReady,
+  paypalConnectReady,
+  flash,
 }: {
   merchant: Merchant;
+  stripeConnectReady: boolean;
+  paypalConnectReady: boolean;
+  flash?: { connected?: string; error?: string };
 }) {
-  const [stripeId, setStripeId] = useState(merchant.stripe_connect_id ?? "");
-  const [paypalId, setPaypalId] = useState(merchant.paypal_merchant_id ?? "");
+  const [stripeId, setStripeId] = useState(merchant.stripe_connect_id);
+  const [paypalId, setPaypalId] = useState(merchant.paypal_merchant_id);
   const [active, setActive] = useState(merchant.payments_active);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(() => {
+    if (flash?.error) return flash.error;
+    if (flash?.connected === "stripe") {
+      return "Stripe is connected. Customer payments will go to that Stripe account.";
+    }
+    if (flash?.connected === "paypal") {
+      return "PayPal is connected. Customer payments will go to that PayPal account.";
+    }
+    return null;
+  });
   const [pending, startTransition] = useTransition();
 
-  function save(activate: boolean) {
+  const hasPayout = Boolean(stripeId || paypalId);
+
+  function activate() {
     startTransition(async () => {
       setMessage(null);
-      const result = await savePaymentSettings({
-        stripeConnectId: stripeId,
-        paypalMerchantId: paypalId,
-        activate,
-      });
+      const result = await savePaymentSettings({ activate: true });
       if (result.error) {
         setMessage(result.error);
         return;
       }
       setActive(Boolean(result.paymentsActive));
-      setMessage("Payment settings saved.");
+      setMessage("Checkout is live on your shop.");
+    });
+  }
+
+  function disconnect(provider: "stripe" | "paypal") {
+    startTransition(async () => {
+      setMessage(null);
+      const result = await disconnectPaymentProvider(provider);
+      if (result.error) {
+        setMessage(result.error);
+        return;
+      }
+      if (provider === "stripe") setStripeId(null);
+      else setPaypalId(null);
+      const still = provider === "stripe" ? paypalId : stripeId;
+      setActive(Boolean(still));
+      setMessage(
+        provider === "stripe" ? "Stripe disconnected." : "PayPal disconnected.",
+      );
     });
   }
 
@@ -53,8 +89,8 @@ export function PaymentsSettings({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Payments</h1>
         <p className="text-sm text-zinc-500">
-            Connect your own processors — PaySynk never holds your customer funds.
-            Activate to show the public cart. Stripe Connect can be added after.
+          Connect Stripe or PayPal with one click. Customers pay you directly —
+          PaySynk never holds the funds and never asks for your secret keys.
         </p>
       </div>
 
@@ -76,52 +112,91 @@ export function PaymentsSettings({
           </div>
           <CardDescription>
             {active
-              ? "Payments Active — funds flow directly to your bank account."
-              : "Connect Stripe Connect or PayPal to activate checkout payouts."}
+              ? "Your shop is taking payments. Money goes to the account you connected."
+              : "Connect an account, then activate checkout on your shop."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Stripe Connect account ID</Label>
-            <Input
-              placeholder="acct_..."
-              value={stripeId}
-              onChange={(e) => setStripeId(e.target.value)}
-            />
-            <p className="text-xs text-zinc-500">
-              Production: replace with Stripe Connect OAuth button (
-              <code>account_links</code> / Express onboarding).
-            </p>
+        <CardContent className="space-y-6">
+          <div className="space-y-3 rounded-lg border border-zinc-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium">Stripe</p>
+                <p className="text-xs text-zinc-500">
+                  {stripeId
+                    ? connectedLabel(stripeId)
+                    : "Sign in to Stripe. Existing accounts work."}
+                </p>
+              </div>
+              {stripeId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => disconnect("stripe")}
+                >
+                  Disconnect
+                </Button>
+              ) : stripeConnectReady ? (
+                <Button asChild className="bg-[#635bff] text-white hover:bg-[#554ee0]">
+                  <a href="/api/connect/stripe">Connect Stripe</a>
+                </Button>
+              ) : (
+                <p className="text-xs text-zinc-500">
+                  Stripe Connect is not enabled on this PaySynk install yet.
+                </p>
+              )}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>PayPal merchant ID</Label>
-            <Input
-              placeholder="PayPal merchant id"
-              value={paypalId}
-              onChange={(e) => setPaypalId(e.target.value)}
-            />
+
+          <div className="space-y-3 rounded-lg border border-zinc-200 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium">PayPal</p>
+                <p className="text-xs text-zinc-500">
+                  {paypalId
+                    ? connectedLabel(paypalId)
+                    : "Sign in to PayPal. Checkout uses PayPal if Stripe is not connected."}
+                </p>
+              </div>
+              {paypalId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => disconnect("paypal")}
+                >
+                  Disconnect
+                </Button>
+              ) : paypalConnectReady ? (
+                <Button asChild className="bg-[#0070ba] text-white hover:bg-[#005ea6]">
+                  <a href="/api/connect/paypal">Connect PayPal</a>
+                </Button>
+              ) : (
+                <p className="text-xs text-zinc-500">
+                  PayPal Connect is not enabled on this PaySynk install yet.
+                </p>
+              )}
+            </div>
           </div>
+
           {message && (
             <p className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
               {message}
             </p>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              disabled={pending}
-              variant="outline"
-              onClick={() => save(false)}
-            >
-              Save keys
-            </Button>
-            <Button
-              disabled={pending}
-              onClick={() => save(true)}
-              className="bg-[#9FE870] text-[#141414] hover:bg-[#8fd960]"
-            >
-              Activate payments
-            </Button>
-          </div>
+
+          <Button
+            disabled={pending || active || !hasPayout}
+            onClick={activate}
+            className="bg-[#9FE870] text-[#141414] hover:bg-[#8fd960]"
+          >
+            Activate payments
+          </Button>
+          {!hasPayout && (
+            <p className="text-xs text-zinc-500">
+              Connect Stripe or PayPal to turn on the public cart.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

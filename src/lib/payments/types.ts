@@ -26,6 +26,11 @@ export type CreateCheckoutInput = {
   bundlePairs?: number;
   successUrl: string;
   cancelUrl: string;
+  /** PayPal capture return (optional). */
+  completeUrl?: string;
+  storeName?: string;
+  stripeAccountId?: string | null;
+  paypalMerchantId?: string | null;
   metadata?: Record<string, string>;
 };
 

@@ -12,6 +12,7 @@ datasource db {
 
 enum PaymentProviderType {
   stripe
+  paypal
   fac
 }
 

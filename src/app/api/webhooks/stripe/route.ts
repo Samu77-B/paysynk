@@ -106,6 +106,26 @@ export async function POST(req: Request) {
       }
     }
 
+    if (event.type === "account.application.deauthorized") {
+      const accountId =
+        typeof event.account === "string" ? event.account : null;
+      if (accountId) {
+        const stores = await prisma.store.findMany({
+          where: { stripeConnectId: accountId },
+          select: { id: true, paypalMerchantId: true },
+        });
+        for (const store of stores) {
+          await prisma.store.update({
+            where: { id: store.id },
+            data: {
+              stripeConnectId: null,
+              paymentsActive: Boolean(store.paypalMerchantId),
+            },
+          });
+        }
+      }
+    }
+
     return NextResponse.json({ received: true });
   } catch (err) {
     console.error("Webhook handler error", err);
