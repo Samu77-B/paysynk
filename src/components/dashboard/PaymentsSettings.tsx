@@ -89,8 +89,8 @@ export function PaymentsSettings({
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Payments</h1>
         <p className="text-sm text-zinc-500">
-          Connect Stripe or PayPal with one click. Customers pay you directly —
-          PaySynk never holds the funds and never asks for your secret keys.
+          Connect Stripe with one click. Customers pay you directly — PaySynk
+          never holds the funds and never asks for your secret keys.
         </p>
       </div>
 
@@ -155,7 +155,9 @@ export function PaymentsSettings({
                 <p className="text-xs text-zinc-500">
                   {paypalId
                     ? connectedLabel(paypalId)
-                    : "Sign in to PayPal. Checkout uses PayPal if Stripe is not connected."}
+                    : paypalConnectReady
+                      ? "Sign in to PayPal. Checkout uses PayPal if Stripe is not connected."
+                      : "Coming soon. Stripe is available now."}
                 </p>
               </div>
               {paypalId ? (
@@ -172,9 +174,7 @@ export function PaymentsSettings({
                   <a href="/api/connect/paypal">Connect PayPal</a>
                 </Button>
               ) : (
-                <p className="text-xs text-zinc-500">
-                  PayPal Connect is not enabled on this PaySynk install yet.
-                </p>
+                <p className="text-xs font-medium text-zinc-500">Coming soon</p>
               )}
             </div>
           </div>
@@ -194,7 +194,7 @@ export function PaymentsSettings({
           </Button>
           {!hasPayout && (
             <p className="text-xs text-zinc-500">
-              Connect Stripe or PayPal to turn on the public cart.
+              Connect Stripe to turn on the public cart.
             </p>
           )}
         </CardContent>
