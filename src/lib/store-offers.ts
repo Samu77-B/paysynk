@@ -19,10 +19,17 @@ export async function getActiveStoreOffers(
           select: { id: true, title: true },
         });
   const giftTitleById = new Map(giftProducts.map((p) => [p.id, p.title]));
-  return rows.map((row) =>
-    toPublicOffer(
-      row,
-      row.giftProductId ? giftTitleById.get(row.giftProductId) ?? null : null,
-    ),
-  );
+  return rows
+    .filter((row) => {
+      if (row.kind !== "gift") return true;
+      return Boolean(
+        row.giftProductId && giftTitleById.has(row.giftProductId),
+      );
+    })
+    .map((row) =>
+      toPublicOffer(
+        row,
+        row.giftProductId ? giftTitleById.get(row.giftProductId) ?? null : null,
+      ),
+    );
 }

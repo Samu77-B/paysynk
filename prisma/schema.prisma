@@ -158,6 +158,9 @@ model Order {
   discountCode      String?
   customerEmail     String?
   customerName      String?
+  customerPhone     String?
+  /// UK delivery details collected in the cart before Stripe.
+  shippingAddress   Json?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 

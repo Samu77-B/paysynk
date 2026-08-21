@@ -100,6 +100,118 @@
     return "paysynk-code:" + storeSlug;
   }
 
+  function shipKey() {
+    return "paysynk-ship:" + storeSlug;
+  }
+
+  function emptyShip() {
+    return {
+      name: "",
+      email: "",
+      phone: "",
+      line1: "",
+      line2: "",
+      city: "",
+      postalCode: "",
+    };
+  }
+
+  function readShip() {
+    try {
+      var raw = localStorage.getItem(shipKey());
+      if (!raw) return emptyShip();
+      var parsed = JSON.parse(raw);
+      return Object.assign(emptyShip(), parsed || {});
+    } catch (e) {
+      return emptyShip();
+    }
+  }
+
+  function writeShip(value) {
+    try {
+      localStorage.setItem(shipKey(), JSON.stringify(value || emptyShip()));
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function shipFromForm() {
+    function val(sel) {
+      var el = root && root.querySelector(sel);
+      return el ? String(el.value || "").trim() : "";
+    }
+    return {
+      name: val("[data-ps-name]"),
+      email: val("[data-ps-email]"),
+      phone: val("[data-ps-phone]"),
+      line1: val("[data-ps-line1]"),
+      line2: val("[data-ps-line2]"),
+      city: val("[data-ps-city]"),
+      postalCode: val("[data-ps-postcode]"),
+    };
+  }
+
+  function persistShipFromForm() {
+    if (!root || !root.querySelector("[data-ps-name]")) return;
+    writeShip(shipFromForm());
+  }
+
+  function validateShip(ship) {
+    if (!ship.name) return "Enter the name for delivery.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ship.email)) {
+      return "Enter a valid email address.";
+    }
+    if (String(ship.phone || "").replace(/\D/g, "").length < 10) {
+      return "Enter a phone number we can reach you on.";
+    }
+    if (!ship.line1) return "Enter the first line of your address.";
+    if (!ship.city) return "Enter a town or city.";
+    if (!/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(ship.postalCode)) {
+      return "Enter a valid UK postcode.";
+    }
+    return "";
+  }
+
+  function inputStyle() {
+    return "width:100%;height:36px;border:1px solid #e4e4e7;border-radius:8px;padding:0 10px;font-size:0.85rem;box-sizing:border-box";
+  }
+
+  function deliveryFieldsHtml(ship) {
+    function field(attr, label, type, value, autocomplete) {
+      return (
+        '<label style="display:block;margin:0 0 8px">' +
+        '<span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">' +
+        label +
+        "</span>" +
+        '<input ' +
+        attr +
+        ' type="' +
+        type +
+        '" autocomplete="' +
+        autocomplete +
+        '" value="' +
+        escapeAttr(value || "") +
+        '" style="' +
+        inputStyle() +
+        '" />' +
+        "</label>"
+      );
+    }
+    return (
+      '<div style="margin:14px 0 4px;font-size:0.78rem;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:#52525b">Delivery (UK)</div>' +
+      field("data-ps-name", "Full name", "text", ship.name, "name") +
+      field("data-ps-email", "Email", "email", ship.email, "email") +
+      field("data-ps-phone", "Phone", "tel", ship.phone, "tel") +
+      field("data-ps-line1", "Address line 1", "text", ship.line1, "address-line1") +
+      field("data-ps-line2", "Address line 2 (optional)", "text", ship.line2, "address-line2") +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+      field("data-ps-city", "Town / city", "text", ship.city, "address-level2") +
+      field("data-ps-postcode", "Postcode", "text", ship.postalCode, "postal-code") +
+      "</div>" +
+      '<p style="margin:4px 0 10px;font-size:0.72rem;color:#a1a1aa">Stripe will show this address filled in, then take the card.</p>'
+    );
+  }
+
   function readCode() {
     try {
       return localStorage.getItem(codeKey()) || "";
@@ -308,6 +420,7 @@
   }
 
   function setQuantity(variantId, quantity) {
+    persistShipFromForm();
     var items = readCart(storeSlug)
       .map(function (item) {
         if (item.variantId !== variantId) return item;
@@ -323,6 +436,7 @@
   }
 
   function removeItem(variantId) {
+    persistShipFromForm();
     writeCart(
       storeSlug,
       readCart(storeSlug).filter(function (item) {
@@ -335,6 +449,13 @@
   function checkout() {
     var items = readCart(storeSlug);
     if (!items.length || busy) return;
+    persistShipFromForm();
+    var ship = readShip();
+    var shipError = validateShip(ship);
+    if (shipError) {
+      render(shipError);
+      return;
+    }
     if (!storeMeta.paymentsActive) {
       render("Checkout stays off until payments are connected.");
       return;
@@ -349,6 +470,7 @@
           return { variantId: item.variantId, quantity: item.quantity };
         }),
         discountCode: readCode() || undefined,
+        customer: ship,
       }),
     })
       .then(function (res) {
@@ -454,7 +576,7 @@
       "display:block;position:fixed;inset:0;z-index:2147483001;font-family:Outfit,system-ui,sans-serif";
     root.innerHTML =
       '<div data-ps-backdrop style="position:absolute;inset:0;background:rgba(0,0,0,.35)"></div>' +
-      '<aside style="position:absolute;top:0;right:0;height:100%;width:min(100%,380px);background:#fff;color:#18181b;box-shadow:0 25px 50px rgba(0,0,0,.25);display:flex;flex-direction:column">' +
+      '<aside style="position:absolute;top:0;right:0;height:100%;width:min(100%,420px);background:#fff;color:#18181b;box-shadow:0 25px 50px rgba(0,0,0,.25);display:flex;flex-direction:column">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f4f4f5">' +
       "<div><div style=\"font-weight:700\">" +
       escapeHtml(storeMeta.name || "Your cart") +
@@ -464,6 +586,7 @@
       '<div style="flex:1;overflow:auto;padding:0 18px">' +
       lines +
       giftLines +
+      (items.length ? deliveryFieldsHtml(readShip()) : "") +
       "</div>" +
       (items.length
         ? '<div style="padding:16px 18px;border-top:1px solid #f4f4f5">' +
@@ -540,10 +663,19 @@
     var applyBtn = root.querySelector("[data-ps-apply-code]");
     if (applyBtn) {
       applyBtn.onclick = function () {
+        persistShipFromForm();
         var input = root.querySelector("[data-ps-code]");
         writeCode(input ? input.value : "");
         render();
       };
+    }
+
+    var shipInputs = root.querySelectorAll(
+      "[data-ps-name],[data-ps-email],[data-ps-phone],[data-ps-line1],[data-ps-line2],[data-ps-city],[data-ps-postcode]",
+    );
+    for (var si = 0; si < shipInputs.length; si++) {
+      shipInputs[si].oninput = persistShipFromForm;
+      shipInputs[si].onchange = persistShipFromForm;
     }
 
     var checkoutBtn = root.querySelector("[data-ps-checkout]");

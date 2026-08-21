@@ -177,6 +177,17 @@ export function OrdersManager({
                   <p className="font-medium">Customer</p>
                   <p>{selected.customer_name}</p>
                   <p className="text-zinc-500">{selected.customer_email}</p>
+                  {typeof selected.shipping_address === "object" &&
+                  selected.shipping_address &&
+                  "phone" in selected.shipping_address &&
+                  (selected.shipping_address as { phone?: string | null }).phone ? (
+                    <p className="text-zinc-500">
+                      {
+                        (selected.shipping_address as { phone?: string | null })
+                          .phone
+                      }
+                    </p>
+                  ) : null}
                 </div>
                 <div>
                   <p className="font-medium">Items</p>
@@ -206,8 +217,20 @@ export function OrdersManager({
                   {selected.shipping_address &&
                   typeof selected.shipping_address === "object" ? (
                     <p className="text-zinc-600">
+                      {(selected.shipping_address as { name?: string }).name ? (
+                        <>
+                          {(selected.shipping_address as { name?: string }).name}
+                          <br />
+                        </>
+                      ) : null}
                       {(selected.shipping_address as { line1?: string }).line1}
                       <br />
+                      {(selected.shipping_address as { line2?: string }).line2 ? (
+                        <>
+                          {(selected.shipping_address as { line2?: string }).line2}
+                          <br />
+                        </>
+                      ) : null}
                       {(selected.shipping_address as { city?: string }).city}{" "}
                       {
                         (selected.shipping_address as { postcode?: string })

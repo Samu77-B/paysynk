@@ -919,6 +919,47 @@ h3 {
   font: inherit;
 }
 
+.cart-delivery {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.85rem 0.85rem 0.35rem;
+  margin: 0 0 1rem;
+}
+
+.cart-delivery legend {
+  padding: 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #52525b);
+}
+
+.cart-delivery label {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.75rem;
+  color: var(--muted, #71717a);
+}
+
+.cart-delivery input {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 0.65rem;
+  font: inherit;
+  color: inherit;
+}
+
+.cart-delivery-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
 .totals {
   margin: 0 0 1rem;
 }

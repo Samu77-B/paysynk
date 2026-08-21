@@ -80,7 +80,7 @@ export function OffersManager({
   const [bundleOff, setBundleOff] = useState("3");
 
   const [giftTitle, setGiftTitle] = useState("Free sticker");
-  const [giftProductId, setGiftProductId] = useState(products[0]?.id ?? "");
+  const [giftProductId, setGiftProductId] = useState("");
   const [giftMode, setGiftMode] = useState<"per_item" | "per_order">("per_item");
 
   const selectClass =
@@ -282,8 +282,10 @@ export function OffersManager({
               Free gift
             </CardTitle>
             <CardDescription>
-              Add a sticker (or any product) at £0. Turn that product off in
-              Products if you do not want people to buy it on its own.
+              Add a sticker (or any product) at £0. Pick the item they
+              receive for free — not the tee they are buying. Hide that
+              product in Products if you do not want people to buy it on
+              its own.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">

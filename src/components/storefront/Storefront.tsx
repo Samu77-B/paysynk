@@ -7,6 +7,7 @@ import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
 import type { PublicOffer } from "@/lib/offers";
+import { parseCheckoutCustomer } from "@/lib/checkout-customer";
 
 export type StorefrontProduct = {
   id: string;
@@ -212,6 +213,19 @@ function CartPanel({
   const [codeDraft, setCodeDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [customer, setCustomer] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    line1: "",
+    line2: "",
+    city: "",
+    postalCode: "",
+  });
+
+  function updateCustomer(field: keyof typeof customer, value: string) {
+    setCustomer((current) => ({ ...current, [field]: value }));
+  }
 
   const pricing = useMemo(() => {
     return priceCart(
@@ -232,6 +246,11 @@ function CartPanel({
 
   async function checkout() {
     if (!items.length || busy) return;
+    const parsed = parseCheckoutCustomer(customer);
+    if (!parsed.customer) {
+      setCheckoutError(parsed.error || "Add your delivery details to continue.");
+      return;
+    }
     setBusy(true);
     setCheckoutError(null);
     try {
@@ -244,6 +263,7 @@ function CartPanel({
             quantity: item.quantity,
           })),
           discountCode: discountCode || undefined,
+          customer: parsed.customer,
         }),
       });
       const data = (await res.json()) as {
@@ -360,6 +380,80 @@ function CartPanel({
               <dd>{formatMoney(pricing.totalMinor, store.currency)}</dd>
             </div>
           </dl>
+
+          <fieldset className="cart-delivery">
+            <legend>Delivery (UK)</legend>
+            <label>
+              Full name
+              <input
+                type="text"
+                autoComplete="name"
+                value={customer.name}
+                onChange={(e) => updateCustomer("name", e.target.value)}
+              />
+            </label>
+            <label>
+              Email
+              <input
+                type="email"
+                autoComplete="email"
+                value={customer.email}
+                onChange={(e) => updateCustomer("email", e.target.value)}
+              />
+            </label>
+            <label>
+              Phone
+              <input
+                type="tel"
+                autoComplete="tel"
+                value={customer.phone}
+                onChange={(e) => updateCustomer("phone", e.target.value)}
+              />
+            </label>
+            <label>
+              Address line 1
+              <input
+                type="text"
+                autoComplete="address-line1"
+                value={customer.line1}
+                onChange={(e) => updateCustomer("line1", e.target.value)}
+              />
+            </label>
+            <label>
+              Address line 2 (optional)
+              <input
+                type="text"
+                autoComplete="address-line2"
+                value={customer.line2}
+                onChange={(e) => updateCustomer("line2", e.target.value)}
+              />
+            </label>
+            <div className="cart-delivery-row">
+              <label>
+                Town / city
+                <input
+                  type="text"
+                  autoComplete="address-level2"
+                  value={customer.city}
+                  onChange={(e) => updateCustomer("city", e.target.value)}
+                />
+              </label>
+              <label>
+                Postcode
+                <input
+                  type="text"
+                  autoComplete="postal-code"
+                  value={customer.postalCode}
+                  onChange={(e) =>
+                    updateCustomer("postalCode", e.target.value.toUpperCase())
+                  }
+                />
+              </label>
+            </div>
+            <p className="muted small note">
+              Stripe will show this address filled in, then take the card.
+            </p>
+          </fieldset>
 
           {store.paymentsActive ? (
             <button

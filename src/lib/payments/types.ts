@@ -32,6 +32,16 @@ export type CreateCheckoutInput = {
   stripeAccountId?: string | null;
   paypalMerchantId?: string | null;
   metadata?: Record<string, string>;
+  customer?: {
+    name: string;
+    email: string;
+    phone: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    postalCode: string;
+    country: "GB";
+  };
 };
 
 export type CreateCheckoutResult = {

@@ -7,6 +7,7 @@ import {
   sendPaidOrderEmails,
   type ShippingBits,
 } from "@/lib/email/order-emails";
+import { shippingBitsFromJson } from "@/lib/checkout-customer";
 
 export const runtime = "nodejs";
 
@@ -97,7 +98,9 @@ export async function POST(req: Request) {
           try {
             await sendPaidOrderEmails({
               order: paidOrder,
-              shipping: shippingFromSession(session),
+              shipping:
+                shippingFromSession(session) ??
+                shippingBitsFromJson(paidOrder.shippingAddress),
             });
           } catch (err) {
             console.error("Order emails failed", orderId, err);

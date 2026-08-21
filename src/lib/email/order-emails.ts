@@ -70,6 +70,7 @@ export async function sendPaidOrderEmails(opts: {
           discountMinor: order.discountMinor,
           discountLabel: order.discountCode,
           totalMinor: order.totalMinor,
+          shipping: opts.shipping,
         }),
       }),
     );

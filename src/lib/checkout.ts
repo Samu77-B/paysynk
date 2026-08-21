@@ -3,6 +3,7 @@ import { getPaymentProvider } from "@/lib/payments";
 import { priceCart, type PricedLine } from "@/lib/pricing";
 import { getActiveStoreOffers } from "@/lib/store-offers";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
+import type { CheckoutCustomer } from "@/lib/checkout-customer";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type CheckoutItemInput = {
@@ -18,6 +19,7 @@ export async function createStoreCheckout(opts: {
   storeSlug: string;
   items: CheckoutItemInput[];
   discountCode?: string | null;
+  customer: CheckoutCustomer;
   channel?: "online" | "pos";
   appUrl: string;
 }) {
@@ -150,6 +152,10 @@ export async function createStoreCheckout(opts: {
       totalMinor: pricing.totalMinor,
       discountMinor: pricing.discountMinor,
       discountCode: pricing.appliedCode,
+      customerEmail: opts.customer.email,
+      customerName: opts.customer.name,
+      customerPhone: opts.customer.phone,
+      shippingAddress: opts.customer as Prisma.InputJsonValue,
       items: {
         create: [
           ...pricing.lines.map((line) => ({
@@ -197,6 +203,7 @@ export async function createStoreCheckout(opts: {
     discountMinor: pricing.discountMinor,
     bundlePairs: pricing.bundlePairs,
     discountLabel: [pricing.discountLabel, giftNote].filter(Boolean).join(" · ") || undefined,
+    customer: opts.customer,
     successUrl: `${appUrl}/s/${store.slug}/success?order=${order.id}`,
     cancelUrl: `${appUrl}/s/${store.slug}?cancelled=1`,
     completeUrl: `${appUrl}/api/paypal/complete?order=${order.id}`,

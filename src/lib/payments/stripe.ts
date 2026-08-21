@@ -56,6 +56,38 @@ export class StripePaymentProvider implements PaymentProvider {
     }
 
     const extraNote = input.discountLabel || undefined;
+    const connect = input.stripeAccountId
+      ? { stripeAccount: input.stripeAccountId }
+      : undefined;
+    const shipTo = input.customer;
+
+    let customerId: string | undefined;
+    if (shipTo) {
+      const customer = await stripe.customers.create(
+        {
+          email: shipTo.email,
+          name: shipTo.name,
+          phone: shipTo.phone,
+          shipping: {
+            name: shipTo.name,
+            phone: shipTo.phone,
+            address: {
+              line1: shipTo.line1,
+              line2: shipTo.line2 || undefined,
+              city: shipTo.city,
+              postal_code: shipTo.postalCode,
+              country: "GB",
+            },
+          },
+          metadata: {
+            orderId: input.orderId,
+            storeId: input.storeId,
+          },
+        },
+        connect,
+      );
+      customerId = customer.id;
+    }
 
     // Use quantity 1 + exact line total so discount rounding never drifts vs our Order totals.
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] =
@@ -80,7 +112,9 @@ export class StripePaymentProvider implements PaymentProvider {
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
         client_reference_id: input.orderId,
-        customer_creation: "always",
+        ...(customerId
+          ? { customer: customerId }
+          : { customer_creation: "always" as const }),
         metadata: {
           orderId: input.orderId,
           storeId: input.storeId,
@@ -94,6 +128,23 @@ export class StripePaymentProvider implements PaymentProvider {
         shipping_address_collection: {
           allowed_countries: ["GB"],
         },
+        ...(shipTo
+          ? {
+              payment_intent_data: {
+                shipping: {
+                  name: shipTo.name,
+                  phone: shipTo.phone,
+                  address: {
+                    line1: shipTo.line1,
+                    line2: shipTo.line2 || undefined,
+                    city: shipTo.city,
+                    postal_code: shipTo.postalCode,
+                    country: "GB",
+                  },
+                },
+              },
+            }
+          : {}),
         shipping_options: [
           {
             shipping_rate_data: {
@@ -107,9 +158,7 @@ export class StripePaymentProvider implements PaymentProvider {
           },
         ],
       },
-      input.stripeAccountId
-        ? { stripeAccount: input.stripeAccountId }
-        : undefined,
+      connect,
     );
 
     if (!session.url) {

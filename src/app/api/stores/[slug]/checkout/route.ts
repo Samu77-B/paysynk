@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { resolveAppOrigin } from "@/lib/app-url";
 import { CheckoutError, createStoreCheckout } from "@/lib/checkout";
+import { parseCheckoutCustomer } from "@/lib/checkout-customer";
 import { embedCorsPreflight, withEmbedCors } from "@/lib/embed-cors";
 
 function publicCheckoutError(err: unknown): string {
@@ -28,6 +29,7 @@ const bodySchema = z.object({
     .min(1)
     .max(50),
   discountCode: z.string().max(40).optional(),
+  customer: z.unknown(),
 });
 
 export async function OPTIONS() {
@@ -50,12 +52,23 @@ export async function POST(req: Request, { params }: Params) {
       );
     }
 
+    const customerResult = parseCheckoutCustomer(parsed.data.customer);
+    if (!customerResult.customer) {
+      return withEmbedCors(
+        NextResponse.json(
+          { error: customerResult.error || "Add your delivery details to continue." },
+          { status: 400 },
+        ),
+      );
+    }
+
     const appUrl = resolveAppOrigin(req.url);
 
     const result = await createStoreCheckout({
       storeSlug: slug,
       items: parsed.data.items,
       discountCode: parsed.data.discountCode,
+      customer: customerResult.customer,
       appUrl,
       channel: "online",
     });

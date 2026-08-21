@@ -2,6 +2,7 @@ import type { Store, Product as PrismaProduct, Variant, Order as PrismaOrder, Or
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { toPublicOffer, type PublicOffer } from "@/lib/offers";
+import { shippingBitsFromJson } from "@/lib/checkout-customer";
 import type { BillingInvoice, Merchant, Order, OrderStatus, Product } from "@/types/database";
 
 export type CatalogVariant = {
@@ -102,6 +103,7 @@ function toDashboardOrderStatus(status: PrismaOrder["status"]): OrderStatus {
 export function toDashboardOrder(
   order: PrismaOrder & { items: OrderItem[] },
 ): Order {
+  const ship = shippingBitsFromJson(order.shippingAddress);
   return {
     id: order.id,
     merchant_id: order.storeId,
@@ -119,7 +121,17 @@ export function toDashboardOrder(
         price: item.unitPriceMinor,
       };
     }),
-    shipping_address: null,
+    shipping_address: ship
+      ? {
+          name: ship.name ?? null,
+          phone: order.customerPhone ?? ship.phone ?? null,
+          line1: ship.line1 ?? null,
+          line2: ship.line2 ?? null,
+          city: ship.city ?? null,
+          postcode: ship.postalCode ?? null,
+          country: ship.country ?? "GB",
+        }
+      : null,
     stripe_payment_id: order.providerPaymentId,
     channel: order.channel,
     created_at: order.createdAt.toISOString(),

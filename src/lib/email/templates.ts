@@ -22,6 +22,7 @@ export type EmailLine = {
 
 export type ShippingBits = {
   name?: string | null;
+  phone?: string | null;
   line1?: string | null;
   line2?: string | null;
   city?: string | null;
@@ -75,12 +76,22 @@ export function customerOrderHtml(opts: {
   discountMinor: number;
   discountLabel?: string | null;
   totalMinor: number;
+  shipping?: ShippingBits | null;
 }) {
   const discount =
     opts.discountMinor > 0
       ? `<tr><td style="padding:8px 0">Discount${opts.discountLabel ? ` (${escapeHtml(opts.discountLabel)})` : ""}</td>
          <td style="padding:8px 0;text-align:right">−${escapeHtml(money(opts.discountMinor, opts.currency))}</td></tr>`
       : "";
+  const ship = opts.shipping
+    ? `<p style="margin-top:16px"><strong>Deliver to</strong><br/>
+        ${escapeHtml(opts.shipping.name || "")}<br/>
+        ${escapeHtml(opts.shipping.line1 || "")}<br/>
+        ${opts.shipping.line2 ? `${escapeHtml(opts.shipping.line2)}<br/>` : ""}
+        ${escapeHtml([opts.shipping.city, opts.shipping.postalCode].filter(Boolean).join(" "))}<br/>
+        ${opts.shipping.phone ? `${escapeHtml(opts.shipping.phone)}<br/>` : ""}
+       </p>`
+    : "";
   const body = `
     <p>Thanks for your order from <strong>${escapeHtml(opts.storeName)}</strong>.</p>
     <p style="color:#666;font-size:14px">Order ${escapeHtml(opts.orderRef)}</p>
@@ -91,6 +102,7 @@ export function customerOrderHtml(opts: {
       <tr><td style="padding:12px 0"><strong>Total</strong></td>
       <td style="padding:12px 0;text-align:right"><strong>${escapeHtml(money(opts.totalMinor, opts.currency))}</strong></td></tr>
     </table>
+    ${ship}
     <p>We’ll get this packed and on its way.</p>
   `;
   return wrap(opts.storeName, opts.logoUrl, body, opts.vatNumber);
@@ -117,6 +129,7 @@ export function merchantOrderHtml(opts: {
         ${opts.shipping.line2 ? `${escapeHtml(opts.shipping.line2)}<br/>` : ""}
         ${escapeHtml([opts.shipping.city, opts.shipping.postalCode].filter(Boolean).join(" "))}<br/>
         ${escapeHtml(opts.shipping.country || "")}
+        ${opts.shipping.phone ? `<br/>${escapeHtml(opts.shipping.phone)}` : ""}
        </p>`
     : "";
   const body = `
