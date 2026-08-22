@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
@@ -237,6 +237,7 @@ function CartPanel({
   const [codeDraft, setCodeDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const deliveryRef = useRef<HTMLFieldSetElement>(null);
   const [customer, setCustomer] = useState({
     name: "",
     email: "",
@@ -276,6 +277,18 @@ function CartPanel({
 
   async function checkout() {
     if (!items.length || busy) return;
+    const fields = deliveryRef.current?.querySelectorAll("input, select");
+    if (fields) {
+      for (const el of fields) {
+        if (
+          (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) &&
+          !el.checkValidity()
+        ) {
+          el.reportValidity();
+          return;
+        }
+      }
+    }
     const parsed = parseCheckoutCustomer(customer);
     if (!parsed.customer) {
       setCheckoutError(parsed.error || "Add your delivery details to continue.");
@@ -415,7 +428,7 @@ function CartPanel({
             </div>
           </dl>
 
-          <fieldset className="cart-delivery">
+          <fieldset className="cart-delivery" ref={deliveryRef}>
             <legend>Delivery</legend>
             {typeof store.shippingIntlMinor === "number" ? (
               <div className="cart-dest">
@@ -451,8 +464,9 @@ function CartPanel({
             {customer.country !== "GB" &&
             typeof store.shippingIntlMinor === "number" ? (
               <label>
-                Country
+                Country <span className="req" aria-hidden="true">*</span>
                 <select
+                  required
                   value={customer.country}
                   onChange={(e) => updateCustomer("country", e.target.value)}
                 >
@@ -465,25 +479,27 @@ function CartPanel({
               </label>
             ) : null}
             <label>
-              Full name
+              Full name <span className="req" aria-hidden="true">*</span>
               <input
                 type="text"
                 autoComplete="name"
+                required
                 value={customer.name}
                 onChange={(e) => updateCustomer("name", e.target.value)}
               />
             </label>
             <label>
-              Email
+              Email <span className="req" aria-hidden="true">*</span>
               <input
                 type="email"
                 autoComplete="email"
+                required
                 value={customer.email}
                 onChange={(e) => updateCustomer("email", e.target.value)}
               />
             </label>
             <label>
-              Phone
+              Phone (optional)
               <input
                 type="tel"
                 autoComplete="tel"
@@ -492,10 +508,11 @@ function CartPanel({
               />
             </label>
             <label>
-              Address line 1
+              Address line 1 <span className="req" aria-hidden="true">*</span>
               <input
                 type="text"
                 autoComplete="address-line1"
+                required
                 value={customer.line1}
                 onChange={(e) => updateCustomer("line1", e.target.value)}
               />
@@ -511,19 +528,22 @@ function CartPanel({
             </label>
             <div className="cart-delivery-row">
               <label>
-                Town / city
+                Town / city <span className="req" aria-hidden="true">*</span>
                 <input
                   type="text"
                   autoComplete="address-level2"
+                  required
                   value={customer.city}
                   onChange={(e) => updateCustomer("city", e.target.value)}
                 />
               </label>
               <label>
-                Postcode{customer.country === "GB" ? "" : " / ZIP"}
+                Postcode{customer.country === "GB" ? "" : " / ZIP"}{" "}
+                <span className="req" aria-hidden="true">*</span>
                 <input
                   type="text"
                   autoComplete="postal-code"
+                  required
                   value={customer.postalCode}
                   onChange={(e) =>
                     updateCustomer("postalCode", e.target.value.toUpperCase())

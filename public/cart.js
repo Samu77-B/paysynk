@@ -163,7 +163,10 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ship.email)) {
       return "Enter a valid email address.";
     }
-    if (String(ship.phone || "").replace(/\D/g, "").length < 8) {
+    if (
+      ship.phone &&
+      String(ship.phone).replace(/\D/g, "").length < 8
+    ) {
       return "Enter a phone number we can reach you on.";
     }
     if (!ship.line1) return "Enter the first line of your address.";
@@ -200,13 +203,16 @@
   }
 
   function deliveryFieldsHtml(ship) {
-    function field(attr, label, type, value, autocomplete) {
+    function field(attr, label, type, value, autocomplete, required) {
       return (
         '<label style="display:block;margin:0 0 8px">' +
         '<span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">' +
         label +
+        (required
+          ? ' <span style="color:#dc2626" aria-hidden="true">*</span>'
+          : "") +
         "</span>" +
-        '<input ' +
+        "<input " +
         attr +
         ' type="' +
         type +
@@ -214,7 +220,9 @@
         autocomplete +
         '" value="' +
         escapeAttr(value || "") +
-        '" style="' +
+        '"' +
+        (required ? " required" : "") +
+        ' style="' +
         inputStyle() +
         '" />' +
         "</label>"
@@ -243,8 +251,8 @@
     if (!uk && intlOffered()) {
       var countries = storeMeta.shippingCountries || [];
       countryField =
-        '<label style="display:block;margin:0 0 8px"><span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">Country</span>' +
-        '<select data-ps-country style="' +
+        '<label style="display:block;margin:0 0 8px"><span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">Country <span style="color:#dc2626" aria-hidden="true">*</span></span>' +
+        '<select data-ps-country required style="' +
         inputStyle() +
         '">';
       for (var ci = 0; ci < countries.length; ci++) {
@@ -265,19 +273,20 @@
       '<div style="margin:14px 0 4px;font-size:0.78rem;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:#52525b">Delivery</div>' +
       dest +
       countryField +
-      field("data-ps-name", "Full name", "text", ship.name, "name") +
-      field("data-ps-email", "Email", "email", ship.email, "email") +
-      field("data-ps-phone", "Phone", "tel", ship.phone, "tel") +
-      field("data-ps-line1", "Address line 1", "text", ship.line1, "address-line1") +
+      field("data-ps-name", "Full name", "text", ship.name, "name", true) +
+      field("data-ps-email", "Email", "email", ship.email, "email", true) +
+      field("data-ps-phone", "Phone (optional)", "tel", ship.phone, "tel") +
+      field("data-ps-line1", "Address line 1", "text", ship.line1, "address-line1", true) +
       field("data-ps-line2", "Address line 2 (optional)", "text", ship.line2, "address-line2") +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-      field("data-ps-city", "Town / city", "text", ship.city, "address-level2") +
+      field("data-ps-city", "Town / city", "text", ship.city, "address-level2", true) +
       field(
         "data-ps-postcode",
         uk ? "Postcode" : "Postcode / ZIP",
         "text",
         ship.postalCode,
         "postal-code",
+        true,
       ) +
       "</div>" +
       '<p style="margin:4px 0 10px;font-size:0.72rem;color:#a1a1aa">Stripe will show this address filled in, then take the card.</p>'
@@ -523,6 +532,13 @@
   function checkout() {
     var items = readCart(storeSlug);
     if (!items.length || busy) return;
+    var requiredEls = root.querySelectorAll("input[required], select[required]");
+    for (var ri = 0; ri < requiredEls.length; ri++) {
+      if (!requiredEls[ri].checkValidity()) {
+        requiredEls[ri].reportValidity();
+        return;
+      }
+    }
     persistShipFromForm();
     var ship = readShip();
     var shipError = validateShip(ship);

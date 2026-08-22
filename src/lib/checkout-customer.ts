@@ -55,7 +55,7 @@ export function parseCheckoutCustomer(
 
   if (!name) return { error: "Enter the name for delivery." };
   if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address." };
-  if (phone.replace(/\D/g, "").length < 8) {
+  if (phone && phone.replace(/\D/g, "").length < 8) {
     return { error: "Enter a phone number we can reach you on." };
   }
   if (!line1) return { error: "Enter the first line of your address." };
@@ -77,7 +77,7 @@ export function parseCheckoutCustomer(
     customer: {
       name,
       email,
-      phone: toE164Phone(phone, country),
+      phone: phone ? toE164Phone(phone, country) : "",
       line1,
       line2,
       city,

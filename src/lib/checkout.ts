@@ -169,7 +169,7 @@ export async function createStoreCheckout(opts: {
       discountCode: pricing.appliedCode,
       customerEmail: opts.customer.email,
       customerName: opts.customer.name,
-      customerPhone: opts.customer.phone,
+      customerPhone: opts.customer.phone || null,
       shippingAddress: opts.customer as Prisma.InputJsonValue,
       items: {
         create: [

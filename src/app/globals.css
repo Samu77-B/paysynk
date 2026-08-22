@@ -999,6 +999,11 @@ h3 {
   color: var(--muted, #71717a);
 }
 
+.cart-delivery .req {
+  color: #dc2626;
+  margin-left: 0.15em;
+}
+
 .cart-delivery input,
 .cart-delivery select {
   display: block;

@@ -87,7 +87,7 @@ export class StripePaymentProvider implements PaymentProvider {
       };
       try {
         const customer = await stripe.customers.create(
-          { ...base, phone: shipTo.phone },
+          shipTo.phone ? { ...base, phone: shipTo.phone } : base,
           connect,
         );
         customerId = customer.id;
