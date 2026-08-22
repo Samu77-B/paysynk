@@ -875,6 +875,44 @@ h3 {
   overflow: hidden;
 }
 
+.config-hero-layer {
+  pointer-events: none;
+}
+
+.config-hero-caption {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(transparent, rgba(20, 20, 20, 0.78));
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.config-option-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.config-option-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-option-thumb {
+  width: 2.25rem;
+  height: 2.25rem;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+  flex-shrink: 0;
+}
+
 .config-details,
 .config-related {
   margin-top: 1.25rem;

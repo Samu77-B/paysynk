@@ -98,6 +98,7 @@ export async function copyTemplateToStore(opts: {
               sort: valueIndex,
               modifierKind: value.modifierKind ?? "none",
               modifierValue: value.modifierValue ?? 0,
+              imageUrl: value.imageUrl ?? null,
             })),
           },
         })),

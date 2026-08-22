@@ -113,6 +113,7 @@ export async function duplicateConfigProduct(
               sort: value.sort,
               modifierKind: value.modifierKind,
               modifierValue: value.modifierValue,
+              imageUrl: value.imageUrl,
             })),
           },
         })),
@@ -271,6 +272,7 @@ export async function saveConfigProduct(
             sort: value.sort || valueIndex,
             modifierKind: kind,
             modifierValue: Math.round(value.modifierValue || 0),
+            imageUrl: sanitizeMediaUrl(value.imageUrl),
           },
         });
         if (value.id) valueIdMap.set(value.id, createdValue.id);

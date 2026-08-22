@@ -45,6 +45,7 @@ import { PRINT_TEMPLATES } from "@/lib/config-products/templates";
 import type { TemplateDefinition } from "@/lib/config-products/types";
 import type {
   DashboardConfigOption,
+  DashboardConfigOptionValue,
   DashboardConfigProduct,
   DashboardConfigTemplate,
   DashboardConfigVariation,
@@ -113,6 +114,7 @@ function emptyOption(): DashboardConfigOption {
         sort: 0,
         modifierKind: "none",
         modifierValue: 0,
+        imageUrl: null,
       },
     ],
   };
@@ -133,6 +135,7 @@ function draftFromDefinition(def: TemplateDefinition): {
       sort: vi,
       modifierKind: value.modifierKind ?? "none",
       modifierValue: value.modifierValue ?? 0,
+      imageUrl: value.imageUrl ?? null,
     })),
   }));
   const variations: DashboardConfigVariation[] = (def.variations ?? []).map(
@@ -206,6 +209,42 @@ export function ConfigProductsManager({
 
   function patch(partial: Partial<DashboardConfigProduct>) {
     setEditing((cur) => (cur ? { ...cur, ...partial } : cur));
+  }
+
+  function patchValue(
+    optionIndex: number,
+    valueIndex: number,
+    partial: Partial<DashboardConfigOptionValue>,
+  ) {
+    setEditing((cur) => {
+      if (!cur) return cur;
+      const options = [...cur.options];
+      const option = options[optionIndex];
+      const values = [...option.values];
+      values[valueIndex] = { ...values[valueIndex], ...partial };
+      options[optionIndex] = { ...option, values };
+      return { ...cur, options };
+    });
+  }
+
+  async function uploadOptionImage(
+    optionIndex: number,
+    valueIndex: number,
+    file: File,
+  ) {
+    const compressed = await compressProductImage(file);
+    const body = new FormData();
+    body.set("file", compressed);
+    const res = await fetch("/api/uploads/product-image", {
+      method: "POST",
+      body,
+    });
+    const json = (await res.json()) as { url?: string; error?: string };
+    if (!res.ok || !json.url) {
+      setError(json.error || "Upload failed.");
+      return;
+    }
+    patchValue(optionIndex, valueIndex, { imageUrl: json.url });
   }
 
   function save() {
@@ -551,9 +590,11 @@ export function ConfigProductsManager({
                   className="mt-0 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4"
                 >
                   <p className="text-sm text-zinc-500">
-                    These are the dropdowns on the shop — Size, Fold, Paper,
-                    Quantity. Amount adds money; percent is like Rush +15%.
-                    Save after you load or edit them.
+                    Rename, add, or delete dropdowns here — Size, Quantity,
+                    Binding, paper weights. Upload a photo on a choice and the
+                    shop preview updates when the customer picks it. PNG with a
+                    clear background can layer on top of a size photo (for
+                    example A3 landscape + left staple). Save when you are done.
                   </p>
                   {libraryMatch ? (
                     <Button
@@ -621,89 +662,115 @@ export function ConfigProductsManager({
                       {option.values.map((value, valueIndex) => (
                         <div
                           key={value.id}
-                          className="grid grid-cols-[1fr_7rem_5rem_auto] items-center gap-2"
+                          className="space-y-2 rounded-lg border border-zinc-200 p-2"
                         >
-                          <Input
-                            value={value.label}
-                            onChange={(e) => {
-                              const options = [...editing.options];
-                              const values = [...option.values];
-                              values[valueIndex] = {
-                                ...value,
-                                label: e.target.value,
-                              };
-                              options[optionIndex] = { ...option, values };
-                              patch({ options });
-                            }}
-                          />
-                          <select
-                            className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm"
-                            value={value.modifierKind}
-                            onChange={(e) => {
-                              const options = [...editing.options];
-                              const values = [...option.values];
-                              values[valueIndex] = {
-                                ...value,
-                                modifierKind: e.target
-                                  .value as ModifierKind,
-                              };
-                              options[optionIndex] = { ...option, values };
-                              patch({ options });
-                            }}
-                          >
-                            <option value="none">No extra</option>
-                            <option value="amount">+ amount</option>
-                            <option value="percent">+ %</option>
-                          </select>
-                          {value.modifierKind === "percent" ? (
+                          <div className="grid grid-cols-[2.5rem_1fr_7rem_5rem_auto] items-center gap-2">
+                            {value.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={value.imageUrl}
+                                alt=""
+                                className="size-10 rounded object-contain bg-zinc-100"
+                              />
+                            ) : (
+                              <span className="size-10 rounded bg-zinc-100" />
+                            )}
                             <Input
-                              inputMode="numeric"
-                              value={String(value.modifierValue)}
+                              value={value.label}
+                              onChange={(e) =>
+                                patchValue(optionIndex, valueIndex, {
+                                  label: e.target.value,
+                                })
+                              }
+                            />
+                            <select
+                              className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm"
+                              value={value.modifierKind}
+                              onChange={(e) =>
+                                patchValue(optionIndex, valueIndex, {
+                                  modifierKind: e.target
+                                    .value as ModifierKind,
+                                })
+                              }
+                            >
+                              <option value="none">No extra</option>
+                              <option value="amount">+ amount</option>
+                              <option value="percent">+ %</option>
+                            </select>
+                            {value.modifierKind === "percent" ? (
+                              <Input
+                                inputMode="numeric"
+                                value={String(value.modifierValue)}
+                                onChange={(e) =>
+                                  patchValue(optionIndex, valueIndex, {
+                                    modifierValue: Math.round(
+                                      Number(e.target.value) || 0,
+                                    ),
+                                  })
+                                }
+                              />
+                            ) : (
+                              <MoneyInput
+                                disabled={value.modifierKind === "none"}
+                                minor={value.modifierValue}
+                                onMinorChange={(modifierValue) =>
+                                  patchValue(optionIndex, valueIndex, {
+                                    modifierValue,
+                                  })
+                                }
+                              />
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const options = [...editing.options];
+                                options[optionIndex] = {
+                                  ...option,
+                                  values: option.values.filter(
+                                    (_, i) => i !== valueIndex,
+                                  ),
+                                };
+                                patch({ options });
+                              }}
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 pl-12 text-xs text-zinc-500">
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              className="h-8 max-w-56 text-xs"
                               onChange={(e) => {
-                                const n = Number(e.target.value) || 0;
-                                const options = [...editing.options];
-                                const values = [...option.values];
-                                values[valueIndex] = {
-                                  ...value,
-                                  modifierValue: Math.round(n),
-                                };
-                                options[optionIndex] = { ...option, values };
-                                patch({ options });
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  void uploadOptionImage(
+                                    optionIndex,
+                                    valueIndex,
+                                    file,
+                                  );
+                                }
+                                e.target.value = "";
                               }}
                             />
-                          ) : (
-                            <MoneyInput
-                              disabled={value.modifierKind === "none"}
-                              minor={value.modifierValue}
-                              onMinorChange={(modifierValue) => {
-                                const options = [...editing.options];
-                                const values = [...option.values];
-                                values[valueIndex] = {
-                                  ...value,
-                                  modifierValue,
-                                };
-                                options[optionIndex] = { ...option, values };
-                                patch({ options });
-                              }}
-                            />
-                          )}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              const options = [...editing.options];
-                              options[optionIndex] = {
-                                ...option,
-                                values: option.values.filter(
-                                  (_, i) => i !== valueIndex,
-                                ),
-                              };
-                              patch({ options });
-                            }}
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
+                            {value.imageUrl ? (
+                              <button
+                                type="button"
+                                className="text-red-600 underline"
+                                onClick={() =>
+                                  patchValue(optionIndex, valueIndex, {
+                                    imageUrl: null,
+                                  })
+                                }
+                              >
+                                Remove photo
+                              </button>
+                            ) : (
+                              <span>Photo for this choice (optional)</span>
+                            )}
+                          </div>
                         </div>
                       ))}
                       <Button
@@ -722,6 +789,7 @@ export function ConfigProductsManager({
                                 sort: option.values.length,
                                 modifierKind: "none",
                                 modifierValue: 0,
+                                imageUrl: null,
                               },
                             ],
                           };

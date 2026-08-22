@@ -295,6 +295,8 @@ model ConfigOptionValue {
   modifierKind  ModifierKind @default(none)
   /// Amount in minor units, or percent (e.g. 15 = +15%).
   modifierValue Int          @default(0)
+  /// Optional photo for this choice. Stacked on the shop preview as the customer picks options.
+  imageUrl      String?
 
   @@index([optionId])
 }

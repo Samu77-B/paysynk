@@ -16,6 +16,7 @@ export type PrintTemplateSeed = {
 const MENU_STUBS: Array<{ slug: string; title: string; category: string; sort: number }> = [
   { slug: "scanning", title: "Scanning", category: "Business Products", sort: 20 },
   { slug: "booklets", title: "Booklets", category: "Business Products", sort: 40 },
+  { slug: "books", title: "Books", category: "Business Products", sort: 45 },
   { slug: "labels", title: "Labels", category: "Business Products", sort: 50 },
   { slug: "reports", title: "Reports", category: "Business Products", sort: 60 },
   { slug: "manuals", title: "Manuals", category: "Business Products", sort: 70 },
@@ -101,6 +102,10 @@ function brochureDef(): TemplateDefinition {
         ],
       },
       {
+        name: "Orientation",
+        values: [{ label: "Portrait" }, { label: "Landscape" }],
+      },
+      {
         name: "Fold",
         values: [
           { label: "No fold" },
@@ -116,11 +121,21 @@ function brochureDef(): TemplateDefinition {
         ],
       },
       {
-        name: "Paper",
+        name: "Cover paper / card",
         values: [
-          { label: "130gsm Silk" },
-          { label: "170gsm Silk", modifierKind: "amount", modifierValue: 300 },
-          { label: "250gsm Silk", modifierKind: "amount", modifierValue: 600 },
+          { label: "170gsm Silk" },
+          { label: "250gsm Silk", modifierKind: "amount", modifierValue: 400 },
+          { label: "350gsm Uncoated card", modifierKind: "amount", modifierValue: 700 },
+          { label: "400gsm Card", modifierKind: "amount", modifierValue: 900 },
+        ],
+      },
+      {
+        name: "Inside paper",
+        values: [
+          { label: "80gsm Uncoated" },
+          { label: "100gsm Uncoated", modifierKind: "amount", modifierValue: 150 },
+          { label: "130gsm Silk", modifierKind: "amount", modifierValue: 300 },
+          { label: "170gsm Silk", modifierKind: "amount", modifierValue: 500 },
         ],
       },
       {
@@ -142,6 +157,93 @@ function brochureDef(): TemplateDefinition {
       { matchLabels: { Quantity: "500" }, priceMinor: 20000 },
     ],
   };
+}
+
+function boundPrintDef(): TemplateDefinition {
+  return {
+    options: [
+      {
+        name: "Size",
+        values: [
+          { label: "A5" },
+          { label: "A4" },
+          { label: "A3" },
+          { label: "Letter 8.5 × 11" },
+        ],
+      },
+      {
+        name: "Orientation",
+        values: [{ label: "Portrait" }, { label: "Landscape" }],
+      },
+      {
+        name: "Binding",
+        values: [
+          { label: "Left staple bound" },
+          { label: "Right staple bound" },
+          { label: "Saddle stitch", modifierKind: "amount", modifierValue: 300 },
+          { label: "Perfect bound", modifierKind: "amount", modifierValue: 800 },
+          { label: "Wiro", modifierKind: "amount", modifierValue: 600 },
+        ],
+      },
+      {
+        name: "Cover paper / card",
+        values: [
+          { label: "170gsm Silk" },
+          { label: "250gsm Silk", modifierKind: "amount", modifierValue: 400 },
+          { label: "350gsm Uncoated card", modifierKind: "amount", modifierValue: 700 },
+          { label: "400gsm Card", modifierKind: "amount", modifierValue: 900 },
+        ],
+      },
+      {
+        name: "Inside paper",
+        values: [
+          { label: "80gsm Uncoated" },
+          { label: "100gsm Uncoated", modifierKind: "amount", modifierValue: 150 },
+          { label: "130gsm Silk", modifierKind: "amount", modifierValue: 300 },
+          { label: "170gsm Silk", modifierKind: "amount", modifierValue: 500 },
+        ],
+      },
+      {
+        name: "Printed sides",
+        values: [
+          { label: "Single" },
+          { label: "Double", modifierKind: "amount", modifierValue: 400 },
+        ],
+      },
+      {
+        name: "Quantity",
+        values: [
+          { label: "25" },
+          { label: "50" },
+          { label: "100" },
+          { label: "250" },
+        ],
+      },
+    ],
+    variations: [
+      { matchLabels: { Quantity: "25" }, priceMinor: 2800 },
+      { matchLabels: { Quantity: "50" }, priceMinor: 4800 },
+      { matchLabels: { Quantity: "100" }, priceMinor: 8200 },
+      { matchLabels: { Quantity: "250" }, priceMinor: 16000 },
+    ],
+  };
+}
+
+const BOUND_SLUGS = new Set([
+  "booklets",
+  "books",
+  "manuals",
+  "catalogues",
+  "magazines",
+  "reports",
+  "programs",
+  "newsletters",
+]);
+
+function definitionFor(slug: string): TemplateDefinition {
+  if (slug === "brochures") return brochureDef();
+  if (BOUND_SLUGS.has(slug)) return boundPrintDef();
+  return genericPrintDef();
 }
 
 export const PRINT_TEMPLATES: PrintTemplateSeed[] = [
@@ -269,6 +371,6 @@ export const PRINT_TEMPLATES: PrintTemplateSeed[] = [
     uploadsEnabled: true,
     instructionsEnabled: true,
     sort: row.sort,
-    definition: row.slug === "brochures" ? brochureDef() : genericPrintDef(),
+    definition: definitionFor(row.slug),
   })),
 ];

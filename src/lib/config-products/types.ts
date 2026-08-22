@@ -6,6 +6,7 @@ export type ConfigOptionValueInput = {
   sort: number;
   modifierKind: ModifierKind;
   modifierValue: number;
+  imageUrl?: string | null;
 };
 
 export type ConfigOptionInput = {
@@ -61,6 +62,7 @@ export type TemplateOptionValueDef = {
   label: string;
   modifierKind?: ModifierKind;
   modifierValue?: number;
+  imageUrl?: string;
 };
 
 export type TemplateOptionDef = {

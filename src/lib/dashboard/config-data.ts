@@ -8,6 +8,7 @@ export type DashboardConfigOptionValue = {
   sort: number;
   modifierKind: ModifierKind;
   modifierValue: number;
+  imageUrl: string | null;
 };
 
 export type DashboardConfigOption = {
@@ -88,6 +89,7 @@ export function toDashboardConfigProduct(
           sort: value.sort,
           modifierKind: value.modifierKind,
           modifierValue: value.modifierValue,
+          imageUrl: value.imageUrl,
         })),
     })),
     variations: product.variations.map((row) => ({

@@ -7,6 +7,7 @@ import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/pricing";
 import { priceConfigSelection } from "@/lib/config-products/pricing";
+import { configPreviewFromSelection } from "@/lib/config-products/preview";
 import type { ConfigProductForPrice } from "@/lib/config-products/pricing";
 
 export type PublicConfigProduct = ConfigProductForPrice & {
@@ -72,6 +73,10 @@ function ConfigProductBuilder({
     () => priceConfigSelection(product, selections),
     [product, selections],
   );
+  const preview = useMemo(
+    () => configPreviewFromSelection(product, selections),
+    [product, selections],
+  );
 
   async function onFiles(list: FileList | null) {
     if (!list?.length) return;
@@ -92,8 +97,6 @@ function ConfigProductBuilder({
     }
   }
 
-  const image = product.images[0];
-
   return (
     <div className="store-shell config-page">
       <header className="store-header">
@@ -111,17 +114,36 @@ function ConfigProductBuilder({
       <div className="config-layout">
         <div>
           <div className="store-product-visual store-product-visual-photo config-hero">
-            {image ? (
-              <Image
-                src={image}
-                alt={product.title}
-                fill
-                className="store-product-img"
-                sizes="(min-width: 860px) 50vw, 90vw"
-              />
+            {preview.fallbackUrl || preview.layers.length ? (
+              <>
+                {preview.fallbackUrl ? (
+                  <Image
+                    src={preview.fallbackUrl}
+                    alt={product.title}
+                    fill
+                    className="store-product-img config-hero-layer"
+                    sizes="(min-width: 860px) 50vw, 90vw"
+                    priority
+                  />
+                ) : null}
+                {preview.layers.map((layer, index) => (
+                  <Image
+                    key={`${layer.optionName}-${layer.url}`}
+                    src={layer.url}
+                    alt={layer.label}
+                    fill
+                    className="store-product-img config-hero-layer"
+                    style={{ zIndex: index + 2 }}
+                    sizes="(min-width: 860px) 50vw, 90vw"
+                  />
+                ))}
+              </>
             ) : (
               <span>Print</span>
             )}
+            {preview.caption ? (
+              <p className="config-hero-caption">{preview.caption}</p>
+            ) : null}
           </div>
           {product.description ? (
             <div className="config-details">
@@ -184,33 +206,48 @@ function ConfigProductBuilder({
             <p className="muted small">{priced.error}</p>
           ) : null}
 
-          {options.map((option) => (
-            <label key={option.id} className="field">
-              <span>
-                {option.name}
-                {option.required ? " *" : ""}
-              </span>
-              <select
-                required={option.required}
-                value={selections[option.id] ?? ""}
-                onChange={(e) =>
-                  setSelections((cur) => ({
-                    ...cur,
-                    [option.id]: e.target.value,
-                  }))
-                }
-              >
-                {!option.required ? (
-                  <option value="">Please choose</option>
-                ) : null}
-                {option.values.map((value) => (
-                  <option key={value.id} value={value.id}>
-                    {value.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
+          {options.map((option) => {
+            const selected = option.values.find(
+              (value) => value.id === selections[option.id],
+            );
+            return (
+              <label key={option.id} className="field">
+                <span>
+                  {option.name}
+                  {option.required ? " *" : ""}
+                </span>
+                <span className="config-option-row">
+                  {selected?.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selected.imageUrl}
+                      alt=""
+                      className="config-option-thumb"
+                    />
+                  ) : null}
+                  <select
+                    required={option.required}
+                    value={selections[option.id] ?? ""}
+                    onChange={(e) =>
+                      setSelections((cur) => ({
+                        ...cur,
+                        [option.id]: e.target.value,
+                      }))
+                    }
+                  >
+                    {!option.required ? (
+                      <option value="">Please choose</option>
+                    ) : null}
+                    {option.values.map((value) => (
+                      <option key={value.id} value={value.id}>
+                        {value.label}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </label>
+            );
+          })}
 
           {product.uploadsEnabled ? (
             <div className="field">
