@@ -702,6 +702,7 @@ export function ProductsManager({
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Product embed</p>
+                    <p className="text-xs text-zinc-500">
                       Copy this onto any page with cart.js. For a dark website,
                       turn on Dark product cards in Settings or Integration.
                     </p>
