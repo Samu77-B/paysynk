@@ -703,7 +703,9 @@ export function ProductsManager({
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Product embed</p>
                     <p className="text-xs text-zinc-500">
-                      Copy this onto any page with cart.js
+                      Copy this onto any page with cart.js. On a dark page, add{" "}
+                      <code>data-theme=&quot;dark&quot;</code> to the embed.js
+                      and cart.js script tags.
                     </p>
                   </div>
                   <CopySnippetButton

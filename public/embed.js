@@ -10,6 +10,9 @@
  *   <script src="https://paysynk.com/embed.js" defer></script>
  *
  * Pair with cart.js on any page for a shared slide-out basket.
+ *
+ * Dark cards (optional):
+ *   <script src="https://www.paysynk.com/embed.js" data-theme="dark" defer></script>
  */
 (function () {
   var EVENT = "paysynk:cart-updated";
@@ -37,9 +40,18 @@
   }
 
   function renderOpeningSoon(el) {
+    var t = palette(readTheme(el));
     el.innerHTML =
-      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px dashed #d4d4d8;border-radius:12px;padding:1.1rem;background:#fafafa;color:#71717a;text-align:center">' +
-      '<div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:#a1a1aa;margin-bottom:0.35rem">PaySynk</div>' +
+      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px dashed ' +
+      t.line +
+      ";border-radius:12px;padding:1.1rem;background:" +
+      t.card +
+      ";color:" +
+      t.muted +
+      ';text-align:center">' +
+      '<div style="font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:' +
+      t.label +
+      ';margin-bottom:0.35rem">PaySynk</div>' +
       '<p style="margin:0;font-size:0.9rem">Shop opening soon</p>' +
       "</div>";
   }
@@ -91,6 +103,64 @@
     } catch (e) {
       /* ignore */
     }
+  }
+
+  function embedScriptEl() {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = 0; i < scripts.length; i++) {
+      if ((scripts[i].src || "").indexOf("embed.js") !== -1) return scripts[i];
+    }
+    return null;
+  }
+
+  function readTheme(el) {
+    var node = el;
+    while (node && node.getAttribute) {
+      var value =
+        node.getAttribute("data-paysynk-theme") || node.getAttribute("data-theme");
+      if (value === "dark" || value === "light") return value;
+      node = node.parentElement;
+    }
+    var script = embedScriptEl();
+    var fromScript =
+      script &&
+      (script.getAttribute("data-paysynk-theme") ||
+        script.getAttribute("data-theme"));
+    if (fromScript === "dark" || fromScript === "light") return fromScript;
+    return "light";
+  }
+
+  function palette(mode) {
+    if (mode === "dark") {
+      return {
+        card: "#171717",
+        text: "#f4f4f4",
+        muted: "#a1a1aa",
+        label: "#d4d4d8",
+        line: "#3f3f46",
+        inputBg: "#0c0c0c",
+        inputBorder: "#52525b",
+        photoBg: "#0c0c0c",
+        btn: "#9FE870",
+        btnText: "#141414",
+        btnOff: "#3f3f46",
+        flash: "#9FE870",
+      };
+    }
+    return {
+      card: "#fff",
+      text: "#18181b",
+      muted: "#71717a",
+      label: "#52525b",
+      line: "#e4e4e7",
+      inputBg: "#fff",
+      inputBorder: "#d4d4d8",
+      photoBg: "#fff",
+      btn: "#9FE870",
+      btnText: "#141414",
+      btnOff: "#d4d4d8",
+      flash: "#65a30d",
+    };
   }
 
   function formatMoney(minor, currency) {
@@ -274,9 +344,20 @@
     }
 
     el.className = (el.className ? el.className + " " : "") + "paysynk-product-embed";
+    var mode = readTheme(el);
+    el.setAttribute("data-ps-theme", mode);
+    var t = palette(mode);
     el.innerHTML =
-      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #e4e4e7;border-radius:12px;padding:1.25rem;background:#fff;color:#18181b">' +
-      '<p style="margin:0;color:#71717a;font-size:0.9rem">Loading product…</p></div>';
+      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid ' +
+      t.line +
+      ";border-radius:12px;padding:1.25rem;background:" +
+      t.card +
+      ";color:" +
+      t.text +
+      '">' +
+      '<p style="margin:0;color:' +
+      t.muted +
+      ';font-size:0.9rem">Loading product…</p></div>';
 
     fetch(
       origin +
@@ -301,10 +382,14 @@
         renderProductWidget(el, origin, data.store, product);
       })
       .catch(function (err) {
-        el.innerHTML =
-          '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #fecaca;border-radius:12px;padding:1.25rem;background:#fff;color:#b91c1c">' +
-          escapeHtml(err.message || "Could not load product") +
-          "</div>";
+        console.warn(
+          "PaySynk: product embed not found",
+          productKey,
+          err && err.message,
+        );
+        el.setAttribute("data-paysynk-missing", "1");
+        el.style.display = "none";
+        el.innerHTML = "";
       });
   }
 
@@ -364,21 +449,35 @@
       }
 
       var photo = imageForSelection(product, state.colour, sel);
+      var mode = el.getAttribute("data-ps-theme") || readTheme(el);
+      var t = palette(mode);
       var html =
-        '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid #e4e4e7;border-radius:12px;padding:1.25rem;background:#fff;color:#18181b;max-width:420px">';
+        '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid ' +
+        t.line +
+        ";border-radius:12px;padding:1.25rem;background:" +
+        t.card +
+        ";color:" +
+        t.text +
+        ";color-scheme:" +
+        mode +
+        ';max-width:420px">';
       if (photo) {
         html +=
           '<img src="' +
           imageSrc(origin, photo) +
           '" alt="' +
           escapeAttr(product.title) +
-          '" data-ps-zoom style="width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;border-radius:8px;margin:0 0 0.85rem;cursor:zoom-in">';
+          '" data-ps-zoom style="width:100%;aspect-ratio:4/3;object-fit:contain;background:' +
+          t.photoBg +
+          ';border-radius:8px;margin:0 0 0.85rem;cursor:zoom-in">';
       }
       html +=
         '<h3 style="margin:0 0 0.35rem;font-size:1.15rem;line-height:1.3">' +
         escapeHtml(product.title) +
         "</h3>" +
-        '<p style="margin:0 0 0.75rem;color:#71717a;font-size:0.9rem;line-height:1.45">' +
+        '<p style="margin:0 0 0.75rem;color:' +
+        t.muted +
+        ';font-size:0.9rem;line-height:1.45">' +
         escapeHtml(product.description || "") +
         "</p>" +
         '<p style="margin:0 0 1rem;font-size:1.25rem;font-weight:700">' +
@@ -388,8 +487,16 @@
       if (colours.length) {
         html +=
           '<label style="display:block;margin-bottom:0.75rem;font-size:0.85rem">' +
-          '<span style="display:block;margin-bottom:0.25rem;color:#52525b">Colour</span>' +
-          '<select data-ps-colour style="width:100%;padding:0.55rem 0.65rem;border:1px solid #d4d4d8;border-radius:8px;background:#fff">';
+          '<span style="display:block;margin-bottom:0.25rem;color:' +
+          t.label +
+          '">Colour</span>' +
+          '<select data-ps-colour style="width:100%;padding:0.55rem 0.65rem;border:1px solid ' +
+          t.inputBorder +
+          ";border-radius:8px;background:" +
+          t.inputBg +
+          ";color:" +
+          t.text +
+          '">';
         for (var ci = 0; ci < colours.length; ci++) {
           var colourLeft = 0;
           for (var vi = 0; vi < product.variants.length; vi++) {
@@ -412,8 +519,16 @@
       if (hasSizes) {
         html +=
           '<label style="display:block;margin-bottom:0.75rem;font-size:0.85rem">' +
-          '<span style="display:block;margin-bottom:0.25rem;color:#52525b">Size</span>' +
-          '<select data-ps-size style="width:100%;padding:0.55rem 0.65rem;border:1px solid #d4d4d8;border-radius:8px;background:#fff">';
+          '<span style="display:block;margin-bottom:0.25rem;color:' +
+          t.label +
+          '">Size</span>' +
+          '<select data-ps-size style="width:100%;padding:0.55rem 0.65rem;border:1px solid ' +
+          t.inputBorder +
+          ";border-radius:8px;background:" +
+          t.inputBg +
+          ";color:" +
+          t.text +
+          '">';
         for (var si = 0; si < list.length; si++) {
           var sv = list[si];
           html +=
@@ -430,7 +545,9 @@
         html += "</select></label>";
       } else {
         html +=
-          '<p style="margin:0 0 0.85rem;color:#71717a;font-size:0.85rem">' +
+          '<p style="margin:0 0 0.85rem;color:' +
+          t.muted +
+          ';font-size:0.85rem">' +
           (left === 0 ? "Out of stock" : left + " left") +
           "</p>";
       }
@@ -449,11 +566,15 @@
         'style="width:100%;border:0;border-radius:999px;padding:0.7rem 1rem;font-weight:600;cursor:' +
         (addDisabled ? "not-allowed" : "pointer") +
         ";background:" +
-        (addDisabled ? "#d4d4d8" : "#9FE870") +
-        ';color:#141414">' +
+        (addDisabled ? t.btnOff : t.btn) +
+        ";color:" +
+        t.btnText +
+        '">' +
         addLabel +
         "</button>" +
-        '<p data-ps-status style="margin:0.65rem 0 0;min-height:1.2em;font-size:0.8rem;color:#65a30d">' +
+        '<p data-ps-status style="margin:0.65rem 0 0;min-height:1.2em;font-size:0.8rem;color:' +
+        t.flash +
+        '">' +
         escapeHtml(state.flash || "") +
         "</p>" +
         "</div>";

@@ -5,6 +5,7 @@
  *     src="https://paysynk.com/cart.js"
  *     data-store="slf"
  *     data-merchant-id="MERCHANT_ID"
+ *     data-theme="dark"
  *     async></script>
  *
  * Product embeds (embed.js) write to the same cart key: paysynk-cart:{store}
@@ -54,6 +55,54 @@
 
   // Back-compat: merchant-only snippets still open the demo/default store.
   if (!storeSlug) storeSlug = "slf";
+
+  function isDarkTheme() {
+    var fromScript =
+      (script &&
+        (script.getAttribute("data-paysynk-theme") ||
+          script.getAttribute("data-theme"))) ||
+      "";
+    if (fromScript === "dark") return true;
+    if (fromScript === "light") return false;
+    var rootTheme =
+      document.documentElement.getAttribute("data-paysynk-theme") ||
+      document.documentElement.getAttribute("data-theme") ||
+      "";
+    return rootTheme === "dark";
+  }
+
+  function palette() {
+    if (isDarkTheme()) {
+      return {
+        bg: "#141414",
+        text: "#f4f4f4",
+        muted: "#a1a1aa",
+        label: "#d4d4d8",
+        line: "#3f3f46",
+        lineSoft: "#27272a",
+        inputBg: "#0c0c0c",
+        destOn: "#f4f4f4",
+        gift: "#86efac",
+        error: "#f87171",
+        errorBg: "rgba(220,38,38,0.16)",
+        totals: "#d4d4d8",
+      };
+    }
+    return {
+      bg: "#fff",
+      text: "#18181b",
+      muted: "#71717a",
+      label: "#52525b",
+      line: "#e4e4e7",
+      lineSoft: "#f4f4f5",
+      inputBg: "#fff",
+      destOn: "#141414",
+      gift: "#3f6212",
+      error: "#b91c1c",
+      errorBg: "#fef2f2",
+      totals: "#52525b",
+    };
+  }
 
   function storageKey(slug) {
     return "paysynk-cart:" + slug;
@@ -235,7 +284,7 @@
         line.style.border = "1px solid #dc2626";
         line.style.borderRadius = "8px";
         line.style.padding = "10px 8px";
-        line.style.background = "#fef2f2";
+        line.style.background = palette().errorBg;
       }
     }
     if (ids[0]) {
@@ -264,14 +313,25 @@
   }
 
   function inputStyle() {
-    return "width:100%;height:36px;border:1px solid #e4e4e7;border-radius:8px;padding:0 10px;font-size:0.85rem;box-sizing:border-box";
+    var t = palette();
+    return (
+      "width:100%;height:36px;border:1px solid " +
+      t.line +
+      ";border-radius:8px;padding:0 10px;font-size:0.85rem;box-sizing:border-box;background:" +
+      t.inputBg +
+      ";color:" +
+      t.text
+    );
   }
 
   function deliveryFieldsHtml(ship) {
+    var t = palette();
     function field(attr, label, type, value, autocomplete, required) {
       return (
         '<label style="display:block;margin:0 0 8px">' +
-        '<span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">' +
+        '<span style="display:block;font-size:0.72rem;color:' +
+        t.muted +
+        ';margin-bottom:4px">' +
         label +
         (required
           ? ' <span style="color:#dc2626" aria-hidden="true">*</span>'
@@ -297,7 +357,7 @@
     var dest =
       '<div style="display:flex;gap:8px;margin:0 0 10px">' +
       '<label style="flex:1;border:1px solid ' +
-      (uk ? "#141414" : "#e4e4e7") +
+      (uk ? t.destOn : t.line) +
       ';border-radius:8px;padding:8px 10px;font-size:0.8rem;cursor:pointer">' +
       '<input type="radio" name="ps-dest" data-ps-dest="GB" ' +
       (uk ? "checked " : "") +
@@ -305,7 +365,7 @@
     if (intlOffered()) {
       dest +=
         '<label style="flex:1;border:1px solid ' +
-        (!uk ? "#141414" : "#e4e4e7") +
+        (!uk ? t.destOn : t.line) +
         ';border-radius:8px;padding:8px 10px;font-size:0.8rem;cursor:pointer">' +
         '<input type="radio" name="ps-dest" data-ps-dest="INTL" ' +
         (!uk ? "checked " : "") +
@@ -316,7 +376,9 @@
     if (!uk && intlOffered()) {
       var countries = storeMeta.shippingCountries || [];
       countryField =
-        '<label style="display:block;margin:0 0 8px"><span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">Country <span style="color:#dc2626" aria-hidden="true">*</span></span>' +
+        '<label style="display:block;margin:0 0 8px"><span style="display:block;font-size:0.72rem;color:' +
+        t.muted +
+        ';margin-bottom:4px">Country <span style="color:#dc2626" aria-hidden="true">*</span></span>' +
         '<select data-ps-country required style="' +
         inputStyle() +
         '">';
@@ -335,7 +397,9 @@
       countryField = '<input type="hidden" data-ps-country value="GB" />';
     }
     return (
-      '<div style="margin:14px 0 4px;font-size:0.78rem;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:#52525b">Delivery</div>' +
+      '<div style="margin:14px 0 4px;font-size:0.78rem;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:' +
+      t.label +
+      '">Delivery</div>' +
       dest +
       countryField +
       field("data-ps-name", "Full name", "text", ship.name, "name", true) +
@@ -354,7 +418,9 @@
         true,
       ) +
       "</div>" +
-      '<p style="margin:4px 0 10px;font-size:0.72rem;color:#a1a1aa">Stripe will show this address filled in, then take the card.</p>'
+      '<p style="margin:4px 0 10px;font-size:0.72rem;color:' +
+      t.muted +
+      '">Stripe will show this address filled in, then take the card.</p>'
     );
   }
 
@@ -692,11 +758,17 @@
     var subtotal = preview.catalogueSubtotalMinor;
     var shipping = preview.shippingMinor;
     var total = preview.totalMinor;
+    var t = palette();
+    var scheme = isDarkTheme() ? "dark" : "light";
 
     var giftLines = "";
     for (var gi = 0; gi < preview.gifts.length; gi++) {
       giftLines +=
-        '<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #f4f4f5;color:#3f6212">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid ' +
+        t.lineSoft +
+        ";color:" +
+        t.gift +
+        '">' +
         '<div style="font-weight:600;font-size:0.85rem">Free: ' +
         escapeHtml(preview.gifts[gi].title) +
         '</div><div style="font-size:0.8rem">×' +
@@ -708,7 +780,9 @@
     var lines = "";
     if (!items.length) {
       lines =
-        '<p style="margin:1rem 0;color:#71717a;font-size:0.9rem">Your cart is empty.</p>';
+        '<p style="margin:1rem 0;color:' +
+        t.muted +
+        ';font-size:0.9rem">Your cart is empty.</p>';
     } else {
       for (var li = 0; li < items.length; li++) {
         var item = items[li];
@@ -716,17 +790,23 @@
         lines +=
           '<div data-ps-line="' +
           escapeAttr(item.variantId) +
-          '" style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f4f4f5">' +
+          '" style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid ' +
+          t.lineSoft +
+          '">' +
           '<div style="min-width:0">' +
           '<div style="font-weight:600;font-size:0.9rem">' +
           escapeHtml(item.title) +
           "</div>" +
           (item.optionsLabel
-            ? '<div style="color:#71717a;font-size:0.78rem;margin-top:2px">' +
+            ? '<div style="color:' +
+              t.muted +
+              ';font-size:0.78rem;margin-top:2px">' +
               escapeHtml(item.optionsLabel) +
               "</div>"
             : "") +
-          '<div style="color:#71717a;font-size:0.78rem;margin-top:2px">' +
+          '<div style="color:' +
+          t.muted +
+          ';font-size:0.78rem;margin-top:2px">' +
           formatMoney(item.priceMinor, storeMeta.currency) +
           " each</div>" +
           (lineBad
@@ -734,7 +814,9 @@
             : "") +
           '<button type="button" data-ps-remove="' +
           escapeAttr(item.variantId) +
-          '" style="margin-top:6px;border:0;background:none;color:#71717a;padding:0;font-size:0.78rem;cursor:pointer;text-decoration:underline">Remove</button>' +
+          '" style="margin-top:6px;border:0;background:none;color:' +
+          t.muted +
+          ';padding:0;font-size:0.78rem;cursor:pointer;text-decoration:underline">Remove</button>' +
           "</div>" +
           '<input data-ps-qty="' +
           escapeAttr(item.variantId) +
@@ -743,8 +825,12 @@
           '" value="' +
           item.quantity +
           '" style="width:64px;height:36px;border:1px solid ' +
-          (lineBad ? "#dc2626" : "#e4e4e7") +
-          ';border-radius:8px;padding:0 8px" />' +
+          (lineBad ? "#dc2626" : t.line) +
+          ";border-radius:8px;padding:0 8px;background:" +
+          t.inputBg +
+          ";color:" +
+          t.text +
+          '" />' +
           "</div>";
       }
     }
@@ -753,12 +839,24 @@
       "display:block;position:fixed;inset:0;z-index:2147483001;font-family:Outfit,system-ui,sans-serif";
     root.innerHTML =
       '<div data-ps-backdrop style="position:absolute;inset:0;background:rgba(0,0,0,.35)"></div>' +
-      '<aside style="position:absolute;top:0;right:0;height:100%;width:min(100%,420px);background:#fff;color:#18181b;box-shadow:0 25px 50px rgba(0,0,0,.25);display:flex;flex-direction:column">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #f4f4f5">' +
+      '<aside style="position:absolute;top:0;right:0;height:100%;width:min(100%,420px);background:' +
+      t.bg +
+      ";color:" +
+      t.text +
+      ";color-scheme:" +
+      scheme +
+      ';box-shadow:0 25px 50px rgba(0,0,0,.25);display:flex;flex-direction:column">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid ' +
+      t.lineSoft +
+      '">' +
       "<div><div style=\"font-weight:700\">" +
       escapeHtml(storeMeta.name || "Your cart") +
-      '</div><div style="font-size:0.75rem;color:#a1a1aa">Powered by PaySynk</div></div>' +
-      '<button type="button" data-ps-close style="border:0;background:none;color:#71717a;cursor:pointer;font-size:0.9rem">Close</button>' +
+      '</div><div style="font-size:0.75rem;color:' +
+      t.muted +
+      '">Powered by PaySynk</div></div>' +
+      '<button type="button" data-ps-close style="border:0;background:none;color:' +
+      t.muted +
+      ';cursor:pointer;font-size:0.9rem">Close</button>' +
       "</div>" +
       '<div style="flex:1;overflow:auto;padding:0 18px">' +
       lines +
@@ -766,29 +864,51 @@
       (items.length ? deliveryFieldsHtml(readShip()) : "") +
       "</div>" +
       (items.length
-        ? '<div style="padding:16px 18px;border-top:1px solid #f4f4f5">' +
+        ? '<div style="padding:16px 18px;border-top:1px solid ' +
+          t.lineSoft +
+          '">' +
           '<div style="display:flex;gap:8px;margin-bottom:10px">' +
           '<input data-ps-code type="text" placeholder="Discount code" value="' +
           escapeAttr(readCode()) +
-          '" style="flex:1;height:36px;border:1px solid #e4e4e7;border-radius:8px;padding:0 10px;font-size:0.85rem" />' +
-          '<button type="button" data-ps-apply-code style="border:1px solid #e4e4e7;background:#fff;border-radius:8px;padding:0 12px;font-size:0.8rem;cursor:pointer">Apply</button>' +
+          '" style="flex:1;height:36px;border:1px solid ' +
+          t.line +
+          ";border-radius:8px;padding:0 10px;font-size:0.85rem;background:" +
+          t.inputBg +
+          ";color:" +
+          t.text +
+          '" />' +
+          '<button type="button" data-ps-apply-code style="border:1px solid ' +
+          t.line +
+          ";background:" +
+          t.bg +
+          ";color:" +
+          t.text +
+          ';border-radius:8px;padding:0 12px;font-size:0.8rem;cursor:pointer">Apply</button>' +
           "</div>" +
           (preview.codeError
-            ? '<p style="color:#b91c1c;font-size:0.78rem;margin:0 0 8px">' +
+            ? '<p style="color:' +
+              t.error +
+              ';font-size:0.78rem;margin:0 0 8px">' +
               escapeHtml(preview.codeError) +
               "</p>"
             : "") +
-          '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#52525b;margin-bottom:6px"><span>Items</span><span>' +
+          '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:' +
+          t.totals +
+          ';margin-bottom:6px"><span>Items</span><span>' +
           formatMoney(subtotal, storeMeta.currency) +
           "</span></div>" +
           (preview.discountMinor
-            ? '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#3f6212;margin-bottom:6px"><span>' +
+            ? '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:' +
+              t.gift +
+              ';margin-bottom:6px"><span>' +
               escapeHtml(preview.discountLabel || "Discount") +
               "</span><span>−" +
               formatMoney(preview.discountMinor, storeMeta.currency) +
               "</span></div>"
             : "") +
-          '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#52525b;margin-bottom:6px"><span>' +
+          '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:' +
+          t.totals +
+          ';margin-bottom:6px"><span>' +
           escapeHtml(shippingLabel(ship)) +
           "</span><span>" +
           formatMoney(shipping, storeMeta.currency) +
@@ -797,7 +917,9 @@
           formatMoney(total, storeMeta.currency) +
           "</span></div>" +
           (errorMessage
-            ? '<p style="color:#b91c1c;font-size:0.85rem;margin:0 0 10px">' +
+            ? '<p style="color:' +
+              t.error +
+              ';font-size:0.85rem;margin:0 0 10px">' +
               escapeHtml(errorMessage) +
               "</p>"
             : "") +
@@ -807,7 +929,9 @@
               'style="width:100%;border:0;border-radius:999px;padding:0.75rem 1rem;font-weight:600;cursor:pointer;background:#9FE870;color:#141414">' +
               (busy ? "Redirecting…" : "Checkout with Stripe") +
               "</button>"
-            : '<p style="margin:0;font-size:0.82rem;color:#71717a">Preview only — checkout turns on after Stripe is connected in PaySynk Settings.</p>') +
+            : '<p style="margin:0;font-size:0.82rem;color:' +
+              t.muted +
+              '">Preview only — checkout turns on after Stripe is connected in PaySynk Settings.</p>') +
           "</div>"
         : "") +
       "</aside>";

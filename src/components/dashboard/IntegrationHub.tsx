@@ -59,6 +59,11 @@ export function IntegrationHub({
               snippet={cartSnippet}
               label="Copy shop cart code"
             />
+            <p className="text-sm text-zinc-600">
+              Dark website? Add <code>data-theme=&quot;dark&quot;</code> to this
+              script and to <code>embed.js</code> so product cards and the cart
+              match the page.
+            </p>
 
             <Tabs defaultValue="html">
               <TabsList>

@@ -4,13 +4,23 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function productEmbedSnippet(storeSlug: string, productSlug: string) {
+export function productEmbedSnippet(
+  storeSlug: string,
+  productSlug: string,
+  theme?: "light" | "dark",
+) {
+  const themeAttr = theme === "dark" ? ' data-theme="dark"' : "";
   return `<div data-paysynk-product="${productSlug}" data-store="${storeSlug}"></div>
-<script src="https://www.paysynk.com/embed.js" defer></script>`;
+<script src="https://www.paysynk.com/embed.js"${themeAttr} defer></script>`;
 }
 
-export function cartEmbedSnippet(storeSlug: string, merchantId: string) {
-  return `<script src="https://www.paysynk.com/cart.js" data-store="${storeSlug}" data-merchant-id="${merchantId}" async></script>`;
+export function cartEmbedSnippet(
+  storeSlug: string,
+  merchantId: string,
+  theme?: "light" | "dark",
+) {
+  const themeAttr = theme === "dark" ? ' data-theme="dark"' : "";
+  return `<script src="https://www.paysynk.com/cart.js" data-store="${storeSlug}" data-merchant-id="${merchantId}"${themeAttr} async></script>`;
 }
 
 export function CopySnippetButton({

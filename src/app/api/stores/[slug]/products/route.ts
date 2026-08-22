@@ -15,7 +15,9 @@ export async function OPTIONS() {
   return embedCorsPreflight();
 }
 
-/** GET sellable products for a store (variants with stockQty > 0 only).
+/** GET sellable products for a store.
+ *  Out-of-stock variants are included so embeds can show “Out of stock”
+ *  instead of “Product not found”.
  *  Optional ?product=id-or-slug filters to one product for embed widgets.
  */
 export async function GET(req: Request, { params }: Params) {
@@ -40,7 +42,6 @@ export async function GET(req: Request, { params }: Params) {
       orderBy: { title: "asc" },
       include: {
         variants: {
-          where: { stockQty: { gt: 0 } },
           orderBy: { sku: "asc" },
         },
       },
