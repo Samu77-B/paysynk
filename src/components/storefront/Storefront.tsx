@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
@@ -8,7 +8,7 @@ import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
 import type { PublicOffer } from "@/lib/offers";
-import { parseCheckoutCustomer } from "@/lib/checkout-customer";
+import { parseCheckoutCustomer, type CheckoutCustomerField } from "@/lib/checkout-customer";
 import { INTERNATIONAL_SHIPPING_COUNTRIES } from "@/lib/shipping-countries";
 
 export type StorefrontProduct = {
@@ -237,6 +237,10 @@ function CartPanel({
   const [codeDraft, setCodeDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<
+    CheckoutCustomerField | "discountCode" | null
+  >(null);
+  const [invalidVariantIds, setInvalidVariantIds] = useState<string[]>([]);
   const deliveryRef = useRef<HTMLFieldSetElement>(null);
   const [customer, setCustomer] = useState({
     name: "",
@@ -251,6 +255,17 @@ function CartPanel({
 
   function updateCustomer(field: keyof typeof customer, value: string) {
     setCustomer((current) => ({ ...current, [field]: value }));
+    setErrorField((current) => (current === field ? null : current));
+  }
+
+  function setCheckoutProblem(
+    message: string | null,
+    field?: CheckoutCustomerField | "discountCode" | null,
+    variantIds: string[] = [],
+  ) {
+    setCheckoutError(message);
+    setErrorField(field ?? null);
+    setInvalidVariantIds(variantIds);
   }
 
   const shippingMinor =
@@ -282,8 +297,17 @@ function CartPanel({
       for (const el of fields) {
         if (
           (el instanceof HTMLInputElement || el instanceof HTMLSelectElement) &&
+          el.type !== "radio" &&
+          el.type !== "hidden" &&
           !el.checkValidity()
         ) {
+          const field = (el.getAttribute("name") || "") as
+            | CheckoutCustomerField
+            | "";
+          setCheckoutProblem(
+            el.validationMessage || "Please fill in this field.",
+            field || "name",
+          );
           el.reportValidity();
           return;
         }
@@ -291,11 +315,14 @@ function CartPanel({
     }
     const parsed = parseCheckoutCustomer(customer);
     if (!parsed.customer) {
-      setCheckoutError(parsed.error || "Add your delivery details to continue.");
+      setCheckoutProblem(
+        parsed.error || "Add your delivery details to continue.",
+        parsed.field ?? "name",
+      );
       return;
     }
     setBusy(true);
-    setCheckoutError(null);
+    setCheckoutProblem(null);
     try {
       const res = await fetch(`/api/stores/${store.slug}/checkout`, {
         method: "POST",
@@ -311,20 +338,52 @@ function CartPanel({
       });
       const data = (await res.json()) as {
         error?: string;
+        field?: CheckoutCustomerField | "discountCode";
+        invalidVariantIds?: string[];
         redirectUrl?: string;
       };
       if (!res.ok || !data.redirectUrl) {
-        throw new Error(data.error || "Checkout failed");
+        setCheckoutProblem(
+          data.error || "Checkout failed",
+          data.field ?? null,
+          data.invalidVariantIds ?? [],
+        );
+        setBusy(false);
+        return;
       }
       clear();
       window.location.href = data.redirectUrl;
     } catch (err) {
       setBusy(false);
-      setCheckoutError(
+      setCheckoutProblem(
         err instanceof Error ? err.message : "Checkout failed",
       );
     }
   }
+
+  useEffect(() => {
+    if (errorField === "discountCode") {
+      const el = document.querySelector<HTMLInputElement>(
+        ".cart-promo input",
+      );
+      el?.focus();
+      el?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    if (errorField && deliveryRef.current) {
+      const el = deliveryRef.current.querySelector<
+        HTMLInputElement | HTMLSelectElement
+      >(`[name="${errorField}"]`);
+      el?.focus();
+      el?.scrollIntoView({ block: "nearest" });
+      return;
+    }
+    if (invalidVariantIds[0]) {
+      document
+        .querySelector(`[data-cart-line="${invalidVariantIds[0]}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    }
+  }, [errorField, invalidVariantIds]);
 
   return (
     <aside className="store-cart">
@@ -334,37 +393,55 @@ function CartPanel({
       ) : (
         <>
           <ul className="cart-lines">
-            {items.map((item) => (
-              <li key={item.variantId}>
-                <div>
-                  <strong>{item.title}</strong>
-                  {item.optionsLabel && (
-                    <div className="muted small">{item.optionsLabel}</div>
-                  )}
-                  <div className="muted small">
-                    {formatMoney(item.priceMinor, store.currency)} each
+            {items.map((item) => {
+              const lineInvalid = invalidVariantIds.includes(item.variantId);
+              return (
+                <li
+                  key={item.variantId}
+                  data-cart-line={item.variantId}
+                  className={lineInvalid ? "is-invalid" : undefined}
+                >
+                  <div>
+                    <strong>{item.title}</strong>
+                    {item.optionsLabel && (
+                      <div className="muted small">{item.optionsLabel}</div>
+                    )}
+                    <div className="muted small">
+                      {formatMoney(item.priceMinor, store.currency)} each
+                    </div>
+                    {lineInvalid ? (
+                      <div className="field-error">
+                        This item is no longer available.
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-                <div className="cart-qty">
-                  <input
-                    type="number"
-                    min={1}
-                    max={item.maxStock}
-                    value={item.quantity}
-                    onChange={(e) =>
-                      setQuantity(item.variantId, Number(e.target.value))
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="linkish"
-                    onClick={() => removeItem(item.variantId)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
+                  <div className="cart-qty">
+                    <input
+                      type="number"
+                      min={1}
+                      max={item.maxStock}
+                      value={item.quantity}
+                      className={lineInvalid ? "is-invalid" : undefined}
+                      onChange={(e) =>
+                        setQuantity(item.variantId, Number(e.target.value))
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="linkish"
+                      onClick={() => {
+                        setInvalidVariantIds((ids) =>
+                          ids.filter((id) => id !== item.variantId),
+                        );
+                        removeItem(item.variantId);
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
             {pricing.gifts.map((gift) => (
               <li key={gift.offerId} className="cart-gift">
                 <div>
@@ -384,8 +461,20 @@ function CartPanel({
           >
             <input
               type="text"
+              name="discountCode"
               value={codeDraft}
-              onChange={(e) => setCodeDraft(e.target.value.toUpperCase())}
+              className={
+                errorField === "discountCode" || pricing.codeError
+                  ? "is-invalid"
+                  : undefined
+              }
+              aria-invalid={
+                errorField === "discountCode" || Boolean(pricing.codeError)
+              }
+              onChange={(e) => {
+                setCodeDraft(e.target.value.toUpperCase());
+                if (errorField === "discountCode") setErrorField(null);
+              }}
               placeholder="Discount code"
               aria-label="Discount code"
             />
@@ -466,7 +555,10 @@ function CartPanel({
               <label>
                 Country <span className="req" aria-hidden="true">*</span>
                 <select
+                  name="country"
                   required
+                  aria-invalid={errorField === "country"}
+                  className={errorField === "country" ? "is-invalid" : undefined}
                   value={customer.country}
                   onChange={(e) => updateCustomer("country", e.target.value)}
                 >
@@ -482,8 +574,11 @@ function CartPanel({
               Full name <span className="req" aria-hidden="true">*</span>
               <input
                 type="text"
+                name="name"
                 autoComplete="name"
                 required
+                aria-invalid={errorField === "name"}
+                className={errorField === "name" ? "is-invalid" : undefined}
                 value={customer.name}
                 onChange={(e) => updateCustomer("name", e.target.value)}
               />
@@ -492,8 +587,11 @@ function CartPanel({
               Email <span className="req" aria-hidden="true">*</span>
               <input
                 type="email"
+                name="email"
                 autoComplete="email"
                 required
+                aria-invalid={errorField === "email"}
+                className={errorField === "email" ? "is-invalid" : undefined}
                 value={customer.email}
                 onChange={(e) => updateCustomer("email", e.target.value)}
               />
@@ -502,7 +600,10 @@ function CartPanel({
               Phone (optional)
               <input
                 type="tel"
+                name="phone"
                 autoComplete="tel"
+                aria-invalid={errorField === "phone"}
+                className={errorField === "phone" ? "is-invalid" : undefined}
                 value={customer.phone}
                 onChange={(e) => updateCustomer("phone", e.target.value)}
               />
@@ -511,8 +612,11 @@ function CartPanel({
               Address line 1 <span className="req" aria-hidden="true">*</span>
               <input
                 type="text"
+                name="line1"
                 autoComplete="address-line1"
                 required
+                aria-invalid={errorField === "line1"}
+                className={errorField === "line1" ? "is-invalid" : undefined}
                 value={customer.line1}
                 onChange={(e) => updateCustomer("line1", e.target.value)}
               />
@@ -531,8 +635,11 @@ function CartPanel({
                 Town / city <span className="req" aria-hidden="true">*</span>
                 <input
                   type="text"
+                  name="city"
                   autoComplete="address-level2"
                   required
+                  aria-invalid={errorField === "city"}
+                  className={errorField === "city" ? "is-invalid" : undefined}
                   value={customer.city}
                   onChange={(e) => updateCustomer("city", e.target.value)}
                 />
@@ -542,8 +649,13 @@ function CartPanel({
                 <span className="req" aria-hidden="true">*</span>
                 <input
                   type="text"
+                  name="postalCode"
                   autoComplete="postal-code"
                   required
+                  aria-invalid={errorField === "postalCode"}
+                  className={
+                    errorField === "postalCode" ? "is-invalid" : undefined
+                  }
                   value={customer.postalCode}
                   onChange={(e) =>
                     updateCustomer("postalCode", e.target.value.toUpperCase())

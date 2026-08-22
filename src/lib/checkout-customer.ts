@@ -15,6 +15,8 @@ export type CheckoutCustomer = {
   country: string;
 };
 
+export type CheckoutCustomerField = Exclude<keyof CheckoutCustomer, "line2">;
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UK_POSTCODE_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 
@@ -39,9 +41,13 @@ export function toE164Phone(phone: string, country: string) {
 
 export function parseCheckoutCustomer(
   input: unknown,
-): { customer?: CheckoutCustomer; error?: string } {
+): {
+  customer?: CheckoutCustomer;
+  error?: string;
+  field?: CheckoutCustomerField;
+} {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
-    return { error: "Add your delivery details to continue." };
+    return { error: "Add your delivery details to continue.", field: "name" };
   }
   const raw = input as Record<string, unknown>;
   const name = clean(raw.name, 80);
@@ -53,23 +59,32 @@ export function parseCheckoutCustomer(
   const country = clean(raw.country, 2).toUpperCase() || "GB";
   const postalCode = clean(raw.postalCode ?? raw.postcode, 16).toUpperCase();
 
-  if (!name) return { error: "Enter the name for delivery." };
-  if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address." };
-  if (phone && phone.replace(/\D/g, "").length < 8) {
-    return { error: "Enter a phone number we can reach you on." };
+  if (!name) {
+    return { error: "Enter the name for delivery.", field: "name" };
   }
-  if (!line1) return { error: "Enter the first line of your address." };
-  if (!city) return { error: "Enter a town or city." };
+  if (!EMAIL_RE.test(email)) {
+    return { error: "Enter a valid email address.", field: "email" };
+  }
+  if (phone && phone.replace(/\D/g, "").length < 8) {
+    return {
+      error: "Enter a phone number we can reach you on.",
+      field: "phone",
+    };
+  }
+  if (!line1) {
+    return { error: "Enter the first line of your address.", field: "line1" };
+  }
+  if (!city) return { error: "Enter a town or city.", field: "city" };
   if (isUkCountry(country)) {
     if (!UK_POSTCODE_RE.test(postalCode)) {
-      return { error: "Enter a valid UK postcode." };
+      return { error: "Enter a valid UK postcode.", field: "postalCode" };
     }
   } else {
     if (!isIntlShippingCountry(country)) {
-      return { error: "Choose a delivery country." };
+      return { error: "Choose a delivery country.", field: "country" };
     }
     if (postalCode.length < 2) {
-      return { error: "Enter a postcode or ZIP code." };
+      return { error: "Enter a postcode or ZIP code.", field: "postalCode" };
     }
   }
 

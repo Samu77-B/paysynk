@@ -159,26 +159,91 @@
   }
 
   function validateShip(ship) {
-    if (!ship.name) return "Enter the name for delivery.";
+    if (!ship.name) {
+      return { error: "Enter the name for delivery.", field: "name" };
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ship.email)) {
-      return "Enter a valid email address.";
+      return { error: "Enter a valid email address.", field: "email" };
     }
-    if (
-      ship.phone &&
-      String(ship.phone).replace(/\D/g, "").length < 8
-    ) {
-      return "Enter a phone number we can reach you on.";
+    if (ship.phone && String(ship.phone).replace(/\D/g, "").length < 8) {
+      return {
+        error: "Enter a phone number we can reach you on.",
+        field: "phone",
+      };
     }
-    if (!ship.line1) return "Enter the first line of your address.";
-    if (!ship.city) return "Enter a town or city.";
+    if (!ship.line1) {
+      return { error: "Enter the first line of your address.", field: "line1" };
+    }
+    if (!ship.city) return { error: "Enter a town or city.", field: "city" };
     if (isUkShip(ship)) {
       if (!/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(ship.postalCode)) {
-        return "Enter a valid UK postcode.";
+        return { error: "Enter a valid UK postcode.", field: "postalCode" };
       }
     } else if (String(ship.postalCode || "").length < 2) {
-      return "Enter a postcode or ZIP code.";
+      return { error: "Enter a postcode or ZIP code.", field: "postalCode" };
     }
+    return null;
+  }
+
+  function shipFieldSelector(field) {
+    return (
+      {
+        name: "[data-ps-name]",
+        email: "[data-ps-email]",
+        phone: "[data-ps-phone]",
+        line1: "[data-ps-line1]",
+        city: "[data-ps-city]",
+        postalCode: "[data-ps-postcode]",
+        country: "[data-ps-country]",
+        discountCode: "[data-ps-code]",
+      }[field] || ""
+    );
+  }
+
+  function fieldFromShipEl(el) {
+    if (!el) return "";
+    if (el.hasAttribute("data-ps-name")) return "name";
+    if (el.hasAttribute("data-ps-email")) return "email";
+    if (el.hasAttribute("data-ps-phone")) return "phone";
+    if (el.hasAttribute("data-ps-line1")) return "line1";
+    if (el.hasAttribute("data-ps-city")) return "city";
+    if (el.hasAttribute("data-ps-postcode")) return "postalCode";
+    if (el.hasAttribute("data-ps-country")) return "country";
+    if (el.hasAttribute("data-ps-code")) return "discountCode";
     return "";
+  }
+
+  function applyCheckoutUiError(opts) {
+    if (!root || !opts) return;
+    var sel = shipFieldSelector(opts.field);
+    if (sel) {
+      var el = root.querySelector(sel);
+      if (el) {
+        el.style.borderColor = "#dc2626";
+        el.style.boxShadow = "0 0 0 1px #dc2626";
+        try {
+          el.focus();
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    }
+    var ids = opts.invalidVariantIds || [];
+    for (var i = 0; i < ids.length; i++) {
+      var line = root.querySelector('[data-ps-line="' + ids[i] + '"]');
+      if (line) {
+        line.style.border = "1px solid #dc2626";
+        line.style.borderRadius = "8px";
+        line.style.padding = "10px 8px";
+        line.style.background = "#fef2f2";
+      }
+    }
+    if (ids[0]) {
+      var first = root.querySelector('[data-ps-line="' + ids[0] + '"]');
+      if (first && first.scrollIntoView) {
+        first.scrollIntoView({ block: "nearest" });
+      }
+    }
   }
 
   function intlOffered() {
@@ -532,18 +597,21 @@
   function checkout() {
     var items = readCart(storeSlug);
     if (!items.length || busy) return;
+    persistShipFromForm();
     var requiredEls = root.querySelectorAll("input[required], select[required]");
     for (var ri = 0; ri < requiredEls.length; ri++) {
       if (!requiredEls[ri].checkValidity()) {
-        requiredEls[ri].reportValidity();
+        var missingField = fieldFromShipEl(requiredEls[ri]);
+        render("Please fill in this field.", { field: missingField });
+        var missingEl = root.querySelector(shipFieldSelector(missingField));
+        if (missingEl && missingEl.reportValidity) missingEl.reportValidity();
         return;
       }
     }
-    persistShipFromForm();
     var ship = readShip();
     var shipError = validateShip(ship);
     if (shipError) {
-      render(shipError);
+      render(shipError.error, { field: shipError.field });
       return;
     }
     if (!storeMeta.paymentsActive) {
@@ -565,11 +633,19 @@
     })
       .then(function (res) {
         return res.json().then(function (data) {
-          if (!res.ok) throw new Error(data.error || "Checkout failed");
+          data._ok = res.ok;
           return data;
         });
       })
       .then(function (data) {
+        if (!data._ok) {
+          busy = false;
+          render(data.error || "Checkout failed", {
+            field: data.field,
+            invalidVariantIds: data.invalidVariantIds,
+          });
+          return;
+        }
         if (!data.redirectUrl || data.redirectUrl.indexOf("https://") !== 0) {
           throw new Error("Checkout failed");
         }
@@ -582,7 +658,8 @@
       });
   }
 
-  function render(errorMessage) {
+  function render(errorMessage, errorOpts) {
+    errorOpts = errorOpts || {};
     if (!cartVisible()) {
       if (button) button.style.display = "none";
       if (root) {
@@ -627,6 +704,7 @@
         "</div></div>";
     }
 
+    var invalidIds = errorOpts.invalidVariantIds || [];
     var lines = "";
     if (!items.length) {
       lines =
@@ -634,8 +712,11 @@
     } else {
       for (var li = 0; li < items.length; li++) {
         var item = items[li];
+        var lineBad = invalidIds.indexOf(item.variantId) !== -1;
         lines +=
-          '<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f4f4f5">' +
+          '<div data-ps-line="' +
+          escapeAttr(item.variantId) +
+          '" style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f4f4f5">' +
           '<div style="min-width:0">' +
           '<div style="font-weight:600;font-size:0.9rem">' +
           escapeHtml(item.title) +
@@ -648,6 +729,9 @@
           '<div style="color:#71717a;font-size:0.78rem;margin-top:2px">' +
           formatMoney(item.priceMinor, storeMeta.currency) +
           " each</div>" +
+          (lineBad
+            ? '<div style="color:#dc2626;font-size:0.78rem;margin-top:4px">This item is no longer available.</div>'
+            : "") +
           '<button type="button" data-ps-remove="' +
           escapeAttr(item.variantId) +
           '" style="margin-top:6px;border:0;background:none;color:#71717a;padding:0;font-size:0.78rem;cursor:pointer;text-decoration:underline">Remove</button>' +
@@ -658,7 +742,9 @@
           (item.maxStock || 99) +
           '" value="' +
           item.quantity +
-          '" style="width:64px;height:36px;border:1px solid #e4e4e7;border-radius:8px;padding:0 8px" />' +
+          '" style="width:64px;height:36px;border:1px solid ' +
+          (lineBad ? "#dc2626" : "#e4e4e7") +
+          ';border-radius:8px;padding:0 8px" />' +
           "</div>";
       }
     }
@@ -794,6 +880,11 @@
 
     var checkoutBtn = root.querySelector("[data-ps-checkout]");
     if (checkoutBtn) checkoutBtn.onclick = checkout;
+
+    if (preview.codeError && !errorOpts.field) {
+      errorOpts.field = "discountCode";
+    }
+    applyCheckoutUiError(errorOpts);
   }
 
   function escapeHtml(value) {

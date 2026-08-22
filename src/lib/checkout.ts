@@ -52,27 +52,38 @@ export async function createStoreCheckout(opts: {
   }
 
   const variantIds = items.map((i) => i.variantId);
+  const uniqueIds = [...new Set(variantIds)];
   const variants = await prisma.variant.findMany({
     where: {
-      id: { in: variantIds },
-      product: { storeId: store.id, active: true },
+      id: { in: uniqueIds },
+      product: { storeId: store.id },
     },
     include: { product: true },
   });
-
-  if (variants.length !== new Set(variantIds).size) {
-    throw new CheckoutError("One or more variants are invalid for this store", 400);
+  const byId = new Map(variants.map((v) => [v.id, v]));
+  const unavailableIds = uniqueIds.filter((id) => {
+    const variant = byId.get(id);
+    return !variant || !variant.product.active;
+  });
+  if (unavailableIds.length) {
+    throw new CheckoutError(
+      unavailableIds.length === 1
+        ? "This item is no longer available. Remove it to continue."
+        : "Some items in your cart are no longer available. Remove them to continue.",
+      400,
+      { invalidVariantIds: unavailableIds },
+    );
   }
 
-  const byId = new Map(variants.map((v) => [v.id, v]));
   const pricedInput: PricedLine[] = [];
 
   for (const item of items) {
     const variant = byId.get(item.variantId)!;
     if (variant.stockQty < item.quantity) {
       throw new CheckoutError(
-        `Insufficient stock for ${variant.sku} (have ${variant.stockQty})`,
+        `Not enough stock for ${variant.product.title}.`,
         409,
+        { invalidVariantIds: [variant.id] },
       );
     }
     pricedInput.push({
@@ -93,6 +104,7 @@ export async function createStoreCheckout(opts: {
     throw new CheckoutError(
       "This shop does not currently ship internationally.",
       400,
+      { field: "country" },
     );
   }
   const shippingRate =
@@ -105,7 +117,7 @@ export async function createStoreCheckout(opts: {
   });
 
   if (opts.discountCode?.trim() && pricing.codeError) {
-    throw new CheckoutError(pricing.codeError, 400);
+    throw new CheckoutError(pricing.codeError, 400, { field: "discountCode" });
   }
 
   const giftItems: Array<{
@@ -238,9 +250,17 @@ export async function createStoreCheckout(opts: {
 
 export class CheckoutError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  field?: string;
+  invalidVariantIds?: string[];
+  constructor(
+    message: string,
+    status: number,
+    extra?: { field?: string; invalidVariantIds?: string[] },
+  ) {
     super(message);
     this.name = "CheckoutError";
     this.status = status;
+    this.field = extra?.field;
+    this.invalidVariantIds = extra?.invalidVariantIds;
   }
 }

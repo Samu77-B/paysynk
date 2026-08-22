@@ -950,6 +950,20 @@ h3 {
   padding-bottom: 0.75rem;
 }
 
+.cart-lines li.is-invalid {
+  border: 1px solid #dc2626;
+  border-bottom-color: #dc2626;
+  border-radius: 8px;
+  padding: 0.65rem 0.7rem 0.75rem;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.field-error {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
 .cart-qty {
   display: grid;
   gap: 0.35rem;
@@ -974,6 +988,22 @@ h3 {
   border-radius: 8px;
   padding: 0 0.65rem;
   font: inherit;
+}
+
+.cart-promo input.is-invalid,
+.cart-qty input.is-invalid,
+.cart-delivery input.is-invalid,
+.cart-delivery select.is-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 1px #dc2626;
+}
+
+.cart-promo input.is-invalid:focus,
+.cart-qty input.is-invalid:focus,
+.cart-delivery input.is-invalid:focus,
+.cart-delivery select.is-invalid:focus {
+  outline: 1px solid #dc2626;
+  border-color: #dc2626;
 }
 
 .cart-delivery {

@@ -57,7 +57,11 @@ export async function POST(req: Request, { params }: Params) {
     if (!customerResult.customer) {
       return withEmbedCors(
         NextResponse.json(
-          { error: customerResult.error || "Add your delivery details to continue." },
+          {
+            error:
+              customerResult.error || "Add your delivery details to continue.",
+            field: customerResult.field,
+          },
           { status: 400 },
         ),
       );
@@ -92,7 +96,14 @@ export async function POST(req: Request, { params }: Params) {
   } catch (err) {
     if (err instanceof CheckoutError) {
       return withEmbedCors(
-        NextResponse.json({ error: err.message }, { status: err.status }),
+        NextResponse.json(
+          {
+            error: err.message,
+            field: err.field,
+            invalidVariantIds: err.invalidVariantIds,
+          },
+          { status: err.status },
+        ),
       );
     }
     console.error(err);
