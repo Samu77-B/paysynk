@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
@@ -126,17 +127,20 @@ function ProductCard({
           <span>{productBadge(product)}</span>
         )}
       </div>
-      {zoom && image ? (
-        <div
-          className="photo-zoom"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setZoom(false)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={encodeURI(image)} alt={product.title} />
-        </div>
-      ) : null}
+      {zoom && image
+        ? createPortal(
+            <div
+              className="photo-zoom"
+              role="dialog"
+              aria-modal="true"
+              onClick={() => setZoom(false)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={encodeURI(image)} alt={product.title} />
+            </div>,
+            document.body,
+          )
+        : null}
       <div className="store-product-body">
         <h2>{product.title}</h2>
         <p className="muted">{product.description}</p>
@@ -413,18 +417,18 @@ function CartPanel({
 
           <fieldset className="cart-delivery">
             <legend>Delivery</legend>
-            <div className="cart-dest">
-              <label>
-                <input
-                  type="radio"
-                  name="dest"
-                  checked={customer.country === "GB"}
-                  onChange={() => updateCustomer("country", "GB")}
-                />
-                UK
-              </label>
-              {typeof store.shippingIntlMinor === "number" ? (
-                <label>
+            {typeof store.shippingIntlMinor === "number" ? (
+              <div className="cart-dest">
+                <label className={customer.country === "GB" ? "is-on" : ""}>
+                  <input
+                    type="radio"
+                    name="dest"
+                    checked={customer.country === "GB"}
+                    onChange={() => updateCustomer("country", "GB")}
+                  />
+                  UK
+                </label>
+                <label className={customer.country !== "GB" ? "is-on" : ""}>
                   <input
                     type="radio"
                     name="dest"
@@ -440,8 +444,10 @@ function CartPanel({
                   />
                   International
                 </label>
-              ) : null}
-            </div>
+              </div>
+            ) : (
+              <p className="muted small note">Ships to the UK.</p>
+            )}
             {customer.country !== "GB" &&
             typeof store.shippingIntlMinor === "number" ? (
               <label>
