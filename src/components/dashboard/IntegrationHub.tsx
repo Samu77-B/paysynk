@@ -15,6 +15,7 @@ import { EmbedThemeSettings } from "@/components/dashboard/EmbedThemeSettings";
 import {
   cartEmbedSnippet,
   CopySnippetButton,
+  printCatalogEmbedSnippet,
   productEmbedSnippet,
 } from "@/components/dashboard/embed-snippets";
 
@@ -176,6 +177,32 @@ export function IntegrationHub({
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-zinc-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Print catalog on your website</CardTitle>
+          <CardDescription>
+            Replaces an Ecwid shop widget. Customers build the job (dropdowns,
+            price, file upload) on the hosted product page, then check out.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <pre className="overflow-x-auto rounded-xl bg-[#141414] p-4 text-sm text-[#9FE870]">
+            {printCatalogEmbedSnippet(storeSlug)}
+          </pre>
+          <CopySnippetButton
+            snippet={printCatalogEmbedSnippet(storeSlug)}
+            label="Copy print catalog embed"
+          />
+          <p className="text-sm text-zinc-600">
+            Or link a product:{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">
+              /s/{storeSlug}/p/business-cards
+            </code>
+            . Manage dropdowns and prices under Print products.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card className="border-zinc-200 shadow-sm">
         <CardHeader>

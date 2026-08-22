@@ -8,7 +8,7 @@ import {
 } from "@/lib/offers";
 
 export type PricedLine = {
-  variantId: string;
+  variantId: string | null;
   productId: string;
   title: string;
   kind: ProductKind;

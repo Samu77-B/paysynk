@@ -27,6 +27,7 @@ export type DashboardContext = {
   currency: string;
   shippingFlatMinor: number;
   shippingIntlMinor: number | null;
+  homeCountry: string;
   logoUrl: string | null;
   vatNumber: string | null;
   notifyEmail: string | null;
@@ -115,10 +116,20 @@ export function toDashboardOrder(
     total_in_pence: order.totalMinor,
     currency: order.currency,
     items_json: order.items.map((item) => {
-      const options = (item.optionsSnapshot ?? {}) as Record<string, string>;
-      const detail = [options.colour, options.size].filter(Boolean).join(" · ");
+      const snap = (item.optionsSnapshot ?? {}) as Record<string, unknown>;
+      const detail =
+        typeof snap.optionsLabel === "string"
+          ? snap.optionsLabel
+          : [snap.colour, snap.size].filter(Boolean).join(" · ");
+      const filesRaw = snap.files;
+      const files = Array.isArray(filesRaw)
+        ? filesRaw.length
+        : typeof filesRaw === "string" && filesRaw
+          ? filesRaw.split("\n").filter(Boolean).length
+          : 0;
+      const extra = files ? ` · ${files} file${files === 1 ? "" : "s"}` : "";
       return {
-        title: detail ? `${item.title} — ${detail}` : item.title,
+        title: detail ? `${item.title} — ${detail}${extra}` : item.title,
         qty: item.quantity,
         price: item.unitPriceMinor,
       };
@@ -166,6 +177,7 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     currency: store.currency,
     shippingFlatMinor: store.shippingFlatMinor,
     shippingIntlMinor: store.shippingIntlMinor,
+    homeCountry: store.homeCountry,
     logoUrl: store.logoUrl,
     vatNumber: store.vatNumber,
     notifyEmail: store.notifyEmail,
@@ -226,6 +238,8 @@ export async function getMerchantOrders(merchantId: string): Promise<Order[]> {
   });
   return orders.map(toDashboardOrder);
 }
+
+export { getMerchantConfigProducts, getConfigTemplates } from "@/lib/dashboard/config-data";
 
 export async function getMerchantInvoices(
   _merchantId: string,

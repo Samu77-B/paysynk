@@ -11,10 +11,12 @@ export function ShippingSettings({
   currency,
   shippingFlatMinor,
   shippingIntlMinor,
+  homeCountry,
 }: {
   currency: string;
   shippingFlatMinor: number;
   shippingIntlMinor: number | null;
+  homeCountry: string;
 }) {
   const [pounds, setPounds] = useState((shippingFlatMinor / 100).toFixed(2));
   const [offerIntl, setOfferIntl] = useState(shippingIntlMinor != null);
@@ -23,6 +25,7 @@ export function ShippingSettings({
   );
   const [savedUk, setSavedUk] = useState(shippingFlatMinor);
   const [savedIntl, setSavedIntl] = useState(shippingIntlMinor);
+  const [country, setCountry] = useState((homeCountry || "GB").toUpperCase());
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -35,6 +38,7 @@ export function ShippingSettings({
         pounds,
         intlPounds,
         offerIntl,
+        homeCountry: country,
       });
       if (result.error) {
         setError(result.error);
@@ -63,8 +67,22 @@ export function ShippingSettings({
       }}
     >
       <div className="space-y-1">
+        <Label htmlFor="home-country">Shop country (domestic delivery)</Label>
+        <select
+          id="home-country"
+          className="h-9 w-full rounded-md border border-zinc-200 bg-white px-2 text-sm"
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+        >
+          <option value="GB">United Kingdom</option>
+          <option value="JM">Jamaica</option>
+          <option value="US">United States</option>
+          <option value="CA">Canada</option>
+        </select>
+      </div>
+      <div className="space-y-1">
         <Label htmlFor="shipping-pounds">
-          UK delivery ({currency.toUpperCase()})
+          Domestic delivery ({currency.toUpperCase()})
         </Label>
         <Input
           id="shipping-pounds"
@@ -75,8 +93,8 @@ export function ShippingSettings({
           onChange={(e) => setPounds(e.target.value)}
         />
         <p className="text-xs text-zinc-500">
-          Charged once per UK order. Use 0 for free UK delivery. Currently{" "}
-          {formatMoney(savedUk, currency)}.
+          Charged once per domestic order. Use 0 for free local delivery.
+          Currently {formatMoney(savedUk, currency)}.
         </p>
       </div>
       <div className="space-y-2">
@@ -102,7 +120,7 @@ export function ShippingSettings({
               onChange={(e) => setIntlPounds(e.target.value)}
             />
             <p className="text-xs text-zinc-500">
-              Charged instead of the UK rate when the customer chooses
+              Charged instead of the domestic rate when the customer chooses
               international. Currently{" "}
               {savedIntl == null ? "off" : formatMoney(savedIntl, currency)}.
             </p>

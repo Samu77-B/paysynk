@@ -95,3 +95,60 @@ export async function saveProductImageFile(opts: {
   await writeFile(path.join(dir, name), buffer);
   return { url: `/uploads/${opts.storeId}/${name}` };
 }
+
+function sniffArtworkType(bytes: Buffer): string | null {
+  const image = sniffImageType(bytes);
+  if (image) return image;
+  if (bytes.length >= 4 && bytes.toString("ascii", 0, 4) === "%PDF") {
+    return "application/pdf";
+  }
+  return null;
+}
+
+export async function saveArtworkFile(opts: {
+  storeId: string;
+  file: File;
+}): Promise<{ url: string; error?: undefined } | { url?: undefined; error: string }> {
+  if (opts.file.size > MAX_BYTES) {
+    return { error: "File must be under 6MB." };
+  }
+  const buffer = Buffer.from(await opts.file.arrayBuffer());
+  const type = sniffArtworkType(buffer);
+  if (!type) {
+    return { error: "Use a PDF, JPG, PNG, or WebP." };
+  }
+  const ext = type === "application/pdf" ? "pdf" : extensionFor(type);
+  const name = `${randomBytes(8).toString("hex")}.${ext}`;
+  const pathname = `artwork/${opts.storeId}/${name}`;
+  const blobStoreId =
+    process.env["BLOB2_STORE_ID"] || process.env["BLOB_STORE_ID"];
+  const blobOptions = {
+    access: "public" as const,
+    contentType: type,
+    addRandomSuffix: false,
+    ...(blobStoreId ? { storeId: blobStoreId } : {}),
+  };
+
+  if (process.env.VERCEL) {
+    try {
+      const blob = await put(pathname, buffer, blobOptions);
+      return { url: blob.url };
+    } catch (err) {
+      console.error("artwork blob upload failed", err);
+      return { error: "Could not save file. Try again." };
+    }
+  }
+  if (process.env["BLOB_READ_WRITE_TOKEN"] || blobStoreId) {
+    try {
+      const blob = await put(pathname, buffer, blobOptions);
+      return { url: blob.url };
+    } catch (err) {
+      console.error("artwork blob upload failed", err);
+      return { error: "Could not save file. Try again." };
+    }
+  }
+  const dir = path.join(process.cwd(), "public", "uploads", "artwork", opts.storeId);
+  await mkdir(dir, { recursive: true });
+  await writeFile(path.join(dir, name), buffer);
+  return { url: `/uploads/artwork/${opts.storeId}/${name}` };
+}

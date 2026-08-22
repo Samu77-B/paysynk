@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, type ProductKind } from "../src/generated/prisma/client";
+import { seedConfigTemplates, copyTemplateToStore } from "../src/lib/config-products/copy-template";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -218,6 +219,20 @@ async function main() {
 
   console.log("Seeded store slf (Acme Store)");
   console.log("Merchant login: merchant@slf.test / password123");
+
+  await seedConfigTemplates();
+  const templates = await prisma.configTemplate.findMany({
+    where: { slug: { in: ["colour-bw-printing", "business-cards"] } },
+  });
+  for (const template of templates) {
+    const existing = await prisma.configProduct.findFirst({
+      where: { storeId: store.id, slug: template.slug },
+    });
+    if (!existing) {
+      await copyTemplateToStore({ storeId: store.id, templateId: template.id });
+    }
+  }
+  console.log("Seeded print templates + Colour/BW Printing and Business Cards on slf");
 }
 
 main()

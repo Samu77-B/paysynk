@@ -89,6 +89,7 @@ export default async function SettingsPage() {
             currency={ctx.currency}
             shippingFlatMinor={ctx.shippingFlatMinor}
             shippingIntlMinor={ctx.shippingIntlMinor}
+            homeCountry={ctx.homeCountry}
           />
         </CardContent>
       </Card>

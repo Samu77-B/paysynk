@@ -55,6 +55,27 @@ export default async function StorePage({ params }: Props) {
       })),
     }));
 
+  const configRows = await prisma.configProduct.findMany({
+    where: { storeId: store.id, active: true },
+    orderBy: [{ category: "asc" }, { title: "asc" }],
+    include: { variations: true },
+  });
+  const configProducts = configRows.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    description: p.description,
+    images: p.images,
+    category: p.category || "Print",
+    fromPriceMinor: (() => {
+      const prices = [
+        p.basePriceMinor,
+        ...p.variations.map((v) => v.priceMinor),
+      ].filter((n) => n > 0);
+      return prices.length ? Math.min(...prices) : p.basePriceMinor || null;
+    })(),
+  }));
+
   const offers = await getActiveStoreOffers(store.id);
 
   return (
@@ -64,11 +85,13 @@ export default async function StorePage({ params }: Props) {
         name: store.name,
         logoUrl: store.logoUrl,
         currency: store.currency,
+        homeCountry: store.homeCountry,
         shippingFlatMinor: store.shippingFlatMinor,
         shippingIntlMinor: store.shippingIntlMinor,
         paymentsActive: store.paymentsActive,
       }}
       products={sellable}
+      configProducts={configProducts}
       offers={offers}
     />
   );

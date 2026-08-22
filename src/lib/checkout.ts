@@ -3,17 +3,32 @@ import { getPaymentProvider } from "@/lib/payments";
 import { priceCart, type PricedLine } from "@/lib/pricing";
 import { getActiveStoreOffers } from "@/lib/store-offers";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
+import { priceConfigSelection } from "@/lib/config-products/pricing";
+import { isDomesticCountry } from "@/lib/shipping-countries";
 import {
-  shippingDestinationFromCountry,
   shippingLabelForCountry,
   type CheckoutCustomer,
 } from "@/lib/checkout-customer";
 import type { Prisma } from "@/generated/prisma/client";
 
-export type CheckoutItemInput = {
+export type CheckoutMerchItem = {
   variantId: string;
   quantity: number;
 };
+
+export type CheckoutConfigItem = {
+  configProductId: string;
+  selections: Record<string, string>;
+  files?: string[];
+  instructions?: string;
+  quantity: number;
+};
+
+export type CheckoutItemInput = CheckoutMerchItem | CheckoutConfigItem;
+
+function isConfigItem(item: CheckoutItemInput): item is CheckoutConfigItem {
+  return "configProductId" in item && Boolean(item.configProductId);
+}
 
 /**
  * Server-side checkout: load store + variants from DB, re-validate stock/prices,
@@ -51,15 +66,21 @@ export async function createStoreCheckout(opts: {
     throw new CheckoutError("This shop is not taking payments yet", 403);
   }
 
-  const variantIds = items.map((i) => i.variantId);
+  const merchItems = items.filter((i): i is CheckoutMerchItem => !isConfigItem(i));
+  const configItems = items.filter(isConfigItem);
+
+  const variantIds = merchItems.map((i) => i.variantId);
   const uniqueIds = [...new Set(variantIds)];
-  const variants = await prisma.variant.findMany({
-    where: {
-      id: { in: uniqueIds },
-      product: { storeId: store.id },
-    },
-    include: { product: true },
-  });
+  const variants =
+    uniqueIds.length === 0
+      ? []
+      : await prisma.variant.findMany({
+          where: {
+            id: { in: uniqueIds },
+            product: { storeId: store.id },
+          },
+          include: { product: true },
+        });
   const byId = new Map(variants.map((v) => [v.id, v]));
   const unavailableIds = uniqueIds.filter((id) => {
     const variant = byId.get(id);
@@ -77,7 +98,7 @@ export async function createStoreCheckout(opts: {
 
   const pricedInput: PricedLine[] = [];
 
-  for (const item of items) {
+  for (const item of merchItems) {
     const variant = byId.get(item.variantId)!;
     if (variant.stockQty < item.quantity) {
       throw new CheckoutError(
@@ -98,19 +119,55 @@ export async function createStoreCheckout(opts: {
     });
   }
 
+  if (configItems.length) {
+    const configIds = [...new Set(configItems.map((i) => i.configProductId))];
+    const configProducts = await prisma.configProduct.findMany({
+      where: { id: { in: configIds }, storeId: store.id, active: true },
+      include: {
+        options: { include: { values: true } },
+        variations: { orderBy: { sort: "asc" } },
+      },
+    });
+    const configById = new Map(configProducts.map((p) => [p.id, p]));
+    for (const item of configItems) {
+      const product = configById.get(item.configProductId);
+      if (!product) {
+        throw new CheckoutError("A print product in your cart is no longer available.", 400);
+      }
+      const priced = priceConfigSelection(product, item.selections ?? {});
+      if (!priced.ok) {
+        throw new CheckoutError(priced.error, 400);
+      }
+      pricedInput.push({
+        variantId: null,
+        productId: product.id,
+        title: product.title,
+        kind: "other",
+        options: {
+          optionsLabel: priced.optionsLabel,
+          kind: "config",
+          files: (item.files ?? []).slice(0, 12).join("\n"),
+          instructions: (item.instructions ?? "").slice(0, 2000),
+        },
+        sku: priced.sku,
+        catalogueUnitMinor: priced.priceMinor,
+        quantity: item.quantity,
+      });
+    }
+  }
+
   const offers = await getActiveStoreOffers(store.id);
-  const destination = shippingDestinationFromCountry(opts.customer.country);
-  if (destination === "international" && store.shippingIntlMinor == null) {
+  const domestic = isDomesticCountry(opts.customer.country, store.homeCountry);
+  if (!domestic && store.shippingIntlMinor == null) {
     throw new CheckoutError(
       "This shop does not currently ship internationally.",
       400,
       { field: "country" },
     );
   }
-  const shippingRate =
-    destination === "international"
-      ? (store.shippingIntlMinor ?? 0)
-      : store.shippingFlatMinor;
+  const shippingRate = domestic
+    ? store.shippingFlatMinor
+    : (store.shippingIntlMinor ?? 0);
   const pricing = priceCart(pricedInput, shippingRate, {
     offers,
     discountCode: opts.discountCode,
@@ -142,7 +199,7 @@ export async function createStoreCheckout(opts: {
     const variant = giftProduct?.variants[0];
     if (!giftProduct || !variant) continue;
 
-    const alreadyReserved = items
+    const alreadyReserved = merchItems
       .filter((item) => item.variantId === variant.id)
       .reduce((sum, item) => sum + item.quantity, 0);
     const available = variant.stockQty - alreadyReserved;
@@ -217,9 +274,17 @@ export async function createStoreCheckout(opts: {
     subtotalMinor: pricing.subtotalMinor,
     shippingMinor: pricing.shippingMinor,
     totalMinor: pricing.totalMinor,
-    shippingLabel: shippingLabelForCountry(opts.customer.country),
+    shippingLabel: shippingLabelForCountry(
+      opts.customer.country,
+      store.homeCountry,
+    ),
     lines: pricing.lines.map((line) => {
-      const optionLabel = Object.values(line.options).filter(Boolean).join(" / ");
+      const optionLabel =
+        line.options.optionsLabel ||
+        Object.entries(line.options)
+          .filter(([k, v]) => v && k !== "kind" && k !== "files" && k !== "instructions")
+          .map(([, v]) => v)
+          .join(" / ");
       return {
         name: optionLabel ? `${line.title} — ${optionLabel}` : line.title,
         quantity: line.quantity,

@@ -28,6 +28,7 @@ export const INTERNATIONAL_SHIPPING_COUNTRIES: Array<{
   { code: "SG", name: "Singapore" },
   { code: "AE", name: "United Arab Emirates" },
   { code: "ZA", name: "South Africa" },
+  { code: "JM", name: "Jamaica" },
 ];
 
 const INTL_CODES = new Set(
@@ -36,6 +37,23 @@ const INTL_CODES = new Set(
 
 export function isUkCountry(code: string) {
   return code.toUpperCase() === "GB";
+}
+
+export function storeHomeCountry(code: string | null | undefined) {
+  return (code || "GB").toUpperCase();
+}
+
+export function isDomesticCountry(customerCountry: string, homeCountry: string) {
+  return customerCountry.toUpperCase() === storeHomeCountry(homeCountry);
+}
+
+export function internationalCountriesForStore(homeCountry: string) {
+  const home = storeHomeCountry(homeCountry);
+  const rows = [...INTERNATIONAL_SHIPPING_COUNTRIES];
+  if (home !== "GB" && !rows.some((r) => r.code === "GB")) {
+    rows.unshift({ code: "GB", name: "United Kingdom" });
+  }
+  return rows.filter((r) => r.code !== home);
 }
 
 export function isIntlShippingCountry(code: string) {

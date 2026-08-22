@@ -14,6 +14,14 @@ export function productEmbedSnippet(
 <script src="https://www.paysynk.com/embed.js"${themeAttr} defer></script>`;
 }
 
+export function configProductEmbedSnippet(storeSlug: string, productSlug: string) {
+  return `<a href="https://www.paysynk.com/s/${storeSlug}/p/${productSlug}">Customise on PaySynk</a>`;
+}
+
+export function printCatalogEmbedSnippet(storeSlug: string) {
+  return `<iframe src="https://www.paysynk.com/s/${storeSlug}" style="width:100%;min-height:780px;border:0" title="Shop catalog"></iframe>`;
+}
+
 export function cartEmbedSnippet(
   storeSlug: string,
   merchantId: string,

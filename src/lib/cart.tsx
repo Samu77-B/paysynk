@@ -10,7 +10,8 @@ import {
 } from "react";
 
 export type CartItem = {
-  variantId: string;
+  cartKey: string;
+  variantId: string | null;
   productId: string;
   title: string;
   optionsLabel: string;
@@ -18,13 +19,17 @@ export type CartItem = {
   priceMinor: number;
   quantity: number;
   maxStock: number;
+  configProductId?: string;
+  selections?: Record<string, string>;
+  files?: string[];
+  instructions?: string;
 };
 
 type CartContextValue = {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity">, qty?: number) => void;
-  setQuantity: (variantId: string, quantity: number) => void;
-  removeItem: (variantId: string) => void;
+  addItem: (item: Omit<CartItem, "quantity" | "cartKey"> & { cartKey?: string }, qty?: number) => void;
+  setQuantity: (cartKey: string, quantity: number) => void;
+  removeItem: (cartKey: string) => void;
   clear: () => void;
   itemCount: number;
 };
@@ -33,6 +38,19 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 function storageKey(storeSlug: string) {
   return `paysynk-cart:${storeSlug}`;
+}
+
+function normalizeItem(raw: CartItem & { variantId?: string | null }): CartItem {
+  const variantId = raw.variantId ?? null;
+  return {
+    ...raw,
+    variantId,
+    cartKey:
+      raw.cartKey ||
+      variantId ||
+      raw.configProductId ||
+      `line-${raw.productId}`,
+  };
 }
 
 export function CartProvider({
@@ -48,7 +66,10 @@ export function CartProvider({
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey(storeSlug));
-      if (raw) setItems(JSON.parse(raw) as CartItem[]);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CartItem[];
+        setItems(parsed.map(normalizeItem));
+      }
     } catch {
       /* ignore */
     }
@@ -65,37 +86,55 @@ export function CartProvider({
       items,
       addItem: (item, qty = 1) => {
         setItems((prev) => {
-          const existing = prev.find((p) => p.variantId === item.variantId);
-          if (existing) {
-            return prev.map((p) =>
-              p.variantId === item.variantId
-                ? {
-                    ...p,
-                    quantity: Math.min(p.maxStock, p.quantity + qty),
-                    maxStock: item.maxStock,
-                  }
-                : p,
-            );
+          const cartKey =
+            item.cartKey ||
+            (item.configProductId
+              ? `cfg-${item.configProductId}-${Date.now()}`
+              : item.variantId || `line-${item.productId}`);
+          const normalized: CartItem = {
+            ...item,
+            cartKey,
+            variantId: item.variantId ?? null,
+            quantity: 0,
+            maxStock: item.maxStock,
+          };
+          if (!item.configProductId && item.variantId) {
+            const existing = prev.find((p) => p.variantId === item.variantId);
+            if (existing) {
+              return prev.map((p) =>
+                p.variantId === item.variantId
+                  ? {
+                      ...p,
+                      quantity: Math.min(p.maxStock, p.quantity + qty),
+                      maxStock: item.maxStock,
+                      priceMinor: item.priceMinor,
+                    }
+                  : p,
+              );
+            }
           }
           return [
             ...prev,
-            { ...item, quantity: Math.min(item.maxStock, qty) },
+            {
+              ...normalized,
+              quantity: Math.min(normalized.maxStock, qty),
+            },
           ];
         });
       },
-      setQuantity: (variantId, quantity) => {
+      setQuantity: (cartKey, quantity) => {
         setItems((prev) =>
           prev
             .map((p) =>
-              p.variantId === variantId
+              p.cartKey === cartKey
                 ? { ...p, quantity: Math.min(p.maxStock, Math.max(0, quantity)) }
                 : p,
             )
             .filter((p) => p.quantity > 0),
         );
       },
-      removeItem: (variantId) => {
-        setItems((prev) => prev.filter((p) => p.variantId !== variantId));
+      removeItem: (cartKey) => {
+        setItems((prev) => prev.filter((p) => p.cartKey !== cartKey));
       },
       clear: () => setItems([]),
       itemCount: items.reduce((n, i) => n + i.quantity, 0),
@@ -109,4 +148,20 @@ export function useCart() {
   const ctx = useContext(CartContext);
   if (!ctx) throw new Error("useCart must be used within CartProvider");
   return ctx;
+}
+
+export function toCheckoutItem(item: CartItem) {
+  if (item.configProductId) {
+    return {
+      configProductId: item.configProductId,
+      selections: item.selections ?? {},
+      files: item.files ?? [],
+      instructions: item.instructions ?? "",
+      quantity: item.quantity,
+    };
+  }
+  return {
+    variantId: item.variantId as string,
+    quantity: item.quantity,
+  };
 }

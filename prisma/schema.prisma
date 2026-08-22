@@ -64,12 +64,20 @@ enum SalesReportFrequency {
   monthly
 }
 
+enum ModifierKind {
+  none
+  amount
+  percent
+}
+
 model Store {
   id                String              @id @default(cuid())
   slug              String              @unique
   name              String
   currency          String              @default("gbp")
-  /// Flat UK shipping in minor units (e.g. 525 = £5.25)
+  /// ISO country for domestic delivery (GB, JM, …).
+  homeCountry       String              @default("GB")
+  /// Flat domestic shipping in minor units (e.g. 525 = £5.25)
   shippingFlatMinor Int                 @default(525)
   /// International shipping in minor units. Null = not offered.
   shippingIntlMinor Int?
@@ -93,10 +101,11 @@ model Store {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
-  products Product[]
-  orders   Order[]
-  users    MerchantUser[]
-  offers   Offer[]
+  products       Product[]
+  configProducts ConfigProduct[]
+  orders         Order[]
+  users          MerchantUser[]
+  offers         Offer[]
 
   @@index([signupStatus])
 }
@@ -220,4 +229,95 @@ model Offer {
 
   @@index([storeId, active])
   @@index([storeId, kind])
+}
+
+/// Platform copy-on-add library (Business Cards, Brochures, …). Not sold directly.
+model ConfigTemplate {
+  id                   String  @id @default(cuid())
+  slug                 String  @unique
+  title                String
+  category             String  @default("")
+  description          String  @default("")
+  sku                  String  @default("")
+  basePriceMinor       Int     @default(0)
+  uploadsEnabled       Boolean @default(true)
+  instructionsEnabled  Boolean @default(false)
+  /// { options: [{ name, required, values: [{ label, modifierKind, modifierValue }] }], variations: [{ matchLabels: { OptionName: "Value"| "*" }, priceMinor, sku }] }
+  definition           Json
+  sort                 Int     @default(0)
+}
+
+/// Store-owned Ecwid-style product: dropdowns, combo prices, file upload.
+model ConfigProduct {
+  id                   String   @id @default(cuid())
+  storeId              String
+  store                Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  slug                 String
+  title                String
+  sku                  String   @default("")
+  description          String   @default("")
+  images               String[]
+  category             String   @default("")
+  active               Boolean  @default(true)
+  basePriceMinor       Int      @default(0)
+  uploadsEnabled       Boolean  @default(true)
+  instructionsEnabled  Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  options    ConfigOption[]
+  variations ConfigVariation[]
+  relatedFrom ConfigRelated[] @relation("RelatedFrom")
+  relatedTo   ConfigRelated[] @relation("RelatedTo")
+
+  @@unique([storeId, slug])
+  @@index([storeId, active])
+}
+
+model ConfigOption {
+  id        String  @id @default(cuid())
+  productId String
+  product   ConfigProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  required  Boolean @default(true)
+  sort      Int     @default(0)
+  values    ConfigOptionValue[]
+
+  @@index([productId])
+}
+
+model ConfigOptionValue {
+  id            String       @id @default(cuid())
+  optionId      String
+  option        ConfigOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  label         String
+  sort          Int          @default(0)
+  modifierKind  ModifierKind @default(none)
+  /// Amount in minor units, or percent (e.g. 15 = +15%).
+  modifierValue Int          @default(0)
+
+  @@index([optionId])
+}
+
+model ConfigVariation {
+  id         String @id @default(cuid())
+  productId  String
+  product    ConfigProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// { [optionId]: valueId | "*" }
+  match      Json
+  priceMinor Int
+  sku        String @default("")
+  sort       Int    @default(0)
+
+  @@index([productId])
+}
+
+model ConfigRelated {
+  fromProductId String
+  toProductId   String
+  from          ConfigProduct @relation("RelatedFrom", fields: [fromProductId], references: [id], onDelete: Cascade)
+  to            ConfigProduct @relation("RelatedTo", fields: [toProductId], references: [id], onDelete: Cascade)
+  sort          Int           @default(0)
+
+  @@id([fromProductId, toProductId])
 }

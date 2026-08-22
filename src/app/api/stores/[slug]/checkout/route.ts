@@ -22,10 +22,19 @@ type Params = { params: Promise<{ slug: string }> };
 const bodySchema = z.object({
   items: z
     .array(
-      z.object({
-        variantId: z.string().min(1),
-        quantity: z.number().int().positive().max(99),
-      }),
+      z.union([
+        z.object({
+          variantId: z.string().min(1),
+          quantity: z.number().int().positive().max(99),
+        }),
+        z.object({
+          configProductId: z.string().min(1),
+          selections: z.record(z.string(), z.string()),
+          files: z.array(z.string()).max(12).optional(),
+          instructions: z.string().max(2000).optional(),
+          quantity: z.number().int().positive().max(99),
+        }),
+      ]),
     )
     .min(1)
     .max(50),

@@ -29,9 +29,7 @@ export async function markOrderPaidIdempotent(opts: {
     }
 
     for (const item of order.items) {
-      if (!item.variantId) {
-        throw new Error(`Order item ${item.id} missing variantId`);
-      }
+      if (!item.variantId) continue;
       const variant = await tx.variant.findUnique({
         where: { id: item.variantId },
       });
@@ -43,8 +41,9 @@ export async function markOrderPaidIdempotent(opts: {
     }
 
     for (const item of order.items) {
+      if (!item.variantId) continue;
       await tx.variant.update({
-        where: { id: item.variantId! },
+        where: { id: item.variantId },
         data: { stockQty: { decrement: item.quantity } },
       });
     }

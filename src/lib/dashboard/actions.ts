@@ -278,6 +278,7 @@ export async function saveShippingSettings(input: {
   pounds: string;
   intlPounds?: string;
   offerIntl?: boolean;
+  homeCountry?: string;
 }): Promise<{
   error?: string;
   shippingFlatMinor?: number;
@@ -289,7 +290,12 @@ export async function saveShippingSettings(input: {
 
   const pounds = Number(input.pounds);
   if (!Number.isFinite(pounds) || pounds < 0 || pounds > 999.99) {
-    return { error: "Enter a UK delivery charge from £0.00 to £999.99." };
+    return { error: "Enter a domestic delivery charge from 0.00 to 999.99." };
+  }
+
+  const homeCountry = (input.homeCountry || "GB").toUpperCase().slice(0, 2);
+  if (!/^[A-Z]{2}$/.test(homeCountry)) {
+    return { error: "Choose a shop country." };
   }
 
   let shippingIntlMinor: number | null = null;
@@ -297,7 +303,7 @@ export async function saveShippingSettings(input: {
     const intl = Number(input.intlPounds);
     if (!Number.isFinite(intl) || intl < 0 || intl > 999.99) {
       return {
-        error: "Enter an international delivery charge from £0.00 to £999.99.",
+        error: "Enter an international delivery charge from 0.00 to 999.99.",
       };
     }
     shippingIntlMinor = Math.round(intl * 100);
@@ -306,7 +312,7 @@ export async function saveShippingSettings(input: {
   const shippingFlatMinor = Math.round(pounds * 100);
   await prisma.store.update({
     where: { id: storeId },
-    data: { shippingFlatMinor, shippingIntlMinor },
+    data: { shippingFlatMinor, shippingIntlMinor, homeCountry },
   });
   revalidatePath("/app/settings");
   if (session.user.storeSlug) {

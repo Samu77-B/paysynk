@@ -1,19 +1,35 @@
+import { getDashboardContext, getMerchantProducts } from "@/lib/dashboard/data";
 import {
-  getDashboardContext,
-  getMerchantProducts,
-} from "@/lib/dashboard/data";
+  getConfigTemplates,
+  getMerchantConfigProducts,
+} from "@/lib/dashboard/config-data";
 import { ProductsManager } from "@/components/dashboard/ProductsManager";
+import { ConfigProductsManager } from "@/components/dashboard/ConfigProductsManager";
 
 export default async function ProductsPage() {
   const ctx = await getDashboardContext();
-  const products = await getMerchantProducts(ctx.merchant.id);
+  const [products, configProducts, templates] = await Promise.all([
+    getMerchantProducts(ctx.merchant.id),
+    getMerchantConfigProducts(ctx.merchant.id),
+    getConfigTemplates(),
+  ]);
 
   return (
-    <ProductsManager
-      merchantId={ctx.merchant.id}
-      storeSlug={ctx.merchant.slug}
-      initialProducts={products}
-      paymentsActive={ctx.merchant.payments_active}
-    />
+    <div className="space-y-10">
+      <div id="print">
+        <ConfigProductsManager
+          storeSlug={ctx.merchant.slug}
+          currency={ctx.currency}
+          initialProducts={configProducts}
+          templates={templates}
+        />
+      </div>
+      <ProductsManager
+        merchantId={ctx.merchant.id}
+        storeSlug={ctx.merchant.slug}
+        initialProducts={products}
+        paymentsActive={ctx.merchant.payments_active}
+      />
+    </div>
   );
 }

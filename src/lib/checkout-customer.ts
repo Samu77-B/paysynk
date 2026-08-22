@@ -1,5 +1,6 @@
 import type { ShippingBits } from "@/lib/email/templates";
 import {
+  isDomesticCountry,
   isIntlShippingCountry,
   isUkCountry,
 } from "@/lib/shipping-countries";
@@ -143,6 +144,8 @@ export function shippingDestinationFromCountry(
   return isUkCountry(country) ? "gb" : "international";
 }
 
-export function shippingLabelForCountry(country: string) {
-  return isUkCountry(country) ? "UK shipping" : "International shipping";
+export function shippingLabelForCountry(country: string, homeCountry = "GB") {
+  return isDomesticCountry(country, homeCountry)
+    ? "Domestic shipping"
+    : "International shipping";
 }

@@ -21,6 +21,9 @@ function optionLine(options: unknown): string | undefined {
     return undefined;
   }
   const record = options as Record<string, unknown>;
+  if (typeof record.optionsLabel === "string" && record.optionsLabel) {
+    return record.optionsLabel;
+  }
   const parts = ["colour", "size"]
     .map((key) => record[key])
     .filter((value): value is string => typeof value === "string" && value.length > 0);
@@ -52,6 +55,7 @@ export async function sendPaidOrderEmails(opts: {
   const origin = resolveAppOrigin("https://www.paysynk.com");
   const shippingLabel = shippingLabelForCountry(
     opts.shipping?.country || "GB",
+    order.store.homeCountry,
   );
 
   const jobs: Promise<unknown>[] = [];

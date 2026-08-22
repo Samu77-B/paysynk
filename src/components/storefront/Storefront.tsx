@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
-import { CartProvider, useCart } from "@/lib/cart";
+import { CartProvider, useCart, toCheckoutItem } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
 import type { PublicOffer } from "@/lib/offers";
 import { parseCheckoutCustomer, type CheckoutCustomerField } from "@/lib/checkout-customer";
-import { INTERNATIONAL_SHIPPING_COUNTRIES } from "@/lib/shipping-countries";
+import { internationalCountriesForStore } from "@/lib/shipping-countries";
 
 export type StorefrontProduct = {
   id: string;
@@ -32,9 +32,20 @@ export type StorefrontStore = {
   name: string;
   logoUrl?: string | null;
   currency: string;
+  homeCountry: string;
   shippingFlatMinor: number;
   shippingIntlMinor?: number | null;
   paymentsActive: boolean;
+};
+
+export type StorefrontConfigProduct = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  images: string[];
+  category: string;
+  fromPriceMinor: number | null;
 };
 
 function optionLabel(options: Record<string, string>) {
@@ -250,7 +261,7 @@ function CartPanel({
     line2: "",
     city: "",
     postalCode: "",
-    country: "GB",
+    country: (store.homeCountry || "GB").toUpperCase(),
   });
 
   function updateCustomer(field: keyof typeof customer, value: string) {
@@ -268,8 +279,10 @@ function CartPanel({
     setInvalidVariantIds(variantIds);
   }
 
+  const home = (store.homeCountry || "GB").toUpperCase();
   const shippingMinor =
-    customer.country !== "GB" && typeof store.shippingIntlMinor === "number"
+    customer.country.toUpperCase() !== home &&
+    typeof store.shippingIntlMinor === "number"
       ? store.shippingIntlMinor
       : store.shippingFlatMinor;
 
@@ -281,7 +294,7 @@ function CartPanel({
         title: i.title,
         kind: i.kind,
         options: {},
-        sku: i.variantId,
+        sku: i.variantId ?? i.configProductId ?? i.cartKey,
         catalogueUnitMinor: i.priceMinor,
         quantity: i.quantity,
       })),
@@ -328,10 +341,7 @@ function CartPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({
-            variantId: item.variantId,
-            quantity: item.quantity,
-          })),
+          items: items.map(toCheckoutItem),
           discountCode: discountCode || undefined,
           customer: parsed.customer,
         }),
@@ -394,11 +404,13 @@ function CartPanel({
         <>
           <ul className="cart-lines">
             {items.map((item) => {
-              const lineInvalid = invalidVariantIds.includes(item.variantId);
+              const lineInvalid = item.variantId
+                ? invalidVariantIds.includes(item.variantId)
+                : false;
               return (
                 <li
-                  key={item.variantId}
-                  data-cart-line={item.variantId}
+                  key={item.cartKey}
+                  data-cart-line={item.cartKey}
                   className={lineInvalid ? "is-invalid" : undefined}
                 >
                   <div>
@@ -423,7 +435,7 @@ function CartPanel({
                       value={item.quantity}
                       className={lineInvalid ? "is-invalid" : undefined}
                       onChange={(e) =>
-                        setQuantity(item.variantId, Number(e.target.value))
+                        setQuantity(item.cartKey, Number(e.target.value))
                       }
                     />
                     <button
@@ -433,7 +445,7 @@ function CartPanel({
                         setInvalidVariantIds((ids) =>
                           ids.filter((id) => id !== item.variantId),
                         );
-                        removeItem(item.variantId);
+                        removeItem(item.cartKey);
                       }}
                     >
                       Remove
@@ -505,8 +517,9 @@ function CartPanel({
             )}
             <div>
               <dt>
-                {customer.country === "GB"
-                  ? "UK shipping"
+                {customer.country.toUpperCase() ===
+                (store.homeCountry || "GB").toUpperCase()
+                  ? "Domestic shipping"
                   : "International shipping"}
               </dt>
               <dd>{formatMoney(pricing.shippingMinor, store.currency)}</dd>
@@ -521,26 +534,50 @@ function CartPanel({
             <legend>Delivery</legend>
             {typeof store.shippingIntlMinor === "number" ? (
               <div className="cart-dest">
-                <label className={customer.country === "GB" ? "is-on" : ""}>
+                <label
+                  className={
+                    customer.country.toUpperCase() ===
+                    (store.homeCountry || "GB").toUpperCase()
+                      ? "is-on"
+                      : ""
+                  }
+                >
                   <input
                     type="radio"
                     name="dest"
-                    checked={customer.country === "GB"}
-                    onChange={() => updateCustomer("country", "GB")}
-                  />
-                  UK
-                </label>
-                <label className={customer.country !== "GB" ? "is-on" : ""}>
-                  <input
-                    type="radio"
-                    name="dest"
-                    checked={customer.country !== "GB"}
+                    checked={
+                      customer.country.toUpperCase() ===
+                      (store.homeCountry || "GB").toUpperCase()
+                    }
                     onChange={() =>
                       updateCustomer(
                         "country",
-                        customer.country === "GB"
-                          ? INTERNATIONAL_SHIPPING_COUNTRIES[0].code
-                          : customer.country,
+                        (store.homeCountry || "GB").toUpperCase(),
+                      )
+                    }
+                  />
+                  Domestic
+                </label>
+                <label
+                  className={
+                    customer.country.toUpperCase() !==
+                    (store.homeCountry || "GB").toUpperCase()
+                      ? "is-on"
+                      : ""
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="dest"
+                    checked={
+                      customer.country.toUpperCase() !==
+                      (store.homeCountry || "GB").toUpperCase()
+                    }
+                    onChange={() =>
+                      updateCustomer(
+                        "country",
+                        internationalCountriesForStore(store.homeCountry)[0]
+                          ?.code ?? "US",
                       )
                     }
                   />
@@ -548,9 +585,10 @@ function CartPanel({
                 </label>
               </div>
             ) : (
-              <p className="muted small note">Ships to the UK.</p>
+              <p className="muted small note">Domestic delivery only.</p>
             )}
-            {customer.country !== "GB" &&
+            {customer.country.toUpperCase() !==
+              (store.homeCountry || "GB").toUpperCase() &&
             typeof store.shippingIntlMinor === "number" ? (
               <label>
                 Country <span className="req" aria-hidden="true">*</span>
@@ -562,11 +600,13 @@ function CartPanel({
                   value={customer.country}
                   onChange={(e) => updateCustomer("country", e.target.value)}
                 >
-                  {INTERNATIONAL_SHIPPING_COUNTRIES.map((row) => (
-                    <option key={row.code} value={row.code}>
-                      {row.name}
-                    </option>
-                  ))}
+                  {internationalCountriesForStore(store.homeCountry).map(
+                    (row) => (
+                      <option key={row.code} value={row.code}>
+                        {row.name}
+                      </option>
+                    ),
+                  )}
                 </select>
               </label>
             ) : null}
@@ -700,12 +740,15 @@ function CartPanel({
 export function Storefront({
   store,
   products,
+  configProducts = [],
   offers = [],
 }: {
   store: StorefrontStore;
   products: StorefrontProduct[];
+  configProducts?: StorefrontConfigProduct[];
   offers?: PublicOffer[];
 }) {
+  const categories = [...new Set(configProducts.map((p) => p.category || "Print"))];
   return (
     <CartProvider storeSlug={store.slug}>
       <div className="store-shell">
@@ -713,7 +756,7 @@ export function Storefront({
           <div>
             <StoreBrand name={store.name} logoUrl={store.logoUrl} />
             <p className="muted" style={{ marginTop: "0.75rem" }}>
-              Currency {store.currency.toUpperCase()} · UK shipping{" "}
+              Currency {store.currency.toUpperCase()} · Domestic shipping{" "}
               {formatMoney(store.shippingFlatMinor, store.currency)}
               {typeof store.shippingIntlMinor === "number"
                 ? ` · International ${formatMoney(store.shippingIntlMinor, store.currency)}`
@@ -732,10 +775,52 @@ export function Storefront({
         </header>
 
         <div className="store-layout">
-          <div className="store-grid">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} currency={store.currency} />
+          <div>
+            {categories.map((category) => (
+              <section key={category} className="print-menu-block">
+                <h2 className="print-menu-heading">{category}</h2>
+                <div className="store-grid">
+                  {configProducts
+                    .filter((p) => (p.category || "Print") === category)
+                    .map((p) => (
+                      <a
+                        key={p.id}
+                        className="store-product print-product-card"
+                        href={`/s/${store.slug}/p/${p.slug}`}
+                      >
+                        <div className="store-product-visual store-product-visual-photo">
+                          {p.images[0] ? (
+                            <Image
+                              src={p.images[0]}
+                              alt=""
+                              fill
+                              className="store-product-img"
+                              sizes="240px"
+                            />
+                          ) : (
+                            <span>Print</span>
+                          )}
+                        </div>
+                        <div className="store-product-body">
+                          <h3>{p.title}</h3>
+                          <p className="muted small">
+                            {p.fromPriceMinor != null
+                              ? `From ${formatMoney(p.fromPriceMinor, store.currency)}`
+                              : "Build your spec"}
+                          </p>
+                        </div>
+                      </a>
+                    ))}
+                </div>
+              </section>
             ))}
+            {products.length > 0 ? (
+              <div className="store-grid" style={{ marginTop: categories.length ? "1.5rem" : 0 }}>
+                {products.map((p) => (
+                  <ProductCard key={p.id} product={p} currency={store.currency} />
+                ))}
+              </div>
+            ) : null}
           </div>
           <CartPanel store={store} offers={offers} />
         </div>

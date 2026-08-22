@@ -366,9 +366,10 @@ export function ProductsManager({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Merch</h1>
           <p className="text-sm text-zinc-500">
-            Catalogue, stock, and a copyable embed code per product
+            Simple stock products (colour, size, one price). Print jobs with
+            dropdowns are in the catalog above.
           </p>
           {!paymentsActive && (
             <p className="mt-2 max-w-xl text-sm text-amber-800">
@@ -381,13 +382,15 @@ export function ProductsManager({
             </p>
           )}
         </div>
-        <Button
-          onClick={openCreate}
-          className="bg-[#9FE870] text-[#141414] hover:bg-[#8fd960]"
-        >
-          <Plus className="size-4" />
-          Add product
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={openCreate}
+            className="bg-[#9FE870] text-[#141414] hover:bg-[#8fd960]"
+          >
+            <Plus className="size-4" />
+            Add merch
+          </Button>
+        </div>
       </div>
 
       <Card className="border-zinc-200 shadow-sm">
