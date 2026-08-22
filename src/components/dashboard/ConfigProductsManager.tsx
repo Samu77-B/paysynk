@@ -657,7 +657,6 @@ export function ConfigProductsManager({
                           </select>
                           {value.modifierKind === "percent" ? (
                             <Input
-                              disabled={value.modifierKind === "none"}
                               inputMode="numeric"
                               value={String(value.modifierValue)}
                               onChange={(e) => {
