@@ -310,25 +310,34 @@ export function ConfigProductsManager({
       </Card>
 
       <Sheet open={Boolean(editing)} onOpenChange={(o) => !o && setEditing(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent className="flex w-full flex-col overflow-x-hidden overflow-y-hidden p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
           {editing ? (
             <>
-              <SheetHeader>
-                <SheetTitle>{editing.title || "Product"}</SheetTitle>
+              <SheetHeader className="shrink-0 pr-12">
+                <SheetTitle className="truncate pr-2">
+                  {editing.title || "Product"}
+                </SheetTitle>
                 <SheetDescription>
                   Same idea as Ecwid: General, Options, Variations, Related.
                 </SheetDescription>
               </SheetHeader>
 
-              <Tabs value={tab} onValueChange={setTab} className="mt-4">
-                <TabsList className="grid w-full grid-cols-4">
+              <Tabs
+                value={tab}
+                onValueChange={setTab}
+                className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4"
+              >
+                <TabsList className="flex h-auto w-full shrink-0 flex-wrap justify-start gap-1">
                   <TabsTrigger value="general">General</TabsTrigger>
                   <TabsTrigger value="options">Options</TabsTrigger>
                   <TabsTrigger value="variations">Variations</TabsTrigger>
                   <TabsTrigger value="related">Related</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="general" className="space-y-4 pt-4">
+                <TabsContent
+                  value="general"
+                  className="mt-0 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4"
+                >
                   <div className="space-y-1">
                     <Label>Name</Label>
                     <Input
@@ -434,7 +443,10 @@ export function ConfigProductsManager({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="options" className="space-y-4 pt-4">
+                <TabsContent
+                  value="options"
+                  className="mt-0 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4"
+                >
                   <p className="text-sm text-zinc-500">
                     Dropdowns the customer sees. Amount = add money; percent =
                     e.g. Rush +15%.
@@ -603,7 +615,10 @@ export function ConfigProductsManager({
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="variations" className="space-y-4 pt-4">
+                <TabsContent
+                  value="variations"
+                  className="mt-0 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4"
+                >
                   <p className="text-sm text-zinc-500">
                     First matching row wins (top to bottom). Use Any for a
                     wildcard — same as Ecwid.
@@ -651,7 +666,10 @@ export function ConfigProductsManager({
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="related" className="space-y-3 pt-4">
+                <TabsContent
+                  value="related"
+                  className="mt-0 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain py-4"
+                >
                   <p className="text-sm text-zinc-500">
                     You may also like — shown under the product, like Paperboy.
                   </p>
@@ -682,13 +700,13 @@ export function ConfigProductsManager({
               </Tabs>
 
               {error ? (
-                <p className="mt-3 text-sm text-red-600">{error}</p>
+                <p className="px-4 text-sm text-red-600">{error}</p>
               ) : null}
               {message ? (
-                <p className="mt-3 text-sm text-zinc-600">{message}</p>
+                <p className="px-4 text-sm text-zinc-600">{message}</p>
               ) : null}
 
-              <SheetFooter className="mt-6 gap-2">
+              <SheetFooter className="shrink-0 flex-row flex-wrap justify-end gap-2">
                 <Button
                   type="button"
                   variant="destructive"
