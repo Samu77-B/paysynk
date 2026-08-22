@@ -113,6 +113,7 @@
       line2: "",
       city: "",
       postalCode: "",
+      country: "GB",
     };
   }
 
@@ -148,6 +149,7 @@
       line2: val("[data-ps-line2]"),
       city: val("[data-ps-city]"),
       postalCode: val("[data-ps-postcode]"),
+      country: val("[data-ps-country]") || "GB",
     };
   }
 
@@ -161,15 +163,36 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ship.email)) {
       return "Enter a valid email address.";
     }
-    if (String(ship.phone || "").replace(/\D/g, "").length < 10) {
+    if (String(ship.phone || "").replace(/\D/g, "").length < 8) {
       return "Enter a phone number we can reach you on.";
     }
     if (!ship.line1) return "Enter the first line of your address.";
     if (!ship.city) return "Enter a town or city.";
-    if (!/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(ship.postalCode)) {
-      return "Enter a valid UK postcode.";
+    if (isUkShip(ship)) {
+      if (!/^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(ship.postalCode)) {
+        return "Enter a valid UK postcode.";
+      }
+    } else if (String(ship.postalCode || "").length < 2) {
+      return "Enter a postcode or ZIP code.";
     }
     return "";
+  }
+
+  function intlOffered() {
+    return typeof storeMeta.shippingIntlMinor === "number";
+  }
+
+  function isUkShip(ship) {
+    return String(ship.country || "GB").toUpperCase() === "GB";
+  }
+
+  function chosenShippingMinor(ship) {
+    if (!isUkShip(ship) && intlOffered()) return storeMeta.shippingIntlMinor;
+    return storeMeta.shippingFlatMinor || 0;
+  }
+
+  function shippingLabel(ship) {
+    return isUkShip(ship) ? "UK shipping" : "International shipping";
   }
 
   function inputStyle() {
@@ -197,8 +220,51 @@
         "</label>"
       );
     }
+    var uk = isUkShip(ship);
+    var dest =
+      '<div style="display:flex;gap:8px;margin:0 0 10px">' +
+      '<label style="flex:1;border:1px solid ' +
+      (uk ? "#141414" : "#e4e4e7") +
+      ';border-radius:8px;padding:8px 10px;font-size:0.8rem;cursor:pointer">' +
+      '<input type="radio" name="ps-dest" data-ps-dest="GB" ' +
+      (uk ? "checked " : "") +
+      'style="margin-right:6px" />UK</label>';
+    if (intlOffered()) {
+      dest +=
+        '<label style="flex:1;border:1px solid ' +
+        (!uk ? "#141414" : "#e4e4e7") +
+        ';border-radius:8px;padding:8px 10px;font-size:0.8rem;cursor:pointer">' +
+        '<input type="radio" name="ps-dest" data-ps-dest="INTL" ' +
+        (!uk ? "checked " : "") +
+        'style="margin-right:6px" />International</label>';
+    }
+    dest += "</div>";
+    var countryField = "";
+    if (!uk && intlOffered()) {
+      var countries = storeMeta.shippingCountries || [];
+      countryField =
+        '<label style="display:block;margin:0 0 8px"><span style="display:block;font-size:0.72rem;color:#71717a;margin-bottom:4px">Country</span>' +
+        '<select data-ps-country style="' +
+        inputStyle() +
+        '">';
+      for (var ci = 0; ci < countries.length; ci++) {
+        countryField +=
+          '<option value="' +
+          escapeAttr(countries[ci].code) +
+          '"' +
+          (countries[ci].code === ship.country ? " selected" : "") +
+          ">" +
+          escapeHtml(countries[ci].name) +
+          "</option>";
+      }
+      countryField += "</select></label>";
+    } else {
+      countryField = '<input type="hidden" data-ps-country value="GB" />';
+    }
     return (
-      '<div style="margin:14px 0 4px;font-size:0.78rem;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:#52525b">Delivery (UK)</div>' +
+      '<div style="margin:14px 0 4px;font-size:0.78rem;font-weight:650;letter-spacing:0.04em;text-transform:uppercase;color:#52525b">Delivery</div>' +
+      dest +
+      countryField +
       field("data-ps-name", "Full name", "text", ship.name, "name") +
       field("data-ps-email", "Email", "email", ship.email, "email") +
       field("data-ps-phone", "Phone", "tel", ship.phone, "tel") +
@@ -206,7 +272,13 @@
       field("data-ps-line2", "Address line 2 (optional)", "text", ship.line2, "address-line2") +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
       field("data-ps-city", "Town / city", "text", ship.city, "address-level2") +
-      field("data-ps-postcode", "Postcode", "text", ship.postalCode, "postal-code") +
+      field(
+        "data-ps-postcode",
+        uk ? "Postcode" : "Postcode / ZIP",
+        "text",
+        ship.postalCode,
+        "postal-code",
+      ) +
       "</div>" +
       '<p style="margin:4px 0 10px;font-size:0.72rem;color:#a1a1aa">Stripe will show this address filled in, then take the card.</p>'
     );
@@ -354,6 +426,8 @@
     name: storeSlug,
     currency: "gbp",
     shippingFlatMinor: 525,
+    shippingIntlMinor: null,
+    shippingCountries: [],
     paymentsActive: false,
   };
   var storeOffers = [];
@@ -515,11 +589,12 @@
       return;
     }
 
+    var ship = readShip();
     var preview = previewCart(
       items,
       storeOffers,
       readCode(),
-      storeMeta.shippingFlatMinor || 0,
+      chosenShippingMinor(ship),
     );
     var subtotal = preview.catalogueSubtotalMinor;
     var shipping = preview.shippingMinor;
@@ -611,7 +686,9 @@
               formatMoney(preview.discountMinor, storeMeta.currency) +
               "</span></div>"
             : "") +
-          '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#52525b;margin-bottom:6px"><span>UK shipping</span><span>' +
+          '<div style="display:flex;justify-content:space-between;font-size:0.9rem;color:#52525b;margin-bottom:6px"><span>' +
+          escapeHtml(shippingLabel(ship)) +
+          "</span><span>" +
           formatMoney(shipping, storeMeta.currency) +
           "</span></div>" +
           '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:12px"><span>Total</span><span>' +
@@ -671,11 +748,32 @@
     }
 
     var shipInputs = root.querySelectorAll(
-      "[data-ps-name],[data-ps-email],[data-ps-phone],[data-ps-line1],[data-ps-line2],[data-ps-city],[data-ps-postcode]",
+      "[data-ps-name],[data-ps-email],[data-ps-phone],[data-ps-line1],[data-ps-line2],[data-ps-city],[data-ps-postcode],[data-ps-country]",
     );
     for (var si = 0; si < shipInputs.length; si++) {
       shipInputs[si].oninput = persistShipFromForm;
       shipInputs[si].onchange = persistShipFromForm;
+    }
+
+    var destRadios = root.querySelectorAll("[data-ps-dest]");
+    for (var di = 0; di < destRadios.length; di++) {
+      destRadios[di].onchange = function () {
+        persistShipFromForm();
+        var next = readShip();
+        if (this.getAttribute("data-ps-dest") === "GB") {
+          next.country = "GB";
+        } else {
+          var countries = storeMeta.shippingCountries || [];
+          next.country =
+            next.country && next.country !== "GB"
+              ? next.country
+              : countries[0]
+                ? countries[0].code
+                : "IE";
+        }
+        writeShip(next);
+        render();
+      };
     }
 
     var checkoutBtn = root.querySelector("[data-ps-checkout]");

@@ -1,4 +1,8 @@
 import type { ShippingBits } from "@/lib/email/templates";
+import {
+  isIntlShippingCountry,
+  isUkCountry,
+} from "@/lib/shipping-countries";
 
 export type CheckoutCustomer = {
   name: string;
@@ -8,7 +12,7 @@ export type CheckoutCustomer = {
   line2: string;
   city: string;
   postalCode: string;
-  country: "GB";
+  country: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -19,6 +23,18 @@ function clean(value: unknown, max: number) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, max);
+}
+
+export function toE164Phone(phone: string, country: string) {
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (trimmed.startsWith("+") && digits.length >= 10) return `+${digits}`;
+  if (isUkCountry(country) && digits.startsWith("0") && digits.length >= 10) {
+    return `+44${digits.slice(1)}`;
+  }
+  if (isUkCountry(country) && digits.length >= 10) return `+44${digits}`;
+  if (digits.length >= 10) return `+${digits}`;
+  return trimmed;
 }
 
 export function parseCheckoutCustomer(
@@ -33,30 +49,40 @@ export function parseCheckoutCustomer(
   const phone = clean(raw.phone, 30);
   const line1 = clean(raw.line1, 100);
   const line2 = clean(raw.line2, 100);
-  const city = clean(raw.city, 60);
-  const postalCode = clean(raw.postalCode ?? raw.postcode, 12).toUpperCase();
+  const city = clean(raw.city, 80);
+  const country = clean(raw.country, 2).toUpperCase() || "GB";
+  const postalCode = clean(raw.postalCode ?? raw.postcode, 16).toUpperCase();
 
   if (!name) return { error: "Enter the name for delivery." };
   if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address." };
-  if (phone.replace(/\D/g, "").length < 10) {
+  if (phone.replace(/\D/g, "").length < 8) {
     return { error: "Enter a phone number we can reach you on." };
   }
   if (!line1) return { error: "Enter the first line of your address." };
   if (!city) return { error: "Enter a town or city." };
-  if (!UK_POSTCODE_RE.test(postalCode)) {
-    return { error: "Enter a valid UK postcode." };
+  if (isUkCountry(country)) {
+    if (!UK_POSTCODE_RE.test(postalCode)) {
+      return { error: "Enter a valid UK postcode." };
+    }
+  } else {
+    if (!isIntlShippingCountry(country)) {
+      return { error: "Choose a delivery country." };
+    }
+    if (postalCode.length < 2) {
+      return { error: "Enter a postcode or ZIP code." };
+    }
   }
 
   return {
     customer: {
       name,
       email,
-      phone,
+      phone: toE164Phone(phone, country),
       line1,
       line2,
       city,
       postalCode,
-      country: "GB",
+      country,
     },
   };
 }
@@ -71,7 +97,7 @@ export function shippingBitsFromCustomer(
     line2: customer.line2 || null,
     city: customer.city,
     postalCode: customer.postalCode,
-    country: "GB",
+    country: customer.country,
   };
 }
 
@@ -94,4 +120,14 @@ export function shippingBitsFromJson(value: unknown): ShippingBits | null {
           : null,
     country: typeof raw.country === "string" ? raw.country : "GB",
   };
+}
+
+export function shippingDestinationFromCountry(
+  country: string,
+): "gb" | "international" {
+  return isUkCountry(country) ? "gb" : "international";
+}
+
+export function shippingLabelForCountry(country: string) {
+  return isUkCountry(country) ? "UK shipping" : "International shipping";
 }

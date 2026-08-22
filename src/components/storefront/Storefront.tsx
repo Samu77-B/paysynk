@@ -8,6 +8,7 @@ import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
 import type { PublicOffer } from "@/lib/offers";
 import { parseCheckoutCustomer } from "@/lib/checkout-customer";
+import { INTERNATIONAL_SHIPPING_COUNTRIES } from "@/lib/shipping-countries";
 
 export type StorefrontProduct = {
   id: string;
@@ -31,6 +32,7 @@ export type StorefrontStore = {
   logoUrl?: string | null;
   currency: string;
   shippingFlatMinor: number;
+  shippingIntlMinor?: number | null;
   paymentsActive: boolean;
 };
 
@@ -89,6 +91,7 @@ function ProductCard({
     return Math.max(0, stockQty - reserved);
   }
 
+  const [zoom, setZoom] = useState(false);
   const image = imageForSelection(product, colour, selected);
 
   function stockPillClass(qty: number) {
@@ -101,22 +104,39 @@ function ProductCard({
     <article className="store-product">
       <div
         className={`store-product-visual${image ? " store-product-visual-photo" : ""}`}
-        aria-hidden={!image}
       >
         {image ? (
-          <Image
-            key={image}
-            src={encodeURI(image)}
-            alt={colour ? `${product.title} — ${colour}` : product.title}
-            fill
-            sizes="(min-width: 860px) 33vw, 90vw"
-            unoptimized={image.startsWith("http")}
-            className="store-product-img"
-          />
+          <button
+            type="button"
+            className="store-product-zoom"
+            onClick={() => setZoom(true)}
+            aria-label={`View larger photo of ${product.title}`}
+          >
+            <Image
+              key={image}
+              src={encodeURI(image)}
+              alt={colour ? `${product.title} — ${colour}` : product.title}
+              fill
+              sizes="(min-width: 860px) 33vw, 90vw"
+              unoptimized={image.startsWith("http")}
+              className="store-product-img"
+            />
+          </button>
         ) : (
           <span>{productBadge(product)}</span>
         )}
       </div>
+      {zoom && image ? (
+        <div
+          className="photo-zoom"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setZoom(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={encodeURI(image)} alt={product.title} />
+        </div>
+      ) : null}
       <div className="store-product-body">
         <h2>{product.title}</h2>
         <p className="muted">{product.description}</p>
@@ -221,11 +241,17 @@ function CartPanel({
     line2: "",
     city: "",
     postalCode: "",
+    country: "GB",
   });
 
   function updateCustomer(field: keyof typeof customer, value: string) {
     setCustomer((current) => ({ ...current, [field]: value }));
   }
+
+  const shippingMinor =
+    customer.country !== "GB" && typeof store.shippingIntlMinor === "number"
+      ? store.shippingIntlMinor
+      : store.shippingFlatMinor;
 
   const pricing = useMemo(() => {
     return priceCart(
@@ -239,10 +265,10 @@ function CartPanel({
         catalogueUnitMinor: i.priceMinor,
         quantity: i.quantity,
       })),
-      store.shippingFlatMinor,
+      shippingMinor,
       { offers, discountCode },
     );
-  }, [items, store.shippingFlatMinor, offers, discountCode]);
+  }, [items, shippingMinor, offers, discountCode]);
 
   async function checkout() {
     if (!items.length || busy) return;
@@ -372,7 +398,11 @@ function CartPanel({
               </div>
             )}
             <div>
-              <dt>UK shipping</dt>
+              <dt>
+                {customer.country === "GB"
+                  ? "UK shipping"
+                  : "International shipping"}
+              </dt>
               <dd>{formatMoney(pricing.shippingMinor, store.currency)}</dd>
             </div>
             <div className="grand">
@@ -382,7 +412,52 @@ function CartPanel({
           </dl>
 
           <fieldset className="cart-delivery">
-            <legend>Delivery (UK)</legend>
+            <legend>Delivery</legend>
+            <div className="cart-dest">
+              <label>
+                <input
+                  type="radio"
+                  name="dest"
+                  checked={customer.country === "GB"}
+                  onChange={() => updateCustomer("country", "GB")}
+                />
+                UK
+              </label>
+              {typeof store.shippingIntlMinor === "number" ? (
+                <label>
+                  <input
+                    type="radio"
+                    name="dest"
+                    checked={customer.country !== "GB"}
+                    onChange={() =>
+                      updateCustomer(
+                        "country",
+                        customer.country === "GB"
+                          ? INTERNATIONAL_SHIPPING_COUNTRIES[0].code
+                          : customer.country,
+                      )
+                    }
+                  />
+                  International
+                </label>
+              ) : null}
+            </div>
+            {customer.country !== "GB" &&
+            typeof store.shippingIntlMinor === "number" ? (
+              <label>
+                Country
+                <select
+                  value={customer.country}
+                  onChange={(e) => updateCustomer("country", e.target.value)}
+                >
+                  {INTERNATIONAL_SHIPPING_COUNTRIES.map((row) => (
+                    <option key={row.code} value={row.code}>
+                      {row.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label>
               Full name
               <input
@@ -439,7 +514,7 @@ function CartPanel({
                 />
               </label>
               <label>
-                Postcode
+                Postcode{customer.country === "GB" ? "" : " / ZIP"}
                 <input
                   type="text"
                   autoComplete="postal-code"
@@ -502,6 +577,9 @@ export function Storefront({
             <p className="muted" style={{ marginTop: "0.75rem" }}>
               Currency {store.currency.toUpperCase()} · UK shipping{" "}
               {formatMoney(store.shippingFlatMinor, store.currency)}
+              {typeof store.shippingIntlMinor === "number"
+                ? ` · International ${formatMoney(store.shippingIntlMinor, store.currency)}`
+                : ""}
             </p>
             {!store.paymentsActive && (
               <p className="store-preview-note">

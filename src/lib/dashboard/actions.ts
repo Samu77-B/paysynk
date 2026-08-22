@@ -276,26 +276,43 @@ export async function disconnectPaymentProvider(provider: "stripe" | "paypal") {
 
 export async function saveShippingSettings(input: {
   pounds: string;
-}): Promise<{ error?: string; shippingFlatMinor?: number }> {
+  intlPounds?: string;
+  offerIntl?: boolean;
+}): Promise<{
+  error?: string;
+  shippingFlatMinor?: number;
+  shippingIntlMinor?: number | null;
+}> {
   const session = await auth();
   const storeId = session?.user?.storeId;
   if (!storeId) return { error: "Sign in to update delivery." };
 
   const pounds = Number(input.pounds);
   if (!Number.isFinite(pounds) || pounds < 0 || pounds > 999.99) {
-    return { error: "Enter a delivery charge from £0.00 to £999.99." };
+    return { error: "Enter a UK delivery charge from £0.00 to £999.99." };
+  }
+
+  let shippingIntlMinor: number | null = null;
+  if (input.offerIntl) {
+    const intl = Number(input.intlPounds);
+    if (!Number.isFinite(intl) || intl < 0 || intl > 999.99) {
+      return {
+        error: "Enter an international delivery charge from £0.00 to £999.99.",
+      };
+    }
+    shippingIntlMinor = Math.round(intl * 100);
   }
 
   const shippingFlatMinor = Math.round(pounds * 100);
   await prisma.store.update({
     where: { id: storeId },
-    data: { shippingFlatMinor },
+    data: { shippingFlatMinor, shippingIntlMinor },
   });
   revalidatePath("/app/settings");
   if (session.user.storeSlug) {
     revalidatePath(`/s/${session.user.storeSlug}`);
   }
-  return { shippingFlatMinor };
+  return { shippingFlatMinor, shippingIntlMinor };
 }
 
 export async function saveStoreLogo(input: {

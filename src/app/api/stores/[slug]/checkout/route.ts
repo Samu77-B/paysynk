@@ -8,6 +8,7 @@ import { embedCorsPreflight, withEmbedCors } from "@/lib/embed-cors";
 
 function publicCheckoutError(err: unknown): string {
   if (err instanceof Stripe.errors.StripeError) {
+    console.error("Stripe checkout error", err.type, err.code, err.message);
     return "Payment provider rejected this checkout. Try again.";
   }
   if (err instanceof Error && err.message.includes("STRIPE_SECRET_KEY")) {

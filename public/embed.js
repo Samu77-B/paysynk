@@ -142,6 +142,26 @@
     return origin + encodeURI(photo);
   }
 
+  function openPhotoZoom(src, alt) {
+    if (!src) return;
+    var existing = document.getElementById("paysynk-photo-zoom");
+    if (existing) existing.remove();
+    var overlay = document.createElement("div");
+    overlay.id = "paysynk-photo-zoom";
+    overlay.style.cssText =
+      "position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,.88);display:grid;place-items:center;padding:24px;cursor:zoom-out";
+    overlay.innerHTML =
+      '<img src="' +
+      src.replace(/"/g, "&quot;") +
+      '" alt="' +
+      escapeAttr(alt || "") +
+      '" style="max-width:min(960px,100%);max-height:90vh;object-fit:contain">';
+    overlay.onclick = function () {
+      overlay.remove();
+    };
+    document.body.appendChild(overlay);
+  }
+
   function imageForSelection(product, colour, selected) {
     if (selected && selected.imageUrl) return selected.imageUrl;
     var variants = product.variants || [];
@@ -352,7 +372,7 @@
           imageSrc(origin, photo) +
           '" alt="' +
           escapeAttr(product.title) +
-          '" style="width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;border-radius:8px;margin:0 0 0.85rem">';
+          '" data-ps-zoom style="width:100%;aspect-ratio:4/3;object-fit:contain;background:#fff;border-radius:8px;margin:0 0 0.85rem;cursor:zoom-in">';
       }
       html +=
         '<h3 style="margin:0 0 0.35rem;font-size:1.15rem;line-height:1.3">' +
@@ -439,6 +459,13 @@
         "</div>";
 
       el.innerHTML = html;
+
+      var zoomImg = el.querySelector("[data-ps-zoom]");
+      if (zoomImg) {
+        zoomImg.onclick = function () {
+          openPhotoZoom(zoomImg.src, zoomImg.alt);
+        };
+      }
 
       var colourSelect = el.querySelector("[data-ps-colour]");
       if (colourSelect) {

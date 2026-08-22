@@ -65,6 +65,7 @@ export default async function StorePage({ params }: Props) {
         logoUrl: store.logoUrl,
         currency: store.currency,
         shippingFlatMinor: store.shippingFlatMinor,
+        shippingIntlMinor: store.shippingIntlMinor,
         paymentsActive: store.paymentsActive,
       }}
       products={sellable}

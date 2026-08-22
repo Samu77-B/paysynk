@@ -3,7 +3,11 @@ import { getPaymentProvider } from "@/lib/payments";
 import { priceCart, type PricedLine } from "@/lib/pricing";
 import { getActiveStoreOffers } from "@/lib/store-offers";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
-import type { CheckoutCustomer } from "@/lib/checkout-customer";
+import {
+  shippingDestinationFromCountry,
+  shippingLabelForCountry,
+  type CheckoutCustomer,
+} from "@/lib/checkout-customer";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type CheckoutItemInput = {
@@ -84,7 +88,18 @@ export async function createStoreCheckout(opts: {
   }
 
   const offers = await getActiveStoreOffers(store.id);
-  const pricing = priceCart(pricedInput, store.shippingFlatMinor, {
+  const destination = shippingDestinationFromCountry(opts.customer.country);
+  if (destination === "international" && store.shippingIntlMinor == null) {
+    throw new CheckoutError(
+      "This shop does not currently ship internationally.",
+      400,
+    );
+  }
+  const shippingRate =
+    destination === "international"
+      ? (store.shippingIntlMinor ?? 0)
+      : store.shippingFlatMinor;
+  const pricing = priceCart(pricedInput, shippingRate, {
     offers,
     discountCode: opts.discountCode,
   });
@@ -190,7 +205,7 @@ export async function createStoreCheckout(opts: {
     subtotalMinor: pricing.subtotalMinor,
     shippingMinor: pricing.shippingMinor,
     totalMinor: pricing.totalMinor,
-    shippingLabel: "UK shipping",
+    shippingLabel: shippingLabelForCountry(opts.customer.country),
     lines: pricing.lines.map((line) => {
       const optionLabel = Object.values(line.options).filter(Boolean).join(" / ");
       return {

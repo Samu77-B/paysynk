@@ -4,6 +4,7 @@ import type {
   CreateCheckoutResult,
   PaymentProvider,
 } from "./types";
+import { shippingAllowedCountries } from "@/lib/shipping-countries";
 
 let stripeClient: Stripe | null = null;
 
@@ -60,33 +61,45 @@ export class StripePaymentProvider implements PaymentProvider {
       ? { stripeAccount: input.stripeAccountId }
       : undefined;
     const shipTo = input.customer;
+    const shipCountry = (shipTo?.country || "GB").toUpperCase();
+    const dest = shipCountry === "GB" ? "gb" : "international";
 
     let customerId: string | undefined;
     if (shipTo) {
-      const customer = await stripe.customers.create(
-        {
-          email: shipTo.email,
+      const address = {
+        line1: shipTo.line1,
+        line2: shipTo.line2 || undefined,
+        city: shipTo.city,
+        postal_code: shipTo.postalCode,
+        country: shipCountry,
+      };
+      const base = {
+        email: shipTo.email,
+        name: shipTo.name,
+        shipping: {
           name: shipTo.name,
-          phone: shipTo.phone,
-          shipping: {
-            name: shipTo.name,
-            phone: shipTo.phone,
-            address: {
-              line1: shipTo.line1,
-              line2: shipTo.line2 || undefined,
-              city: shipTo.city,
-              postal_code: shipTo.postalCode,
-              country: "GB",
-            },
-          },
-          metadata: {
-            orderId: input.orderId,
-            storeId: input.storeId,
-          },
+          address,
         },
-        connect,
-      );
-      customerId = customer.id;
+        metadata: {
+          orderId: input.orderId,
+          storeId: input.storeId,
+        },
+      };
+      try {
+        const customer = await stripe.customers.create(
+          { ...base, phone: shipTo.phone },
+          connect,
+        );
+        customerId = customer.id;
+      } catch (err) {
+        console.error("Stripe customer create with phone failed", err);
+        try {
+          const customer = await stripe.customers.create(base, connect);
+          customerId = customer.id;
+        } catch (err2) {
+          console.error("Stripe customer create failed", err2);
+        }
+      }
     }
 
     // Use quantity 1 + exact line total so discount rounding never drifts vs our Order totals.
@@ -114,7 +127,12 @@ export class StripePaymentProvider implements PaymentProvider {
         client_reference_id: input.orderId,
         ...(customerId
           ? { customer: customerId }
-          : { customer_creation: "always" as const }),
+          : shipTo
+            ? {
+                customer_email: shipTo.email,
+                customer_creation: "always" as const,
+              }
+            : { customer_creation: "always" as const }),
         metadata: {
           orderId: input.orderId,
           storeId: input.storeId,
@@ -126,25 +144,11 @@ export class StripePaymentProvider implements PaymentProvider {
         },
         line_items,
         shipping_address_collection: {
-          allowed_countries: ["GB"],
+          allowed_countries: shippingAllowedCountries(
+            dest,
+            shipCountry,
+          ) as Stripe.Checkout.SessionCreateParams.ShippingAddressCollection["allowed_countries"],
         },
-        ...(shipTo
-          ? {
-              payment_intent_data: {
-                shipping: {
-                  name: shipTo.name,
-                  phone: shipTo.phone,
-                  address: {
-                    line1: shipTo.line1,
-                    line2: shipTo.line2 || undefined,
-                    city: shipTo.city,
-                    postal_code: shipTo.postalCode,
-                    country: "GB",
-                  },
-                },
-              },
-            }
-          : {}),
         shipping_options: [
           {
             shipping_rate_data: {

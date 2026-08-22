@@ -86,7 +86,7 @@ export default async function SuccessPage({ params, searchParams }: Props) {
               </li>
             ) : null}
             <li>
-              <span>UK shipping</span>
+              <span>Shipping</span>
               <span>{formatMoney(order.shippingMinor, order.currency)}</span>
             </li>
           </ul>

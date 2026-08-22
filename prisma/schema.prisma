@@ -71,6 +71,8 @@ model Store {
   currency          String              @default("gbp")
   /// Flat UK shipping in minor units (e.g. 525 = £5.25)
   shippingFlatMinor Int                 @default(525)
+  /// International shipping in minor units. Null = not offered.
+  shippingIntlMinor Int?
   paymentProvider   PaymentProviderType @default(stripe)
   /// Admin notes for Stripe wiring (keys stay in env / Connect — never exposed to client)
   stripeConfigNotes String?

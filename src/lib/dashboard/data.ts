@@ -26,6 +26,7 @@ export type DashboardContext = {
   signupStatus: "pending" | "approved" | "rejected";
   currency: string;
   shippingFlatMinor: number;
+  shippingIntlMinor: number | null;
   logoUrl: string | null;
   vatNumber: string | null;
   notifyEmail: string | null;
@@ -163,6 +164,7 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     signupStatus: store.signupStatus,
     currency: store.currency,
     shippingFlatMinor: store.shippingFlatMinor,
+    shippingIntlMinor: store.shippingIntlMinor,
     logoUrl: store.logoUrl,
     vatNumber: store.vatNumber,
     notifyEmail: store.notifyEmail,

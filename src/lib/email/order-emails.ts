@@ -9,6 +9,7 @@ import {
 
 export type { ShippingBits };
 import { resolveAppOrigin } from "@/lib/app-url";
+import { shippingLabelForCountry } from "@/lib/checkout-customer";
 
 type PaidOrder = Order & {
   items: OrderItem[];
@@ -49,6 +50,9 @@ export async function sendPaidOrderEmails(opts: {
   const lines = emailLines(order.items);
   const ownerTo = ownerNotifyEmail(store);
   const origin = resolveAppOrigin("https://www.paysynk.com");
+  const shippingLabel = shippingLabelForCountry(
+    opts.shipping?.country || "GB",
+  );
 
   const jobs: Promise<unknown>[] = [];
 
@@ -71,6 +75,7 @@ export async function sendPaidOrderEmails(opts: {
           discountLabel: order.discountCode,
           totalMinor: order.totalMinor,
           shipping: opts.shipping,
+          shippingLabel,
         }),
       }),
     );
@@ -93,6 +98,7 @@ export async function sendPaidOrderEmails(opts: {
           shippingMinor: order.shippingMinor,
           totalMinor: order.totalMinor,
           shipping: opts.shipping,
+          shippingLabel,
           dashboardUrl: `${origin}/app/orders`,
         }),
       }),

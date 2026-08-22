@@ -7,6 +7,7 @@ import {
 } from "@/lib/embed-cors";
 import { getActiveStoreOffers } from "@/lib/store-offers";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
+import { INTERNATIONAL_SHIPPING_COUNTRIES } from "@/lib/shipping-countries";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -91,6 +92,8 @@ export async function GET(req: Request, { params }: Params) {
           logoUrl: store.logoUrl,
           currency: store.currency,
           shippingFlatMinor: store.shippingFlatMinor,
+          shippingIntlMinor: store.shippingIntlMinor,
+          shippingCountries: INTERNATIONAL_SHIPPING_COUNTRIES,
           paymentsActive: store.paymentsActive,
         },
         products: filtered,

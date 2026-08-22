@@ -77,6 +77,7 @@ export function customerOrderHtml(opts: {
   discountLabel?: string | null;
   totalMinor: number;
   shipping?: ShippingBits | null;
+  shippingLabel?: string;
 }) {
   const discount =
     opts.discountMinor > 0
@@ -97,7 +98,7 @@ export function customerOrderHtml(opts: {
     <p style="color:#666;font-size:14px">Order ${escapeHtml(opts.orderRef)}</p>
     <table style="width:100%;border-collapse:collapse">${linesHtml(opts.lines, opts.currency)}
       ${discount}
-      <tr><td style="padding:8px 0">UK shipping</td>
+      <tr><td style="padding:8px 0">${escapeHtml(opts.shippingLabel || "Shipping")}</td>
       <td style="padding:8px 0;text-align:right">${escapeHtml(money(opts.shippingMinor, opts.currency))}</td></tr>
       <tr><td style="padding:12px 0"><strong>Total</strong></td>
       <td style="padding:12px 0;text-align:right"><strong>${escapeHtml(money(opts.totalMinor, opts.currency))}</strong></td></tr>
@@ -119,6 +120,7 @@ export function merchantOrderHtml(opts: {
   shippingMinor: number;
   totalMinor: number;
   shipping?: ShippingBits | null;
+  shippingLabel?: string;
   dashboardUrl: string;
 }) {
   const who = [opts.customerName, opts.customerEmail].filter(Boolean).join(" · ") || "Customer";
@@ -136,7 +138,7 @@ export function merchantOrderHtml(opts: {
     <p>New paid order for <strong>${escapeHtml(opts.storeName)}</strong>.</p>
     <p style="color:#666;font-size:14px">Order ${escapeHtml(opts.orderRef)} · ${escapeHtml(who)}</p>
     <table style="width:100%;border-collapse:collapse">${linesHtml(opts.lines, opts.currency)}
-      <tr><td style="padding:8px 0">UK shipping</td>
+      <tr><td style="padding:8px 0">${escapeHtml(opts.shippingLabel || "Shipping")}</td>
       <td style="padding:8px 0;text-align:right">${escapeHtml(money(opts.shippingMinor, opts.currency))}</td></tr>
       <tr><td style="padding:12px 0"><strong>Total</strong></td>
       <td style="padding:12px 0;text-align:right"><strong>${escapeHtml(money(opts.totalMinor, opts.currency))}</strong></td></tr>

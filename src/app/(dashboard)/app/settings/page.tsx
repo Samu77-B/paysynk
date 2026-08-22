@@ -86,6 +86,7 @@ export default async function SettingsPage() {
           <ShippingSettings
             currency={ctx.currency}
             shippingFlatMinor={ctx.shippingFlatMinor}
+            shippingIntlMinor={ctx.shippingIntlMinor}
           />
         </CardContent>
       </Card>

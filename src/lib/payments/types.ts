@@ -40,7 +40,7 @@ export type CreateCheckoutInput = {
     line2?: string;
     city: string;
     postalCode: string;
-    country: "GB";
+    country: string;
   };
 };
 
