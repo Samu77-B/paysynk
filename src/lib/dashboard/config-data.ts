@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { seedConfigTemplates } from "@/lib/config-products/copy-template";
 import type { ModifierKind } from "@/generated/prisma/client";
 
 export type DashboardConfigOptionValue = {
@@ -119,6 +120,7 @@ export async function getMerchantConfigProducts(
 }
 
 export async function getConfigTemplates(): Promise<DashboardConfigTemplate[]> {
+  await seedConfigTemplates();
   const rows = await prisma.configTemplate.findMany({
     orderBy: [{ sort: "asc" }, { title: "asc" }],
   });

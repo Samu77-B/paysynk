@@ -88,6 +88,62 @@ function genericPrintDef(): TemplateDefinition {
   };
 }
 
+function brochureDef(): TemplateDefinition {
+  return {
+    options: [
+      {
+        name: "Size",
+        values: [
+          { label: "A4" },
+          { label: "A5" },
+          { label: "DL" },
+          { label: "Letter 8.5 × 11" },
+        ],
+      },
+      {
+        name: "Fold",
+        values: [
+          { label: "No fold" },
+          { label: "Bi-fold" },
+          { label: "Tri-fold", modifierKind: "amount", modifierValue: 200 },
+        ],
+      },
+      {
+        name: "Printed sides",
+        values: [
+          { label: "Single" },
+          { label: "Double", modifierKind: "amount", modifierValue: 400 },
+        ],
+      },
+      {
+        name: "Paper",
+        values: [
+          { label: "130gsm Silk" },
+          { label: "170gsm Silk", modifierKind: "amount", modifierValue: 300 },
+          { label: "250gsm Silk", modifierKind: "amount", modifierValue: 600 },
+        ],
+      },
+      {
+        name: "Quantity",
+        values: [
+          { label: "25" },
+          { label: "50" },
+          { label: "100" },
+          { label: "250" },
+          { label: "500" },
+        ],
+      },
+    ],
+    variations: [
+      { matchLabels: { Quantity: "25" }, priceMinor: 2500 },
+      { matchLabels: { Quantity: "50" }, priceMinor: 4000 },
+      { matchLabels: { Quantity: "100" }, priceMinor: 6500 },
+      { matchLabels: { Quantity: "250" }, priceMinor: 12000 },
+      { matchLabels: { Quantity: "500" }, priceMinor: 20000 },
+    ],
+  };
+}
+
 export const PRINT_TEMPLATES: PrintTemplateSeed[] = [
   {
     slug: "colour-bw-printing",
@@ -213,6 +269,6 @@ export const PRINT_TEMPLATES: PrintTemplateSeed[] = [
     uploadsEnabled: true,
     instructionsEnabled: true,
     sort: row.sort,
-    definition: genericPrintDef(),
+    definition: row.slug === "brochures" ? brochureDef() : genericPrintDef(),
   })),
 ];

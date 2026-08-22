@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Copy, Layers, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ import {
   duplicateConfigProduct,
   saveConfigProduct,
 } from "@/lib/dashboard/config-actions";
+import { PRINT_TEMPLATES } from "@/lib/config-products/templates";
+import type { TemplateDefinition } from "@/lib/config-products/types";
 import type {
   DashboardConfigOption,
   DashboardConfigProduct,
@@ -51,6 +53,51 @@ import type { ModifierKind } from "@/generated/prisma/client";
 
 function tempId() {
   return `tmp-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Pounds in the box, pence in the database — keep a string while typing so 12.50 is not rounded after each key. */
+function MoneyInput({
+  minor,
+  onMinorChange,
+  ...props
+}: {
+  minor: number;
+  onMinorChange: (minor: number) => void;
+} & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
+  const [text, setText] = useState(() => (minor / 100).toFixed(2));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setText((minor / 100).toFixed(2));
+  }, [minor, focused]);
+
+  function commit(raw: string) {
+    const n = Number(raw);
+    const next = Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
+    onMinorChange(next);
+    setText((next / 100).toFixed(2));
+  }
+
+  return (
+    <Input
+      inputMode="decimal"
+      value={text}
+      onFocus={() => setFocused(true)}
+      onChange={(e) => {
+        const next = e.target.value;
+        setText(next);
+        const n = Number(next);
+        if (next.trim() !== "" && Number.isFinite(n) && n >= 0) {
+          onMinorChange(Math.round(n * 100));
+        }
+      }}
+      onBlur={() => {
+        setFocused(false);
+        commit(text);
+      }}
+      {...props}
+    />
+  );
 }
 
 function emptyOption(): DashboardConfigOption {
@@ -69,6 +116,48 @@ function emptyOption(): DashboardConfigOption {
       },
     ],
   };
+}
+
+function draftFromDefinition(def: TemplateDefinition): {
+  options: DashboardConfigOption[];
+  variations: DashboardConfigVariation[];
+} {
+  const options: DashboardConfigOption[] = def.options.map((option, i) => ({
+    id: tempId(),
+    name: option.name,
+    required: option.required !== false,
+    sort: i,
+    values: option.values.map((value, vi) => ({
+      id: tempId(),
+      label: value.label,
+      sort: vi,
+      modifierKind: value.modifierKind ?? "none",
+      modifierValue: value.modifierValue ?? 0,
+    })),
+  }));
+  const variations: DashboardConfigVariation[] = (def.variations ?? []).map(
+    (row, i) => {
+      const match: Record<string, string> = {};
+      for (const [name, label] of Object.entries(row.matchLabels)) {
+        const option = options.find((o) => o.name === name);
+        if (!option) continue;
+        if (label === "*") {
+          match[option.id] = "*";
+          continue;
+        }
+        const value = option.values.find((v) => v.label === label);
+        if (value) match[option.id] = value.id;
+      }
+      return {
+        id: tempId(),
+        match,
+        priceMinor: row.priceMinor,
+        sku: row.sku ?? "",
+        sort: i,
+      };
+    },
+  );
+  return { options, variations };
 }
 
 export function ConfigProductsManager({
@@ -99,6 +188,14 @@ export function ConfigProductsManager({
     }
     return [...map.entries()];
   }, [templates]);
+
+  const libraryMatch = editing
+    ? PRINT_TEMPLATES.find(
+        (t) =>
+          t.slug === editing.slug ||
+          t.title.toLowerCase() === editing.title.toLowerCase(),
+      )
+    : undefined;
 
   function open(product: DashboardConfigProduct) {
     setEditing(structuredClone(product));
@@ -318,7 +415,9 @@ export function ConfigProductsManager({
                   {editing.title || "Product"}
                 </SheetTitle>
                 <SheetDescription>
-                  Same idea as Ecwid: General, Options, Variations, Related.
+                  Four tabs: General is name and photos. Options are the
+                  dropdowns. Variations are the prices. Related is “you may
+                  also like.”
                 </SheetDescription>
               </SheetHeader>
 
@@ -327,11 +426,19 @@ export function ConfigProductsManager({
                 onValueChange={setTab}
                 className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4"
               >
-                <TabsList className="flex h-auto w-full shrink-0 flex-wrap justify-start gap-1">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="options">Options</TabsTrigger>
-                  <TabsTrigger value="variations">Variations</TabsTrigger>
-                  <TabsTrigger value="related">Related</TabsTrigger>
+                <TabsList className="flex h-auto min-h-8 w-full shrink-0 flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto">
+                  <TabsTrigger className="flex-none" value="general">
+                    General
+                  </TabsTrigger>
+                  <TabsTrigger className="flex-none" value="options">
+                    Options
+                  </TabsTrigger>
+                  <TabsTrigger className="flex-none" value="variations">
+                    Variations
+                  </TabsTrigger>
+                  <TabsTrigger className="flex-none" value="related">
+                    Related
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent
@@ -364,20 +471,16 @@ export function ConfigProductsManager({
                   </div>
                   <div className="space-y-1">
                     <Label>Base price ({currency.toUpperCase()})</Label>
-                    <Input
-                      inputMode="decimal"
-                      value={(editing.basePriceMinor / 100).toFixed(2)}
-                      onChange={(e) =>
-                        patch({
-                          basePriceMinor: Math.round(
-                            (Number(e.target.value) || 0) * 100,
-                          ),
-                        })
+                    <MoneyInput
+                      minor={editing.basePriceMinor}
+                      onMinorChange={(basePriceMinor) =>
+                        patch({ basePriceMinor })
                       }
                     />
                     <p className="text-xs text-zinc-500">
-                      Used when no variation matches. Option +/− amounts still
-                      add on top.
+                      Fallback only. Real print prices usually live on the
+                      Variations tab (e.g. 25 / 50 / 100 brochures). Type a
+                      full amount like 12.50 then click away.
                     </p>
                   </div>
                   <div className="space-y-1">
@@ -448,9 +551,30 @@ export function ConfigProductsManager({
                   className="mt-0 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4"
                 >
                   <p className="text-sm text-zinc-500">
-                    Dropdowns the customer sees. Amount = add money; percent =
-                    e.g. Rush +15%.
+                    These are the dropdowns on the shop — Size, Fold, Paper,
+                    Quantity. Amount adds money; percent is like Rush +15%.
+                    Save after you load or edit them.
                   </p>
+                  {libraryMatch ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const draft = draftFromDefinition(
+                          libraryMatch.definition,
+                        );
+                        patch({
+                          options: draft.options,
+                          variations: draft.variations,
+                        });
+                        setMessage(
+                          "Typical options loaded. Check Variations for quantity prices, then Save.",
+                        );
+                      }}
+                    >
+                      Load typical {libraryMatch.title} options
+                    </Button>
+                  ) : null}
                   {editing.options.map((option, optionIndex) => (
                     <div
                       key={option.id}
@@ -531,28 +655,39 @@ export function ConfigProductsManager({
                             <option value="amount">+ amount</option>
                             <option value="percent">+ %</option>
                           </select>
-                          <Input
-                            disabled={value.modifierKind === "none"}
-                            value={
-                              value.modifierKind === "percent"
-                                ? String(value.modifierValue)
-                                : (value.modifierValue / 100).toFixed(2)
-                            }
-                            onChange={(e) => {
-                              const n = Number(e.target.value) || 0;
-                              const options = [...editing.options];
-                              const values = [...option.values];
-                              values[valueIndex] = {
-                                ...value,
-                                modifierValue:
-                                  value.modifierKind === "percent"
-                                    ? Math.round(n)
-                                    : Math.round(n * 100),
-                              };
-                              options[optionIndex] = { ...option, values };
-                              patch({ options });
-                            }}
-                          />
+                          {value.modifierKind === "percent" ? (
+                            <Input
+                              disabled={value.modifierKind === "none"}
+                              inputMode="numeric"
+                              value={String(value.modifierValue)}
+                              onChange={(e) => {
+                                const n = Number(e.target.value) || 0;
+                                const options = [...editing.options];
+                                const values = [...option.values];
+                                values[valueIndex] = {
+                                  ...value,
+                                  modifierValue: Math.round(n),
+                                };
+                                options[optionIndex] = { ...option, values };
+                                patch({ options });
+                              }}
+                            />
+                          ) : (
+                            <MoneyInput
+                              disabled={value.modifierKind === "none"}
+                              minor={value.modifierValue}
+                              onMinorChange={(modifierValue) => {
+                                const options = [...editing.options];
+                                const values = [...option.values];
+                                values[valueIndex] = {
+                                  ...value,
+                                  modifierValue,
+                                };
+                                options[optionIndex] = { ...option, values };
+                                patch({ options });
+                              }}
+                            />
+                          )}
                           <Button
                             type="button"
                             variant="ghost"
@@ -777,15 +912,10 @@ function VariationRow({
         </label>
       ))}
       <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-        <Input
+        <MoneyInput
           placeholder="Price"
-          value={(row.priceMinor / 100).toFixed(2)}
-          onChange={(e) =>
-            onChange({
-              ...row,
-              priceMinor: Math.round((Number(e.target.value) || 0) * 100),
-            })
-          }
+          minor={row.priceMinor}
+          onMinorChange={(priceMinor) => onChange({ ...row, priceMinor })}
         />
         <Input
           placeholder="SKU"
