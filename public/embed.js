@@ -113,7 +113,7 @@
     return null;
   }
 
-  function readTheme(el) {
+  function readTheme(el, store) {
     var node = el;
     while (node && node.getAttribute) {
       var value =
@@ -127,6 +127,7 @@
       (script.getAttribute("data-paysynk-theme") ||
         script.getAttribute("data-theme"));
     if (fromScript === "dark" || fromScript === "light") return fromScript;
+    if (store && store.embedTheme === "dark") return "dark";
     return "light";
   }
 
@@ -375,6 +376,7 @@
       .then(function (data) {
         var product = data.products && data.products[0];
         if (!product) throw new Error("Product not found");
+        el.setAttribute("data-ps-theme", readTheme(el, data.store));
         if (!cartShoppingOn(data.store)) {
           renderOpeningSoon(el);
           return;
@@ -449,7 +451,7 @@
       }
 
       var photo = imageForSelection(product, state.colour, sel);
-      var mode = el.getAttribute("data-ps-theme") || readTheme(el);
+      var mode = el.getAttribute("data-ps-theme") || readTheme(el, store);
       var t = palette(mode);
       var html =
         '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid ' +

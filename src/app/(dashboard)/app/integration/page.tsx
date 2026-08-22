@@ -9,6 +9,7 @@ export default async function IntegrationPage() {
       merchantId={ctx.merchant.id}
       merchantName={ctx.merchant.name}
       storeSlug={ctx.merchant.slug}
+      embedTheme={ctx.embedTheme}
     />
   );
 }

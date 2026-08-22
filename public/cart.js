@@ -64,6 +64,7 @@
       "";
     if (fromScript === "dark") return true;
     if (fromScript === "light") return false;
+    if (storeMeta.embedTheme === "dark") return true;
     var rootTheme =
       document.documentElement.getAttribute("data-paysynk-theme") ||
       document.documentElement.getAttribute("data-theme") ||
@@ -569,6 +570,7 @@
     shippingIntlMinor: null,
     shippingCountries: [],
     paymentsActive: false,
+    embedTheme: "light",
   };
   var storeOffers = [];
   var open = false;

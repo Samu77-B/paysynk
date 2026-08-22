@@ -1,0 +1,1 @@
+ALTER TABLE "Store" ADD COLUMN "embedTheme" TEXT NOT NULL DEFAULT 'light';

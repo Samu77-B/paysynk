@@ -83,6 +83,8 @@ model Store {
   adminNotes        String?
   /// Public shop logo (Blob or /uploads/…). Shown on the storefront and success page.
   logoUrl           String?
+  /// light | dark — product widgets and cart on the merchant’s own website.
+  embedTheme        String              @default("light")
   /// Shown on customer receipts (UK VAT / EU VAT ID).
   vatNumber         String?
   /// Order alerts and sales reports. Falls back to the owner login email.

@@ -96,6 +96,7 @@ export async function GET(req: Request, { params }: Params) {
           shippingIntlMinor: store.shippingIntlMinor,
           shippingCountries: INTERNATIONAL_SHIPPING_COUNTRIES,
           paymentsActive: store.paymentsActive,
+          embedTheme: store.embedTheme === "dark" ? "dark" : "light",
         },
         products: filtered,
         offers,

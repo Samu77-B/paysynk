@@ -340,6 +340,23 @@ export async function saveStoreLogo(input: {
   return { logoUrl };
 }
 
+export async function saveEmbedTheme(input: {
+  theme: string;
+}): Promise<{ error?: string; embedTheme?: string }> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update your shop look." };
+
+  const embedTheme = input.theme === "dark" ? "dark" : "light";
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { embedTheme },
+  });
+  revalidatePath("/app/settings");
+  revalidatePath("/app/integration");
+  return { embedTheme };
+}
+
 const REPORT_FREQUENCIES = ["none", "daily", "weekly", "monthly"] as const;
 type SalesReportFrequency = (typeof REPORT_FREQUENCIES)[number];
 

@@ -31,6 +31,7 @@ export type DashboardContext = {
   vatNumber: string | null;
   notifyEmail: string | null;
   salesReportFrequency: Store["salesReportFrequency"];
+  embedTheme: string;
 };
 
 function slugify(value: string) {
@@ -169,6 +170,7 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     vatNumber: store.vatNumber,
     notifyEmail: store.notifyEmail,
     salesReportFrequency: store.salesReportFrequency,
+    embedTheme: store.embedTheme,
   };
 }
 

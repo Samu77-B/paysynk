@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmbedThemeSettings } from "@/components/dashboard/EmbedThemeSettings";
 import {
   cartEmbedSnippet,
   CopySnippetButton,
@@ -21,10 +22,12 @@ export function IntegrationHub({
   merchantId,
   merchantName,
   storeSlug,
+  embedTheme,
 }: {
   merchantId: string;
   merchantName: string;
   storeSlug: string;
+  embedTheme: string;
 }) {
   const cartSnippet = cartEmbedSnippet(storeSlug, merchantId);
   const exampleProductSnippet = productEmbedSnippet(
@@ -41,6 +44,8 @@ export function IntegrationHub({
           Shop cart on every page · product widgets wherever you sell
         </p>
       </div>
+
+      <EmbedThemeSettings embedTheme={embedTheme} />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="border-zinc-200 shadow-sm">
@@ -60,9 +65,8 @@ export function IntegrationHub({
               label="Copy shop cart code"
             />
             <p className="text-sm text-zinc-600">
-              Dark website? Add <code>data-theme=&quot;dark&quot;</code> to this
-              script and to <code>embed.js</code> so product cards and the cart
-              match the page.
+              Dark website? Use the <strong>Dark product cards</strong> switch
+              above. You do not need to edit your HTML.
             </p>
 
             <Tabs defaultValue="html">
