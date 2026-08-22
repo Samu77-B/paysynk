@@ -31,7 +31,7 @@ export default function HomePage() {
             <Link className="btn btn-primary" href="/register">
               Create your store
             </Link>
-            <Link className="btn btn-ghost" href="/s/slf">
+            <Link className="btn btn-ghost" href="/s/acme">
               Explore demo store
             </Link>
           </div>
@@ -153,14 +153,14 @@ export default function HomePage() {
           works site-wide — add from a product widget, checkout from the cart.
         </p>
         <pre className="code-block">{`<!-- One product -->
-<div data-paysynk-product="acme-minimalist-heavyweight-hoodie" data-store="slf"></div>
+<div data-paysynk-product="acme-minimalist-heavyweight-hoodie" data-store="acme"></div>
 <script src="https://paysynk.com/embed.js" defer></script>
 
 <!-- Shop cart on any page -->
-<script src="https://paysynk.com/cart.js" data-store="slf" async></script>`}</pre>
+<script src="https://paysynk.com/cart.js" data-store="acme" async></script>`}</pre>
         <p className="muted small">
           Local: <code>/embed.js</code> · <code>/cart.js</code> · Demo:{" "}
-          <Link href="/s/slf">/s/slf</Link> ·{" "}
+          <Link href="/s/acme">/s/acme</Link> ·{" "}
           <Link href="/embed-demo">/embed-demo</Link>
         </p>
       </section>
@@ -174,7 +174,7 @@ export default function HomePage() {
           </p>
         </div>
         <div className="cta-row">
-          <Link className="btn btn-primary" href="/s/slf">
+          <Link className="btn btn-primary" href="/s/acme">
             Open demo
           </Link>
           <Link className="btn btn-ghost" href="/login">

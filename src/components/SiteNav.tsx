@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 
 const LINKS = [
-  { href: "/s/slf", label: "Demo store" },
+  { href: "/s/acme", label: "Demo store" },
   { href: "#features", label: "Features" },
   { href: "#pricing", label: "Pricing" },
   { href: "#embed", label: "Embed" },

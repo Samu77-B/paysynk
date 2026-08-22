@@ -38,7 +38,7 @@ export default function EmbedDemoPage() {
           <BrandLogo variant="black" height={28} />
         </a>
         <a
-          href="/s/slf"
+          href="/s/acme"
           style={{ color: "#52525b", fontSize: "0.9rem", textDecoration: "none" }}
         >
           Full Acme Store →
@@ -82,15 +82,15 @@ export default function EmbedDemoPage() {
         >
           <div
             data-paysynk-product="acme-minimalist-heavyweight-hoodie"
-            data-store="slf"
+            data-store="acme"
           />
           <div
             data-paysynk-product="acme-insulated-steel-water-bottle-750ml"
-            data-store="slf"
+            data-store="acme"
           />
           <div
             data-paysynk-product="acme-artisan-ceramic-mug-set"
-            data-store="slf"
+            data-store="acme"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function EmbedDemoPage() {
       <Script src="/embed.js" strategy="afterInteractive" />
       <Script
         src="/cart.js"
-        data-store="slf"
+        data-store="acme"
         data-merchant-id="11111111-1111-1111-1111-111111111111"
         strategy="afterInteractive"
       />

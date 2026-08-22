@@ -4,7 +4,7 @@ import type { BillingInvoice, Merchant, Order, Product } from "@/types/database"
 export const DEMO_MERCHANT: Merchant = {
   id: "11111111-1111-1111-1111-111111111111",
   name: "Acme Store",
-  slug: "slf",
+  slug: "acme",
   owner_id: "00000000-0000-0000-0000-000000000001",
   plan_tier: "standard",
   stripe_connect_id: null,

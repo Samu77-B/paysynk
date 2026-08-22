@@ -342,7 +342,7 @@ export async function saveStoreLogo(input: {
     revalidatePath(`/s/${session.user.storeSlug}`);
     revalidatePath(`/s/${session.user.storeSlug}/success`);
   }
-  revalidatePath("/s/slf");
+  revalidatePath("/s/acme");
   return { logoUrl };
 }
 

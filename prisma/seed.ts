@@ -116,29 +116,40 @@ const ACME_TITLES = [
   "Acme Artisan Ceramic Mug Set",
 ] as const;
 
-async function main() {
-  const store = await prisma.store.upsert({
-    where: { slug: "slf" },
-    update: {
-      name: "Acme Store",
-      currency: "gbp",
-      shippingFlatMinor: 525,
-      paymentProvider: "stripe",
-      signupStatus: "approved",
-      stripeConfigNotes:
-        "MVP: platform STRIPE_SECRET_KEY in env. TODO: Stripe Connect / per-merchant keys.",
-    },
-    create: {
-      slug: "slf",
-      name: "Acme Store",
-      currency: "gbp",
-      shippingFlatMinor: 525,
-      paymentProvider: "stripe",
-      signupStatus: "approved",
-      stripeConfigNotes:
-        "MVP: platform STRIPE_SECRET_KEY in env. TODO: Stripe Connect / per-merchant keys.",
-    },
+const ACME_SLUG = "acme";
+
+async function ensureAcmeStore() {
+  const data = {
+    name: "Acme Store",
+    currency: "gbp",
+    shippingFlatMinor: 525,
+    paymentProvider: "stripe" as const,
+    signupStatus: "approved" as const,
+    stripeConfigNotes:
+      "MVP: platform STRIPE_SECRET_KEY in env. TODO: Stripe Connect / per-merchant keys.",
+  };
+
+  const acme = await prisma.store.findUnique({ where: { slug: ACME_SLUG } });
+  if (acme) {
+    return prisma.store.update({ where: { id: acme.id }, data });
+  }
+
+  // Older seeds used slug "slf". That public path is reserved for Saturday Love Funk embeds.
+  const legacy = await prisma.store.findUnique({ where: { slug: "slf" } });
+  if (legacy && legacy.name === "Acme Store") {
+    return prisma.store.update({
+      where: { id: legacy.id },
+      data: { ...data, slug: ACME_SLUG },
+    });
+  }
+
+  return prisma.store.create({
+    data: { ...data, slug: ACME_SLUG },
   });
+}
+
+async function main() {
+  const store = await ensureAcmeStore();
 
   const passwordHash = await bcrypt.hash("password123", 10);
   await prisma.merchantUser.upsert({
