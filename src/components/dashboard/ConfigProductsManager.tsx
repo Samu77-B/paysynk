@@ -23,7 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -465,20 +465,31 @@ export function ConfigProductsManager({
                 onValueChange={setTab}
                 className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4"
               >
-                <TabsList className="flex h-auto min-h-8 w-full shrink-0 flex-wrap justify-start gap-1 group-data-horizontal/tabs:h-auto">
-                  <TabsTrigger className="flex-none" value="general">
-                    General
-                  </TabsTrigger>
-                  <TabsTrigger className="flex-none" value="options">
-                    Options
-                  </TabsTrigger>
-                  <TabsTrigger className="flex-none" value="variations">
-                    Variations
-                  </TabsTrigger>
-                  <TabsTrigger className="flex-none" value="related">
-                    Related
-                  </TabsTrigger>
-                </TabsList>
+                <div className="grid shrink-0 grid-cols-2 gap-1 sm:grid-cols-4">
+                  {(
+                    [
+                      ["general", "1. General"],
+                      ["options", "2. Options"],
+                      ["variations", "3. Variations"],
+                      ["related", "4. Related"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <Button
+                      key={id}
+                      type="button"
+                      size="sm"
+                      variant={tab === id ? "default" : "outline"}
+                      className={
+                        tab === id
+                          ? "bg-zinc-900 text-white hover:bg-zinc-800"
+                          : ""
+                      }
+                      onClick={() => setTab(id)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
 
                 <TabsContent
                   value="general"
@@ -521,6 +532,14 @@ export function ConfigProductsManager({
                       Variations tab (e.g. 25 / 50 / 100 brochures). Type a
                       full amount like 12.50 then click away.
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTab("options")}
+                    >
+                      Add paper, size, quantity → Options
+                    </Button>
                   </div>
                   <div className="space-y-1">
                     <Label>Details</Label>
