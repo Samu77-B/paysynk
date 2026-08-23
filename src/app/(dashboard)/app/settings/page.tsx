@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { ShippingSettings } from "@/components/dashboard/ShippingSettings";
 import { StoreLogoSettings } from "@/components/dashboard/StoreLogoSettings";
+import { StoreIdentitySettings } from "@/components/dashboard/StoreIdentitySettings";
 import { StoreProfileSettings } from "@/components/dashboard/StoreProfileSettings";
 import { EmbedThemeSettings } from "@/components/dashboard/EmbedThemeSettings";
 
@@ -68,15 +69,23 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle>Store</CardTitle>
           <CardDescription>
-            {ctx.merchant.name} · slug{" "}
-            <code className="rounded bg-zinc-100 px-1">{ctx.merchant.slug}</code>{" "}
-            · merchant id{" "}
+            Public URL{" "}
+            <code className="rounded bg-zinc-100 px-1">/s/{ctx.merchant.slug}</code>
+            {" · "}
+            merchant id{" "}
             <code className="rounded bg-zinc-100 px-1 text-xs">
               {ctx.merchant.id}
             </code>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <StoreIdentitySettings
+            name={ctx.merchant.name}
+            slug={ctx.merchant.slug}
+            currency={ctx.currency}
+            fxQuoteCurrency={ctx.fxQuoteCurrency}
+            exchangeRate={ctx.exchangeRate}
+          />
           <StoreLogoSettings logoUrl={ctx.logoUrl} />
           <EmbedThemeSettings embedTheme={ctx.embedTheme} />
           <StoreProfileSettings

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { toDashboardProduct } from "@/lib/dashboard/data";
 import type { CatalogProduct } from "@/lib/dashboard/data";
 import { isAllowedMediaUrl, sanitizeMediaUrl } from "@/lib/media-url";
+import { isShopCurrency } from "@/lib/shop-currency";
 
 function slugify(value: string) {
   return value
@@ -409,4 +410,54 @@ export async function saveStoreProfileSettings(input: {
     revalidatePath(`/s/${session.user.storeSlug}/success`);
   }
   return { vatNumber, notifyEmail, salesReportFrequency };
+}
+
+export async function saveStoreIdentitySettings(input: {
+  name: string;
+  currency: string;
+  fxQuoteCurrency: string;
+  exchangeRate: string;
+}): Promise<{
+  error?: string;
+  name?: string;
+  currency?: string;
+  fxQuoteCurrency?: string;
+  exchangeRate?: number | null;
+}> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update your shop." };
+
+  const name = input.name.trim().replace(/\s+/g, " ").slice(0, 80);
+  if (name.length < 2) {
+    return { error: "Shop name needs at least two characters." };
+  }
+
+  const currency = input.currency.trim().toLowerCase();
+  const fxQuoteCurrency = input.fxQuoteCurrency.trim().toLowerCase();
+  if (!isShopCurrency(currency) || !isShopCurrency(fxQuoteCurrency)) {
+    return { error: "Choose a supported currency." };
+  }
+
+  const rawRate = input.exchangeRate.trim();
+  let exchangeRate: number | null = null;
+  if (rawRate) {
+    const n = Number(rawRate);
+    if (!Number.isFinite(n) || n <= 0 || n > 1_000_000) {
+      return { error: "Enter an exchange rate above 0, or leave it blank." };
+    }
+    exchangeRate = Math.round(n * 1_000_000) / 1_000_000;
+  }
+
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { name, currency, fxQuoteCurrency, exchangeRate },
+  });
+  revalidatePath("/app");
+  revalidatePath("/app/settings");
+  revalidatePath("/app/products");
+  if (session.user.storeSlug) {
+    revalidatePath(`/s/${session.user.storeSlug}`);
+  }
+  return { name, currency, fxQuoteCurrency, exchangeRate };
 }

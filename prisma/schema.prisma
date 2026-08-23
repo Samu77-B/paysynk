@@ -75,6 +75,9 @@ model Store {
   slug              String              @unique
   name              String
   currency          String              @default("gbp")
+  /// Shop-currency units per 1 fxQuoteCurrency unit. Null = not set. Checkout still charges in `currency`.
+  exchangeRate      Float?
+  fxQuoteCurrency   String              @default("gbp")
   /// ISO country for domestic delivery (GB, JM, …).
   homeCountry       String              @default("GB")
   /// Flat domestic shipping in minor units (e.g. 525 = £5.25)
