@@ -262,7 +262,7 @@ export function DashboardShell({
           <BrandLogo variant="black" height={22} />
         </header>
 
-        <main className="flex-1 overflow-x-auto p-4 sm:p-6 md:p-8">
+        <main className="dashboard-main flex-1 overflow-x-auto p-4 sm:p-6 md:p-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </div>

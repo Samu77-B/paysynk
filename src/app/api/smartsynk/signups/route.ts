@@ -6,6 +6,7 @@ import type { Prisma, SignupStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSmartSynkAuth, slugifyStoreName } from "@/lib/smartsynk-auth";
 import { serializeSignup } from "@/lib/smartsynk-serialize";
+import { sendMerchantWelcomeEmail } from "@/lib/email/welcome";
 
 const createSchema = z.object({
   fullName: z.string().trim().min(1),
@@ -94,6 +95,12 @@ export async function POST(request: Request) {
     },
     include: { users: true },
   });
+
+  if (approve) {
+    void sendMerchantWelcomeEmail(store).catch((err) =>
+      console.error("Welcome email failed", store.slug, err),
+    );
+  }
 
   return NextResponse.json(
     {

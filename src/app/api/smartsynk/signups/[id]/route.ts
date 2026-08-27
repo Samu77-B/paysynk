@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSmartSynkAuth } from "@/lib/smartsynk-auth";
 import { serializeSignup } from "@/lib/smartsynk-serialize";
+import { sendMerchantWelcomeEmail } from "@/lib/email/welcome";
 
 const patchSchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]).optional(),
@@ -41,6 +42,9 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Signup not found" }, { status: 404 });
   }
 
+  const becameApproved =
+    parsed.data.status === "approved" && existing.signupStatus !== "approved";
+
   const store = await prisma.store.update({
     where: { id },
     data: {
@@ -52,6 +56,12 @@ export async function PATCH(request: Request, { params }: Params) {
     },
     include: { users: { orderBy: { createdAt: "asc" }, take: 1 } },
   });
+
+  if (becameApproved) {
+    void sendMerchantWelcomeEmail(store).catch((err) =>
+      console.error("Welcome email failed", store.slug, err),
+    );
+  }
 
   return NextResponse.json({ signup: serializeSignup(store) });
 }

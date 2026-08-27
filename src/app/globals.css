@@ -116,6 +116,37 @@ a {
   color: var(--accent);
 }
 
+/* Auth panel is dark on small screens and light from lg up.
+   Global `a` uses --accent (near-white), which vanishes on the light form. */
+.auth-form a {
+  color: #9fe870;
+  font-weight: 600;
+}
+
+.auth-form a:hover {
+  color: #c4f59a;
+}
+
+@media (min-width: 1024px) {
+  .auth-form a {
+    color: #14532d;
+  }
+
+  .auth-form a:hover {
+    color: #166534;
+  }
+}
+
+/* Dashboard content sits on a light page; global `a` is near-white. */
+.dashboard-main a {
+  color: #14532d;
+  font-weight: 600;
+}
+
+.dashboard-main a:hover {
+  color: #166534;
+}
+
 h1,
 h2,
 h3 {

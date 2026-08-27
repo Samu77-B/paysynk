@@ -36,7 +36,7 @@ export default function AuthLayout({
         </p>
       </div>
 
-      <div className="flex w-full flex-col justify-center px-6 py-10 lg:w-1/2 lg:bg-zinc-50 lg:text-zinc-900">
+      <div className="auth-form flex w-full flex-col justify-center px-6 py-10 lg:w-1/2 lg:bg-zinc-50 lg:text-zinc-900">
         <div className="mx-auto mb-8 w-full max-w-md lg:hidden">
           <BrandLogo variant="white" height={32} />
         </div>
@@ -44,7 +44,7 @@ export default function AuthLayout({
           <BrandLogo variant="black" height={36} />
         </div>
         <div className="mx-auto w-full max-w-md">{children}</div>
-        <p className="mx-auto mt-8 w-full max-w-md text-center text-sm text-zinc-500 lg:text-zinc-500">
+        <p className="mx-auto mt-8 w-full max-w-md text-center text-sm">
           <Link href="/" className="underline-offset-4 hover:underline">
             ← Back to paysynk.com
           </Link>

@@ -167,3 +167,25 @@ export function salesReportHtml(opts: {
   `;
   return wrap(opts.storeName, opts.logoUrl, body);
 }
+
+export function merchantWelcomeHtml(opts: {
+  ownerName: string;
+  storeName: string;
+  shopUrl: string;
+  dashboardUrl: string;
+  loginUrl: string;
+}) {
+  const greeting = opts.ownerName
+    ? `Hi ${escapeHtml(opts.ownerName)},`
+    : "Hi,";
+  const body = `
+    <p>${greeting}</p>
+    <p>Good news — <strong>${escapeHtml(opts.storeName)}</strong> is approved and ready on PaySynk.</p>
+    <p>Your public shop:<br/><a href="${escapeHtml(opts.shopUrl)}">${escapeHtml(opts.shopUrl)}</a></p>
+    <p>Dashboard (products, orders, payments):<br/><a href="${escapeHtml(opts.dashboardUrl)}">${escapeHtml(opts.dashboardUrl)}</a></p>
+    <p>Sign in at <a href="${escapeHtml(opts.loginUrl)}">${escapeHtml(opts.loginUrl)}</a> with the email you registered.</p>
+    <p>Next: add your print products, connect Stripe or PayPal under Settings → Payments, then Activate so customers can check out.</p>
+    <p>Questions? Reply to this email or write to hello@paysynk.com.</p>
+  `;
+  return wrap("PaySynk", null, body);
+}

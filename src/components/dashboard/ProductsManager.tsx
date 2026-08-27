@@ -374,7 +374,12 @@ export function ProductsManager({
           {!paymentsActive && (
             <p className="mt-2 max-w-xl text-sm text-amber-800">
               Test merch here and on{" "}
-              <a className="underline" href={`/s/${storeSlug}`} target="_blank">
+              <a
+                className="font-semibold text-amber-950 underline decoration-amber-950 underline-offset-2"
+                href={`/s/${storeSlug}`}
+                target="_blank"
+                rel="noreferrer"
+              >
                 your preview shop
               </a>
               . The public cart stays hidden until you connect Stripe in

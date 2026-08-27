@@ -76,11 +76,15 @@ export default async function LoginPage({
       </form>
 
       <p className="mt-6 text-sm text-zinc-400 lg:text-zinc-600">
-        New merchant?{" "}
-        <Link href="/register" className="font-medium text-[#9FE870] lg:text-zinc-900 lg:underline">
-          Create an account
-        </Link>
+        New merchant?
       </p>
+      <Button
+        asChild
+        variant="outline"
+        className="mt-2 w-full border-[#9FE870] bg-[#9FE870] !text-[#141414] hover:bg-[#8fd960] hover:!text-[#141414]"
+      >
+        <Link href="/register">Create an account</Link>
+      </Button>
     </div>
   );
 }
