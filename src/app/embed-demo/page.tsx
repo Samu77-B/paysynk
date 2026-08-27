@@ -37,12 +37,20 @@ export default function EmbedDemoPage() {
         <a href="/" aria-label="PaySynk home">
           <BrandLogo variant="black" height={28} />
         </a>
-        <a
-          href="/s/acme"
-          style={{ color: "#52525b", fontSize: "0.9rem", textDecoration: "none" }}
-        >
-          Full Acme Store →
-        </a>
+        <nav style={{ display: "flex", gap: "1.25rem" }}>
+          <a
+            href="/s/acme"
+            style={{ color: "#52525b", fontSize: "0.9rem", textDecoration: "none" }}
+          >
+            Full Acme Store →
+          </a>
+          <a
+            href="/embed-demo/salon"
+            style={{ color: "#52525b", fontSize: "0.9rem", textDecoration: "none" }}
+          >
+            Salon theme demo →
+          </a>
+        </nav>
       </header>
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "2.5rem 1.5rem 5rem" }}>

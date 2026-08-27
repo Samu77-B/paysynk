@@ -161,7 +161,8 @@ export default function HomePage() {
         <p className="muted small">
           Local: <code>/embed.js</code> · <code>/cart.js</code> · Demo:{" "}
           <Link href="/s/acme">/s/acme</Link> ·{" "}
-          <Link href="/embed-demo">/embed-demo</Link>
+          <Link href="/embed-demo">/embed-demo</Link> ·{" "}
+          <Link href="/embed-demo/salon">salon look</Link>
         </p>
       </section>
 

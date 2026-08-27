@@ -6,9 +6,12 @@
  *     data-store="slf"
  *     data-merchant-id="MERCHANT_ID"
  *     data-theme="dark"
+ *     data-accent="#c4a37a"
+ *     data-font="inherit"
  *     async></script>
  *
  * Product embeds (embed.js) write to the same cart key: paysynk-cart:{store}
+ * Brand: Settings, or --paysynk-accent / --paysynk-font on the host page.
  */
 (function () {
   var EVENT = "paysynk:cart-updated";
@@ -56,6 +59,109 @@
   // Back-compat: merchant-only snippets still open the demo/default store.
   if (!storeSlug) storeSlug = "slf";
 
+  function cssVar(name, node) {
+    try {
+      if (node) {
+        var local = (
+          window.getComputedStyle(node).getPropertyValue(name) || ""
+        ).trim();
+        if (local) return local;
+      }
+      return (
+        window.getComputedStyle(document.documentElement).getPropertyValue(name) ||
+        ""
+      ).trim();
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function normalizeHex(value) {
+    var v = String(value || "").trim();
+    if (!v) return "";
+    if (v.charAt(0) !== "#") v = "#" + v;
+    if (/^#[0-9a-f]{3}$/i.test(v)) {
+      return (
+        "#" +
+        v.charAt(1) +
+        v.charAt(1) +
+        v.charAt(2) +
+        v.charAt(2) +
+        v.charAt(3) +
+        v.charAt(3)
+      ).toLowerCase();
+    }
+    if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+    return "";
+  }
+
+  function contrastText(hex) {
+    var n = parseInt(String(hex).slice(1), 16);
+    if (isNaN(n)) return "#141414";
+    var r = (n >> 16) & 255;
+    var g = (n >> 8) & 255;
+    var b = n & 255;
+    var y = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return y > 0.55 ? "#141414" : "#fafafa";
+  }
+
+  function safeFontFamily(font) {
+    var v = String(font || "")
+      .replace(/[<>;]/g, "")
+      .trim();
+    if (v === "inherit") return "inherit";
+    if (v === "serif") return 'Georgia,"Times New Roman",Times,serif';
+    if (!v || v === "paysynk") return "Outfit,system-ui,sans-serif";
+    if (v.length > 120) v = v.slice(0, 120);
+    return v;
+  }
+
+  function takeBrand(from, into) {
+    if (!from) return;
+    if (!into.accent) {
+      into.accent = normalizeHex(from.accent || from.embedAccent || "");
+    }
+    if (!into.accentText) {
+      into.accentText = normalizeHex(from.accentText || from.embedAccentText || "");
+    }
+    if (!into.font) {
+      into.font = String(from.font || from.embedFont || "").trim();
+    }
+  }
+
+  function readBrand() {
+    var into = { accent: "", accentText: "", font: "" };
+    if (script) {
+      takeBrand(
+        {
+          accent:
+            script.getAttribute("data-accent") ||
+            script.getAttribute("data-paysynk-accent"),
+          accentText:
+            script.getAttribute("data-accent-text") ||
+            script.getAttribute("data-paysynk-accent-text"),
+          font: script.getAttribute("data-font") || script.getAttribute("data-paysynk-font"),
+        },
+        into,
+      );
+    }
+    takeBrand(
+      {
+        accent: cssVar("--paysynk-accent", document.body),
+        accentText: cssVar("--paysynk-accent-text", document.body),
+        font: cssVar("--paysynk-font", document.body),
+      },
+      into,
+    );
+    takeBrand(storeMeta, into);
+    var accent = into.accent || "#9FE870";
+    return {
+      accent: accent,
+      accentText: into.accentText || contrastText(accent),
+      fontFamily: safeFontFamily(into.font || "paysynk"),
+    };
+  }
+
   function isDarkTheme() {
     var fromScript =
       (script &&
@@ -73,6 +179,7 @@
   }
 
   function palette() {
+    var brand = readBrand();
     if (isDarkTheme()) {
       return {
         bg: "#141414",
@@ -87,6 +194,9 @@
         error: "#f87171",
         errorBg: "rgba(220,38,38,0.16)",
         totals: "#d4d4d8",
+        btn: brand.accent,
+        btnText: brand.accentText,
+        font: brand.fontFamily,
       };
     }
     return {
@@ -102,6 +212,9 @@
       error: "#b91c1c",
       errorBg: "#fef2f2",
       totals: "#52525b",
+      btn: brand.accent,
+      btnText: brand.accentText,
+      font: brand.fontFamily,
     };
   }
 
@@ -321,7 +434,8 @@
       ";border-radius:8px;padding:0 10px;font-size:0.85rem;box-sizing:border-box;background:" +
       t.inputBg +
       ";color:" +
-      t.text
+      t.text +
+      ";font-family:inherit"
     );
   }
 
@@ -571,6 +685,9 @@
     shippingCountries: [],
     paymentsActive: false,
     embedTheme: "light",
+    embedAccent: null,
+    embedAccentText: null,
+    embedFont: "paysynk",
   };
   var storeOffers = [];
   var open = false;
@@ -619,8 +736,15 @@
     button.id = "paysynk-cart-launcher";
     button.type = "button";
     button.setAttribute("aria-label", "Open PaySynk cart");
+    var brand = readBrand();
     button.style.cssText =
-      "position:fixed;right:16px;bottom:16px;z-index:2147483000;background:#9FE870;color:#141414;border:0;border-radius:999px;padding:12px 18px;font:600 14px Outfit,system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.25);cursor:pointer";
+      "position:fixed;right:16px;bottom:16px;z-index:2147483000;border:0;border-radius:999px;padding:12px 18px;font:600 14px " +
+      brand.fontFamily +
+      ";box-shadow:0 10px 30px rgba(0,0,0,.25);cursor:pointer;appearance:none;-webkit-appearance:none;background:" +
+      brand.accent +
+      " !important;color:" +
+      brand.accentText +
+      " !important";
     button.onclick = function () {
       open = !open;
       render();
@@ -743,6 +867,12 @@
     var items = readCart(storeSlug);
     var count = itemCount(items);
     button.textContent = count ? "Cart (" + count + ")" : "Cart";
+    var t = palette();
+    button.style.background = t.btn;
+    button.style.color = t.btnText;
+    button.style.setProperty("background", t.btn, "important");
+    button.style.setProperty("color", t.btnText, "important");
+    button.style.fontFamily = t.font;
 
     if (!open) {
       root.innerHTML = "";
@@ -760,7 +890,6 @@
     var subtotal = preview.catalogueSubtotalMinor;
     var shipping = preview.shippingMinor;
     var total = preview.totalMinor;
-    var t = palette();
     var scheme = isDarkTheme() ? "dark" : "light";
 
     var giftLines = "";
@@ -838,7 +967,8 @@
     }
 
     root.style.cssText =
-      "display:block;position:fixed;inset:0;z-index:2147483001;font-family:Outfit,system-ui,sans-serif";
+      "display:block;position:fixed;inset:0;z-index:2147483001;font-family:" +
+      t.font;
     root.innerHTML =
       '<div data-ps-backdrop style="position:absolute;inset:0;background:rgba(0,0,0,.35)"></div>' +
       '<aside style="position:absolute;top:0;right:0;height:100%;width:min(100%,420px);background:' +
@@ -928,7 +1058,11 @@
           (storeMeta.paymentsActive
             ? '<button type="button" data-ps-checkout ' +
               (busy ? "disabled " : "") +
-              'style="width:100%;border:0;border-radius:999px;padding:0.75rem 1rem;font-weight:600;cursor:pointer;background:#9FE870;color:#141414">' +
+              'style="width:100%;border:0;border-radius:999px;padding:0.75rem 1rem;font-weight:600;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background:' +
+              t.btn +
+              " !important;color:" +
+              t.btnText +
+              ' !important">' +
               (busy ? "Redirecting…" : "Checkout with Stripe") +
               "</button>"
             : '<p style="margin:0;font-size:0.82rem;color:' +

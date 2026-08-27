@@ -8,6 +8,7 @@ import {
 import { getActiveStoreOffers } from "@/lib/store-offers";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
 import { INTERNATIONAL_SHIPPING_COUNTRIES } from "@/lib/shipping-countries";
+import { publicEmbedBrand } from "@/lib/embed-brand";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -97,6 +98,7 @@ export async function GET(req: Request, { params }: Params) {
           shippingCountries: INTERNATIONAL_SHIPPING_COUNTRIES,
           paymentsActive: store.paymentsActive,
           embedTheme: store.embedTheme === "dark" ? "dark" : "light",
+          ...publicEmbedBrand(store),
         },
         products: filtered,
         offers,

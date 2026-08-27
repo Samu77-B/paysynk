@@ -96,6 +96,12 @@ model Store {
   logoUrl           String?
   /// light | dark — product widgets and cart on the merchant’s own website.
   embedTheme        String              @default("light")
+  /// Button colour on pasted widgets/cart (#rrggbb). Null = PaySynk lime.
+  embedAccent       String?
+  /// Button text colour (#rrggbb). Null = auto contrast on accent.
+  embedAccentText   String?
+  /// paysynk | inherit | serif — typeface for pasted widgets/cart.
+  embedFont         String              @default("paysynk")
   /// Shown on customer receipts (UK VAT / EU VAT ID).
   vatNumber         String?
   /// Order alerts and sales reports. Falls back to the owner login email.

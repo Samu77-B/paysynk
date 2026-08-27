@@ -35,6 +35,9 @@ export type DashboardContext = {
   notifyEmail: string | null;
   salesReportFrequency: Store["salesReportFrequency"];
   embedTheme: string;
+  embedAccent: string | null;
+  embedAccentText: string | null;
+  embedFont: string;
 };
 
 function slugify(value: string) {
@@ -187,6 +190,9 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     notifyEmail: store.notifyEmail,
     salesReportFrequency: store.salesReportFrequency,
     embedTheme: store.embedTheme,
+    embedAccent: store.embedAccent,
+    embedAccentText: store.embedAccentText,
+    embedFont: store.embedFont ?? "paysynk",
   };
 }
 

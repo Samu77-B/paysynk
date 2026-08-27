@@ -24,8 +24,8 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500">
-          Store profile, VAT, order emails, website card look, delivery charge,
-          payments, and subscription
+          Store profile, VAT, order emails, website product and cart look,
+          delivery charge, payments, and subscription
         </p>
       </div>
 
@@ -87,7 +87,12 @@ export default async function SettingsPage() {
             exchangeRate={ctx.exchangeRate}
           />
           <StoreLogoSettings logoUrl={ctx.logoUrl} />
-          <EmbedThemeSettings embedTheme={ctx.embedTheme} />
+          <EmbedThemeSettings
+            embedTheme={ctx.embedTheme}
+            embedAccent={ctx.embedAccent}
+            embedAccentText={ctx.embedAccentText}
+            embedFont={ctx.embedFont}
+          />
           <StoreProfileSettings
             vatNumber={ctx.vatNumber}
             notifyEmail={ctx.notifyEmail}

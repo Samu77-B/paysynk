@@ -13,6 +13,10 @@
  *
  * Dark cards (optional):
  *   <script src="https://www.paysynk.com/embed.js" data-theme="dark" defer></script>
+ *
+ * Match the host site (Settings, or CSS / data attrs):
+ *   :root { --paysynk-accent:#c4a37a; --paysynk-accent-text:#141414; --paysynk-font:inherit; }
+ *   <script src="…/embed.js" data-accent="#c4a37a" data-font="inherit" defer></script>
  */
 (function () {
   var EVENT = "paysynk:cart-updated";
@@ -39,10 +43,12 @@
     }
   }
 
-  function renderOpeningSoon(el) {
-    var t = palette(readTheme(el));
+  function renderOpeningSoon(el, store) {
+    var t = palette(readTheme(el, store), readBrand(el, store));
     el.innerHTML =
-      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px dashed ' +
+      '<div style="font-family:' +
+      t.font +
+      ";border:1px dashed " +
       t.line +
       ";border-radius:12px;padding:1.1rem;background:" +
       t.card +
@@ -131,7 +137,124 @@
     return "light";
   }
 
-  function palette(mode) {
+  function cssVar(name, node) {
+    try {
+      if (node) {
+        var local = (
+          window.getComputedStyle(node).getPropertyValue(name) || ""
+        ).trim();
+        if (local) return local;
+      }
+      return (
+        window.getComputedStyle(document.documentElement).getPropertyValue(name) ||
+        ""
+      ).trim();
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function normalizeHex(value) {
+    var v = String(value || "").trim();
+    if (!v) return "";
+    if (v.charAt(0) !== "#") v = "#" + v;
+    if (/^#[0-9a-f]{3}$/i.test(v)) {
+      return (
+        "#" +
+        v.charAt(1) +
+        v.charAt(1) +
+        v.charAt(2) +
+        v.charAt(2) +
+        v.charAt(3) +
+        v.charAt(3)
+      ).toLowerCase();
+    }
+    if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+    return "";
+  }
+
+  function contrastText(hex) {
+    var n = parseInt(String(hex).slice(1), 16);
+    if (isNaN(n)) return "#141414";
+    var r = (n >> 16) & 255;
+    var g = (n >> 8) & 255;
+    var b = n & 255;
+    var y = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return y > 0.55 ? "#141414" : "#fafafa";
+  }
+
+  function safeFontFamily(font) {
+    var v = String(font || "")
+      .replace(/[<>;]/g, "")
+      .trim();
+    if (v === "inherit") return "inherit";
+    if (v === "serif") return 'Georgia,"Times New Roman",Times,serif';
+    if (!v || v === "paysynk") return "Outfit,system-ui,sans-serif";
+    if (v.length > 120) v = v.slice(0, 120);
+    return v;
+  }
+
+  function takeBrand(from, into) {
+    if (!from) return;
+    if (!into.accent) {
+      into.accent = normalizeHex(from.accent || from.embedAccent || "");
+    }
+    if (!into.accentText) {
+      into.accentText = normalizeHex(from.accentText || from.embedAccentText || "");
+    }
+    if (!into.font) {
+      into.font = String(from.font || from.embedFont || "").trim();
+    }
+  }
+
+  function readBrand(el, store) {
+    var into = { accent: "", accentText: "", font: "" };
+    if (el && el.getAttribute) {
+      takeBrand(
+        {
+          accent: el.getAttribute("data-accent") || el.getAttribute("data-paysynk-accent"),
+          accentText:
+            el.getAttribute("data-accent-text") ||
+            el.getAttribute("data-paysynk-accent-text"),
+          font: el.getAttribute("data-font") || el.getAttribute("data-paysynk-font"),
+        },
+        into,
+      );
+    }
+    var script = embedScriptEl();
+    if (script) {
+      takeBrand(
+        {
+          accent:
+            script.getAttribute("data-accent") ||
+            script.getAttribute("data-paysynk-accent"),
+          accentText:
+            script.getAttribute("data-accent-text") ||
+            script.getAttribute("data-paysynk-accent-text"),
+          font: script.getAttribute("data-font") || script.getAttribute("data-paysynk-font"),
+        },
+        into,
+      );
+    }
+    takeBrand(
+      {
+        accent: cssVar("--paysynk-accent", el),
+        accentText: cssVar("--paysynk-accent-text", el),
+        font: cssVar("--paysynk-font", el),
+      },
+      into,
+    );
+    takeBrand(store, into);
+    var accent = into.accent || "#9FE870";
+    return {
+      accent: accent,
+      accentText: into.accentText || contrastText(accent),
+      fontFamily: safeFontFamily(into.font || "paysynk"),
+    };
+  }
+
+  function palette(mode, brand) {
+    brand = brand || readBrand();
     if (mode === "dark") {
       return {
         card: "#171717",
@@ -142,10 +265,11 @@
         inputBg: "#0c0c0c",
         inputBorder: "#52525b",
         photoBg: "#0c0c0c",
-        btn: "#9FE870",
-        btnText: "#141414",
+        btn: brand.accent,
+        btnText: brand.accentText,
         btnOff: "#3f3f46",
-        flash: "#9FE870",
+        flash: brand.accent,
+        font: brand.fontFamily,
       };
     }
     return {
@@ -157,10 +281,11 @@
       inputBg: "#fff",
       inputBorder: "#d4d4d8",
       photoBg: "#fff",
-      btn: "#9FE870",
-      btnText: "#141414",
+      btn: brand.accent,
+      btnText: brand.accentText,
       btnOff: "#d4d4d8",
-      flash: "#65a30d",
+      flash: brand.accent,
+      font: brand.fontFamily,
     };
   }
 
@@ -347,9 +472,11 @@
     el.className = (el.className ? el.className + " " : "") + "paysynk-product-embed";
     var mode = readTheme(el);
     el.setAttribute("data-ps-theme", mode);
-    var t = palette(mode);
+    var t = palette(mode, readBrand(el));
     el.innerHTML =
-      '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid ' +
+      '<div style="font-family:' +
+      t.font +
+      ";border:1px solid " +
       t.line +
       ";border-radius:12px;padding:1.25rem;background:" +
       t.card +
@@ -378,7 +505,7 @@
         if (!product) throw new Error("Product not found");
         el.setAttribute("data-ps-theme", readTheme(el, data.store));
         if (!cartShoppingOn(data.store)) {
-          renderOpeningSoon(el);
+          renderOpeningSoon(el, data.store);
           return;
         }
         renderProductWidget(el, origin, data.store, product);
@@ -452,9 +579,11 @@
 
       var photo = imageForSelection(product, state.colour, sel);
       var mode = el.getAttribute("data-ps-theme") || readTheme(el, store);
-      var t = palette(mode);
+      var t = palette(mode, readBrand(el, store));
       var html =
-        '<div style="font-family:Outfit,system-ui,sans-serif;border:1px solid ' +
+        '<div style="font-family:' +
+        t.font +
+        ";border:1px solid " +
         t.line +
         ";border-radius:12px;padding:1.25rem;background:" +
         t.card +
@@ -565,13 +694,13 @@
       html +=
         '<button type="button" data-ps-add ' +
         (addDisabled ? "disabled " : "") +
-        'style="width:100%;border:0;border-radius:999px;padding:0.7rem 1rem;font-weight:600;cursor:' +
+        'style="width:100%;border:0;border-radius:999px;padding:0.7rem 1rem;font-weight:600;font-family:inherit;cursor:' +
         (addDisabled ? "not-allowed" : "pointer") +
-        ";background:" +
+        ";appearance:none;-webkit-appearance:none;background:" +
         (addDisabled ? t.btnOff : t.btn) +
-        ";color:" +
-        t.btnText +
-        '">' +
+        " !important;color:" +
+        (addDisabled ? t.text : t.btnText) +
+        " !important\">" +
         addLabel +
         "</button>" +
         '<p data-ps-status style="margin:0.65rem 0 0;min-height:1.2em;font-size:0.8rem;color:' +

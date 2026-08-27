@@ -10,6 +10,9 @@ export default async function IntegrationPage() {
       merchantName={ctx.merchant.name}
       storeSlug={ctx.merchant.slug}
       embedTheme={ctx.embedTheme}
+      embedAccent={ctx.embedAccent}
+      embedAccentText={ctx.embedAccentText}
+      embedFont={ctx.embedFont}
     />
   );
 }

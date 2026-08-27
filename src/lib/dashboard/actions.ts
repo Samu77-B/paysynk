@@ -7,6 +7,11 @@ import { toDashboardProduct } from "@/lib/dashboard/data";
 import type { CatalogProduct } from "@/lib/dashboard/data";
 import { isAllowedMediaUrl, sanitizeMediaUrl } from "@/lib/media-url";
 import { isShopCurrency } from "@/lib/shop-currency";
+import {
+  contrastTextFor,
+  normalizeHexColor,
+  parseEmbedFont,
+} from "@/lib/embed-brand";
 
 function slugify(value: string) {
   return value
@@ -362,6 +367,49 @@ export async function saveEmbedTheme(input: {
   revalidatePath("/app/settings");
   revalidatePath("/app/integration");
   return { embedTheme };
+}
+
+export async function saveEmbedBrand(input: {
+  accent: string;
+  accentText: string;
+  font: string;
+}): Promise<{
+  error?: string;
+  embedAccent?: string | null;
+  embedAccentText?: string | null;
+  embedFont?: string;
+}> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update your shop look." };
+
+  const accent = normalizeHexColor(input.accent);
+  if (input.accent.trim() && !accent) {
+    return { error: "Use a colour like #c4a37a." };
+  }
+  let accentText = normalizeHexColor(input.accentText);
+  if (input.accentText.trim() && !accentText) {
+    return { error: "Use a button text colour like #141414." };
+  }
+  if (accent && !accentText) {
+    accentText = contrastTextFor(accent);
+  }
+  const embedFont = parseEmbedFont(input.font);
+  await prisma.store.update({
+    where: { id: storeId },
+    data: {
+      embedAccent: accent,
+      embedAccentText: accentText,
+      embedFont,
+    },
+  });
+  revalidatePath("/app/settings");
+  revalidatePath("/app/integration");
+  return {
+    embedAccent: accent,
+    embedAccentText: accentText,
+    embedFont,
+  };
 }
 
 const REPORT_FREQUENCIES = ["none", "daily", "weekly", "monthly"] as const;

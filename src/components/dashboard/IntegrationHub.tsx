@@ -24,11 +24,17 @@ export function IntegrationHub({
   merchantName,
   storeSlug,
   embedTheme,
+  embedAccent,
+  embedAccentText,
+  embedFont,
 }: {
   merchantId: string;
   merchantName: string;
   storeSlug: string;
   embedTheme: string;
+  embedAccent: string | null;
+  embedAccentText: string | null;
+  embedFont: string;
 }) {
   const cartSnippet = cartEmbedSnippet(storeSlug, merchantId);
   const exampleProductSnippet = productEmbedSnippet(
@@ -46,7 +52,12 @@ export function IntegrationHub({
         </p>
       </div>
 
-      <EmbedThemeSettings embedTheme={embedTheme} />
+      <EmbedThemeSettings
+        embedTheme={embedTheme}
+        embedAccent={embedAccent}
+        embedAccentText={embedAccentText}
+        embedFont={embedFont}
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card className="border-zinc-200 shadow-sm">
@@ -66,8 +77,9 @@ export function IntegrationHub({
               label="Copy shop cart code"
             />
             <p className="text-sm text-zinc-600">
-              Dark website? Use the <strong>Dark product cards</strong> switch
-              above. You do not need to edit your HTML.
+              Match your site with <strong>Website product &amp; cart look</strong>{" "}
+              above (colour, type, dark cards). You do not need to recopy this
+              snippet after you save.
             </p>
 
             <Tabs defaultValue="html">

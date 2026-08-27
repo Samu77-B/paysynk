@@ -711,8 +711,8 @@ export function ProductsManager({
                   <div className="min-w-0">
                     <p className="text-sm font-medium">Product embed</p>
                     <p className="text-xs text-zinc-500">
-                      Copy this onto any page with cart.js. For a dark website,
-                      turn on Dark product cards in Settings or Integration.
+                      Copy this onto any page with cart.js. Colours and type
+                      come from Settings → Website product &amp; cart look.
                     </p>
                   </div>
                   <CopySnippetButton
