@@ -56,6 +56,7 @@ export async function GET(req: Request, { params }: Params) {
         title: p.title,
         description: p.description,
         images: p.images,
+        category: p.category.trim() || "Merch",
         kind: p.kind,
         variants: p.variants.map((v) => ({
           id: v.id,

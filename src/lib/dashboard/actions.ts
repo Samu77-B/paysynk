@@ -65,6 +65,7 @@ export async function saveDashboardProduct(input: {
   colourImages?: Record<string, string>;
   defaultImage?: string | null;
   stockByKey?: Record<string, number>;
+  category?: string;
 }): Promise<{ product?: CatalogProduct; error?: string }> {
   const session = await auth();
   const storeId = session?.user?.storeId;
@@ -152,6 +153,7 @@ export async function saveDashboardProduct(input: {
         title: input.title.trim(),
         description: input.description,
         active: input.isActive,
+        category: (input.category ?? "").trim(),
         images,
         variants: { create: variantRows },
       },
@@ -168,6 +170,7 @@ export async function saveDashboardProduct(input: {
       title: input.title.trim(),
       description: input.description,
       active: input.isActive,
+      category: (input.category ?? "").trim(),
       kind: "other",
       images,
       variants: { create: variantRows },

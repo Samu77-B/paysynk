@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import { Plus, Package, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +91,11 @@ function unique(values: (string | undefined)[]) {
 
 function stockKey(colour?: string, size?: string) {
   return `${colour ?? ""}|${size ?? ""}`;
+}
+
+function merchCategoryLabel(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed || "Uncategorised";
 }
 
 function productThumb(product: CatalogProduct) {
@@ -224,6 +229,24 @@ export function ProductsManager({
   const colours = form.enableVariants ? parseList(form.variantColor) : [];
   const sizes = form.enableVariants ? parseList(form.variantSize) : [];
   const showStockGrid = colours.length > 0 || sizes.length > 0;
+  const categoryNames = useMemo(
+    () => unique(products.map((p) => p.category?.trim() || undefined)),
+    [products],
+  );
+  const groupedProducts = useMemo(() => {
+    const map = new Map<string, CatalogProduct[]>();
+    for (const product of products) {
+      const key = merchCategoryLabel(product.category);
+      const list = map.get(key) ?? [];
+      list.push(product);
+      map.set(key, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => {
+      if (a === "Uncategorised") return 1;
+      if (b === "Uncategorised") return -1;
+      return a.localeCompare(b);
+    });
+  }, [products]);
 
   function openCreate() {
     setForm(emptyForm());
@@ -324,6 +347,7 @@ export function ProductsManager({
         sku: form.sku || null,
         stockQty: stock,
         isActive: form.isActive,
+        category: form.category,
         colours,
         sizes,
         colourImages,
@@ -400,82 +424,112 @@ export function ProductsManager({
 
       <Card className="border-zinc-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Catalog</CardTitle>
+          <CardTitle>Categories</CardTitle>
           <CardDescription>
-            {products.length} products · scoped to your merchant
+            Type a category when you add or edit merch. Products with the same
+            name group together here and on your shop.
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Image</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Embed</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products.map((product) => {
-                const thumb = productThumb(product);
-                return (
-                  <TableRow
-                    key={product.id}
-                    className="cursor-pointer"
-                    onClick={() => openEdit(product)}
-                  >
-                    <TableCell>
-                      <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
-                        {thumb ? (
-                          <Image
-                            src={thumb}
-                            alt=""
-                            width={40}
-                            height={40}
-                            unoptimized={thumb.startsWith("http")}
-                            className="size-10 object-cover"
-                          />
-                        ) : (
-                          <Package className="size-4 text-zinc-400" />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{product.title}</TableCell>
-                    <TableCell className="font-mono text-xs text-zinc-500">
-                      {product.sku ?? "—"}
-                    </TableCell>
-                    <TableCell>{formatGbp(product.price_in_pence)}</TableCell>
-                    <TableCell>
-                      <span
-                        className={
-                          product.stock_quantity <= 3
-                            ? "font-medium text-amber-700"
-                            : ""
-                        }
+          {products.length === 0 ? (
+            <p className="text-sm text-zinc-500">
+              No merch yet. Add a product and give it a category.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Image</TableHead>
+                  <TableHead>Title</TableHead>
+                  <TableHead>SKU</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Embed</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupedProducts.map(([category, rows]) => (
+                  <Fragment key={category}>
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={7}
+                        className="bg-zinc-50 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500"
                       >
-                        {product.stock_quantity}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={product.is_active ? "default" : "secondary"}>
-                        {product.is_active ? "Active" : "Draft"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <CopySnippetButton
-                        snippet={productEmbedSnippet(storeSlug, product.slug)}
-                        label="Copy"
-                        className="h-8 bg-zinc-900 text-white hover:bg-zinc-800"
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                        {category}
+                      </TableCell>
+                    </TableRow>
+                    {rows.map((product) => {
+                      const thumb = productThumb(product);
+                      return (
+                        <TableRow
+                          key={product.id}
+                          className="cursor-pointer"
+                          onClick={() => openEdit(product)}
+                        >
+                          <TableCell>
+                            <div className="flex size-10 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
+                              {thumb ? (
+                                <Image
+                                  src={thumb}
+                                  alt=""
+                                  width={40}
+                                  height={40}
+                                  unoptimized={thumb.startsWith("http")}
+                                  className="size-10 object-cover"
+                                />
+                              ) : (
+                                <Package className="size-4 text-zinc-400" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {product.title}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-zinc-500">
+                            {product.sku ?? "—"}
+                          </TableCell>
+                          <TableCell>
+                            {formatGbp(product.price_in_pence)}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={
+                                product.stock_quantity <= 3
+                                  ? "font-medium text-amber-700"
+                                  : ""
+                              }
+                            >
+                              {product.stock_quantity}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                product.is_active ? "default" : "secondary"
+                              }
+                            >
+                              {product.is_active ? "Active" : "Draft"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <CopySnippetButton
+                              snippet={productEmbedSnippet(
+                                storeSlug,
+                                product.slug,
+                              )}
+                              label="Copy"
+                              className="h-8 bg-zinc-900 text-white hover:bg-zinc-800"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -497,6 +551,26 @@ export function ProductsManager({
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Input
+                  list="merch-categories"
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
+                  placeholder="e.g. Hair, Apparel"
+                />
+                <datalist id="merch-categories">
+                  {categoryNames.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
+                <p className="text-xs text-zinc-500">
+                  Pick an existing name or type a new one. Same names group
+                  together.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label>Description</Label>

@@ -16,6 +16,7 @@ export type StorefrontProduct = {
   title: string;
   description: string;
   images: string[];
+  category: string;
   kind: "tee" | "tote" | "other";
   variants: Array<{
     id: string;
@@ -749,6 +750,9 @@ export function Storefront({
   offers?: PublicOffer[];
 }) {
   const categories = [...new Set(configProducts.map((p) => p.category || "Print"))];
+  const merchCategories = [
+    ...new Set(products.map((p) => p.category.trim() || "Merch")),
+  ];
   return (
     <CartProvider storeSlug={store.slug}>
       <div className="store-shell">
@@ -814,13 +818,22 @@ export function Storefront({
                 </div>
               </section>
             ))}
-            {products.length > 0 ? (
-              <div className="store-grid" style={{ marginTop: categories.length ? "1.5rem" : 0 }}>
-                {products.map((p) => (
-                  <ProductCard key={p.id} product={p} currency={store.currency} />
-                ))}
-              </div>
-            ) : null}
+            {merchCategories.map((category) => (
+              <section key={category} className="print-menu-block">
+                <h2 className="print-menu-heading">{category}</h2>
+                <div className="store-grid">
+                  {products
+                    .filter((p) => (p.category.trim() || "Merch") === category)
+                    .map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        currency={store.currency}
+                      />
+                    ))}
+                </div>
+              </section>
+            ))}
           </div>
           <CartPanel store={store} offers={offers} />
         </div>

@@ -93,7 +93,7 @@ export function toDashboardProduct(
     stock_quantity: stock,
     images: product.images,
     tags: [],
-    category: null,
+    category: product.category?.trim() ? product.category.trim() : null,
     is_active: product.active,
     created_at: product.createdAt.toISOString(),
     variants,

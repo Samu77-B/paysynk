@@ -136,6 +136,7 @@ model Product {
   title       String
   description String      @default("")
   images      String[]
+  category    String      @default("")
   active      Boolean     @default(true)
   kind        ProductKind @default(other)
   createdAt   DateTime    @default(now())
