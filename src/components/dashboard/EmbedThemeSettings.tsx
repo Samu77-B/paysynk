@@ -99,8 +99,8 @@ export function EmbedThemeSettings({
       setDark(result.embedTheme === "dark");
       setMessage(
         result.embedTheme === "dark"
-          ? "Dark cards are on. Refresh the shop website to see them."
-          : "Light cards are on. Refresh the shop website to see them.",
+          ? "Dark cards are on. Refresh your website and your PaySynk shop to see them."
+          : "Light cards are on. Refresh your website and your PaySynk shop to see them.",
       );
     });
   }
@@ -132,7 +132,7 @@ export function EmbedThemeSettings({
       if (result.embedFont) setFont(parseEmbedFont(result.embedFont));
       if (result.embedRadius) setRadius(parseEmbedRadius(result.embedRadius));
       setMessage(
-        "Saved. Refresh pages that already have your product or cart code — you do not need to recopy the snippet.",
+        "Saved. Refresh your website and your PaySynk shop — you do not need to recopy the snippet.",
       );
     });
   }
@@ -156,8 +156,8 @@ export function EmbedThemeSettings({
         <p className="text-sm font-medium">Website product &amp; cart look</p>
         <p className="mt-0.5 text-xs text-zinc-500">
           These colours, fonts, and button corners apply to the product snippet
-          and cart you paste on your own site. The PaySynk hosted shop stays as
-          it is.
+          and cart on your own site, and to your PaySynk shop at{" "}
+          <code className="rounded bg-zinc-100 px-1">/s/…</code>.
         </p>
       </div>
 
@@ -165,7 +165,7 @@ export function EmbedThemeSettings({
         <div>
           <p className="text-sm font-medium">Dark product cards</p>
           <p className="text-xs text-zinc-500">
-            Use dark widgets and cart on a dark website.
+            Use dark widgets, cart, and PaySynk shop on a dark website.
           </p>
         </div>
         <Switch

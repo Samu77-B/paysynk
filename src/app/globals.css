@@ -704,6 +704,86 @@ h3 {
 }
 
 /* —— Storefront —— */
+.store-page {
+  min-height: 100vh;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--store-font, var(--font-body), Outfit, system-ui, sans-serif);
+}
+
+.store-page h1,
+.store-page h2,
+.store-page h3,
+.store-page .store-brand-name,
+.store-page .print-menu-heading,
+.store-page .success-store-name {
+  font-family: var(
+    --store-heading-font,
+    var(--font-display),
+    Syne,
+    system-ui,
+    sans-serif
+  );
+}
+
+.store-page-serif h1,
+.store-page-serif h2,
+.store-page-serif h3,
+.store-page-serif .store-brand-name {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.store-page .btn {
+  border-radius: var(--store-btn-radius, 8px);
+}
+
+.store-page .store-product,
+.store-page .store-cart,
+.store-page .modal-card,
+.store-page .success-card,
+.store-page .config-builder,
+.store-page .config-hero {
+  border-radius: var(--store-card-radius, var(--radius));
+}
+
+.store-page .field input,
+.store-page .field select,
+.store-page .field textarea,
+.store-page .cart-qty input,
+.store-page .cart-promo input,
+.store-page .cart-delivery input,
+.store-page .cart-delivery select,
+.store-page .cart-delivery,
+.store-page .cart-dest label,
+.store-page .stock-pill-count {
+  border-radius: var(--store-control-radius, 8px);
+}
+
+.store-page-light .store-product-visual:not(.store-product-visual-photo) {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--accent) 32%, transparent),
+      transparent 55%
+    ),
+    linear-gradient(160deg, #f3eee6, #e8dfd4);
+  color: var(--ink);
+}
+
+.store-page-light .config-related-card {
+  background: var(--bg-elevated);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.store-page-light .store-product,
+.store-page-light .store-cart,
+.store-page-light .success-card,
+.store-page-light .config-builder {
+  box-shadow: 0 1px 0 rgba(43, 38, 34, 0.06);
+}
+
 .store-shell {
   max-width: 1100px;
   margin: 0 auto;

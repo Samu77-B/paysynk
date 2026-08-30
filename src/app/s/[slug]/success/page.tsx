@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
+import { hostedShopSurface } from "@/lib/embed-brand";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/pricing";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
@@ -35,6 +36,8 @@ export default async function SuccessPage({ params, searchParams }: Props) {
 
   const storeName = store?.name ?? "Your order";
   const paid = order?.status === "paid" || order?.status === "fulfilled";
+  const logoVariant =
+    hostedShopSurface(store) === "light" ? "black" : "white";
 
   return (
     <main className="success-page">
@@ -111,7 +114,7 @@ export default async function SuccessPage({ params, searchParams }: Props) {
       <p className="success-powered">
         <span>Powered by</span>
         <Link href="/" aria-label="PaySynk">
-          <BrandLogo variant="white" height={22} />
+          <BrandLogo variant={logoVariant} height={22} />
         </Link>
       </p>
     </main>
