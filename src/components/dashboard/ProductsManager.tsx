@@ -369,7 +369,7 @@ export function ProductsManager({
           <h1 className="text-2xl font-semibold tracking-tight">Merch</h1>
           <p className="text-sm text-zinc-500">
             Simple stock products (colour, size, one price). Print jobs with
-            dropdowns are in the catalog above.
+            dropdowns are in the catalog below.
           </p>
           {!paymentsActive && (
             <p className="mt-2 max-w-xl text-sm text-amber-800">

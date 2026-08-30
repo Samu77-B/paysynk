@@ -16,6 +16,12 @@ export default async function ProductsPage() {
 
   return (
     <div className="space-y-10">
+      <ProductsManager
+        merchantId={ctx.merchant.id}
+        storeSlug={ctx.merchant.slug}
+        initialProducts={products}
+        paymentsActive={ctx.merchant.payments_active}
+      />
       <div id="print">
         <ConfigProductsManager
           storeSlug={ctx.merchant.slug}
@@ -24,12 +30,6 @@ export default async function ProductsPage() {
           templates={templates}
         />
       </div>
-      <ProductsManager
-        merchantId={ctx.merchant.id}
-        storeSlug={ctx.merchant.slug}
-        initialProducts={products}
-        paymentsActive={ctx.merchant.payments_active}
-      />
     </div>
   );
 }
