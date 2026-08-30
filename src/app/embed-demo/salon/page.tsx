@@ -110,6 +110,17 @@ export default function SalonEmbedDemoPage() {
           </Link>
         </p>
 
+        <h2
+          style={{
+            margin: "0 0 1rem",
+            fontSize: "0.75rem",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "#8a7358",
+          }}
+        >
+          Featured products
+        </h2>
         <div
           style={{
             display: "grid",
@@ -121,12 +132,20 @@ export default function SalonEmbedDemoPage() {
           }}
         >
           <div
-            data-paysynk-product="acme-minimalist-heavyweight-hoodie"
-            data-store="acme"
+            data-paysynk-product="shu-uemura-art-of-hair-ultimate-reset"
+            data-store="jojo-flo-london"
           />
           <div
-            data-paysynk-product="acme-insulated-steel-water-bottle-750ml"
-            data-store="acme"
+            data-paysynk-product="shu-uemura-art-of-hair-izumi-tonic"
+            data-store="jojo-flo-london"
+          />
+          <div
+            data-paysynk-product="k-rastase-premi-re-concentr-d-calcifiant-ultra-r-parateur-45ml"
+            data-store="jojo-flo-london"
+          />
+          <div
+            data-paysynk-product="davines-nounou-hair-mask-75ml"
+            data-store="jojo-flo-london"
           />
         </div>
       </div>
@@ -134,8 +153,8 @@ export default function SalonEmbedDemoPage() {
       <Script src="/embed.js" strategy="afterInteractive" />
       <Script
         src="/cart.js"
-        data-store="acme"
-        data-merchant-id="11111111-1111-1111-1111-111111111111"
+        data-store="jojo-flo-london"
+        data-merchant-id="cmtbbv1k5000004jzbx1wq1s3"
         strategy="afterInteractive"
       />
     </main>

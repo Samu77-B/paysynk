@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   embedCorsPreflight,
+  legacySlugifyProductKey,
   slugifyProductKey,
   withEmbedCors,
 } from "@/lib/embed-cors";
@@ -53,6 +54,7 @@ export async function GET(req: Request, { params }: Params) {
       .map((p) => ({
         id: p.id,
         slug: slugifyProductKey(p.title),
+        legacySlug: legacySlugifyProductKey(p.title),
         title: p.title,
         description: p.description,
         images: p.images,
@@ -73,6 +75,7 @@ export async function GET(req: Request, { params }: Params) {
           (p) =>
             p.id === productKey ||
             p.slug === productKey ||
+            p.legacySlug === productKey ||
             p.slug.startsWith(productKey) ||
             productKey.startsWith(p.slug),
         )
@@ -101,7 +104,7 @@ export async function GET(req: Request, { params }: Params) {
           embedTheme: store.embedTheme === "dark" ? "dark" : "light",
           ...publicEmbedBrand(store),
         },
-        products: filtered,
+        products: filtered.map(({ legacySlug: _legacySlug, ...product }) => product),
         offers,
       }),
     );

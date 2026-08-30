@@ -20,3 +20,11 @@ export function slugifyProductKey(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+/** Older Copy-snippet slugs dropped accented letters (Kérastase → k-rastase). */
+export function legacySlugifyProductKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
