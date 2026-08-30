@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Copy, Layers, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Copy, Layers, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -411,13 +411,14 @@ export function ConfigProductsManager({
             change dropdowns and prices. Other printers are not affected.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-1">
           {groupedTemplates.map(([category, rows]) => (
-            <div key={category}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                {category}
-              </p>
-              <div className="flex flex-wrap gap-2">
+            <details key={category} className="group border-b border-zinc-100 py-2 last:border-b-0">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-md py-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 hover:text-zinc-800 [&::-webkit-details-marker]:hidden [&::marker]:hidden">
+                <span>{category}</span>
+                <ChevronDown className="size-4 shrink-0 transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="flex flex-wrap gap-2 pt-2 pb-1">
                 {rows.map((t) => (
                   <Button
                     key={t.id}
@@ -440,7 +441,7 @@ export function ConfigProductsManager({
                   </Button>
                 ))}
               </div>
-            </div>
+            </details>
           ))}
         </CardContent>
       </Card>
