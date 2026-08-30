@@ -6,6 +6,9 @@ export const DEFAULT_EMBED_ACCENT_TEXT = "#141414";
 export const EMBED_FONTS = ["paysynk", "inherit", "serif"] as const;
 export type EmbedFont = (typeof EMBED_FONTS)[number];
 
+export const EMBED_RADII = ["paysynk", "inherit", "square"] as const;
+export type EmbedRadius = (typeof EMBED_RADII)[number];
+
 export function normalizeHexColor(value: unknown): string | null {
   if (typeof value !== "string") return null;
   let v = value.trim();
@@ -23,6 +26,11 @@ export function parseEmbedFont(value: unknown): EmbedFont {
   return "paysynk";
 }
 
+export function parseEmbedRadius(value: unknown): EmbedRadius {
+  if (value === "inherit" || value === "square") return value;
+  return "paysynk";
+}
+
 export function contrastTextFor(hex: string): string {
   const n = Number.parseInt(hex.slice(1), 16);
   if (!Number.isFinite(n)) return DEFAULT_EMBED_ACCENT_TEXT;
@@ -37,10 +45,12 @@ export function publicEmbedBrand(store: {
   embedAccent?: string | null;
   embedAccentText?: string | null;
   embedFont?: string | null;
+  embedRadius?: string | null;
 }) {
   return {
     embedAccent: normalizeHexColor(store.embedAccent),
     embedAccentText: normalizeHexColor(store.embedAccentText),
     embedFont: parseEmbedFont(store.embedFont),
+    embedRadius: parseEmbedRadius(store.embedRadius),
   };
 }

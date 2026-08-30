@@ -27,6 +27,7 @@ export function IntegrationHub({
   embedAccent,
   embedAccentText,
   embedFont,
+  embedRadius,
 }: {
   merchantId: string;
   merchantName: string;
@@ -35,6 +36,7 @@ export function IntegrationHub({
   embedAccent: string | null;
   embedAccentText: string | null;
   embedFont: string;
+  embedRadius: string;
 }) {
   const cartSnippet = cartEmbedSnippet(storeSlug, merchantId);
   const exampleProductSnippet = productEmbedSnippet(
@@ -57,6 +59,7 @@ export function IntegrationHub({
         embedAccent={embedAccent}
         embedAccentText={embedAccentText}
         embedFont={embedFont}
+        embedRadius={embedRadius}
       />
 
       <div className="grid gap-6 xl:grid-cols-2">

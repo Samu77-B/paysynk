@@ -13,6 +13,7 @@ export default async function IntegrationPage() {
       embedAccent={ctx.embedAccent}
       embedAccentText={ctx.embedAccentText}
       embedFont={ctx.embedFont}
+      embedRadius={ctx.embedRadius}
     />
   );
 }

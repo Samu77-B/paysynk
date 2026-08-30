@@ -11,6 +11,7 @@ import {
   contrastTextFor,
   normalizeHexColor,
   parseEmbedFont,
+  parseEmbedRadius,
 } from "@/lib/embed-brand";
 
 function slugify(value: string) {
@@ -376,11 +377,13 @@ export async function saveEmbedBrand(input: {
   accent: string;
   accentText: string;
   font: string;
+  radius?: string;
 }): Promise<{
   error?: string;
   embedAccent?: string | null;
   embedAccentText?: string | null;
   embedFont?: string;
+  embedRadius?: string;
 }> {
   const session = await auth();
   const storeId = session?.user?.storeId;
@@ -398,12 +401,14 @@ export async function saveEmbedBrand(input: {
     accentText = contrastTextFor(accent);
   }
   const embedFont = parseEmbedFont(input.font);
+  const embedRadius = parseEmbedRadius(input.radius);
   await prisma.store.update({
     where: { id: storeId },
     data: {
       embedAccent: accent,
       embedAccentText: accentText,
       embedFont,
+      embedRadius,
     },
   });
   revalidatePath("/app/settings");
@@ -412,6 +417,7 @@ export async function saveEmbedBrand(input: {
     embedAccent: accent,
     embedAccentText: accentText,
     embedFont,
+    embedRadius,
   };
 }
 

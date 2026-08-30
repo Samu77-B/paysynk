@@ -92,6 +92,7 @@ export default async function SettingsPage() {
             embedAccent={ctx.embedAccent}
             embedAccentText={ctx.embedAccentText}
             embedFont={ctx.embedFont}
+            embedRadius={ctx.embedRadius}
           />
           <StoreProfileSettings
             vatNumber={ctx.vatNumber}

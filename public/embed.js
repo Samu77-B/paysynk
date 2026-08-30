@@ -15,8 +15,8 @@
  *   <script src="https://www.paysynk.com/embed.js" data-theme="dark" defer></script>
  *
  * Match the host site (Settings, or CSS / data attrs):
- *   :root { --paysynk-accent:#c4a37a; --paysynk-accent-text:#141414; --paysynk-font:inherit; }
- *   <script src="…/embed.js" data-accent="#c4a37a" data-font="inherit" defer></script>
+ *   :root { --paysynk-accent:#c4a37a; --paysynk-font:inherit; --paysynk-radius:0; }
+ *   <script src="…/embed.js" data-accent="#c4a37a" data-font="inherit" data-radius="square" defer></script>
  */
 (function () {
   var EVENT = "paysynk:cart-updated";
@@ -194,6 +194,65 @@
     return v;
   }
 
+  function firstRadiusToken(value) {
+    return String(value || "")
+      .trim()
+      .split(/\s+/)[0];
+  }
+
+  function parseRadiusChoice(value) {
+    var v = String(value || "")
+      .trim()
+      .toLowerCase();
+    if (!v) return "";
+    if (v === "square" || v === "sharp" || v === "0" || v === "0px") return "square";
+    if (v === "pill" || v === "paysynk" || v === "full") return "paysynk";
+    if (v === "inherit" || v === "match") return "inherit";
+    return v;
+  }
+
+  function sampleHostButtonRadius(skipRoot) {
+    var nodes = document.querySelectorAll(
+      "button, input[type=submit], input[type=button], .btn, a.button",
+    );
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (skipRoot && skipRoot.contains && skipRoot.contains(node)) continue;
+      if (node.id === "paysynk-cart-launcher") continue;
+      if (
+        node.closest &&
+        node.closest(
+          "#paysynk-cart-root, .paysynk-product-embed, .paysynk-embed, [data-paysynk-product]",
+        )
+      ) {
+        continue;
+      }
+      try {
+        var cs = window.getComputedStyle(node);
+        if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") {
+          continue;
+        }
+        var box = node.getBoundingClientRect();
+        if (box.width < 64 || box.height < 28) continue;
+        var token = firstRadiusToken(cs.borderTopLeftRadius || cs.borderRadius);
+        if (!token) continue;
+        var n = parseFloat(token);
+        if (!isNaN(n) && (token.indexOf("%") !== -1 || n >= 40)) return "999px";
+        return token === "0px" ? "0" : token;
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    return "";
+  }
+
+  function radiusCss(choice, el) {
+    if (!choice || choice === "paysynk") return "999px";
+    if (choice === "square") return "0";
+    if (choice === "inherit") return sampleHostButtonRadius(el) || "999px";
+    return firstRadiusToken(choice) || "999px";
+  }
+
   function takeBrand(from, into) {
     if (!from) return;
     if (!into.accent) {
@@ -205,10 +264,13 @@
     if (!into.font) {
       into.font = String(from.font || from.embedFont || "").trim();
     }
+    if (!into.radius) {
+      into.radius = String(from.radius || from.embedRadius || "").trim();
+    }
   }
 
   function readBrand(el, store) {
-    var into = { accent: "", accentText: "", font: "" };
+    var into = { accent: "", accentText: "", font: "", radius: "" };
     if (el && el.getAttribute) {
       takeBrand(
         {
@@ -217,6 +279,8 @@
             el.getAttribute("data-accent-text") ||
             el.getAttribute("data-paysynk-accent-text"),
           font: el.getAttribute("data-font") || el.getAttribute("data-paysynk-font"),
+          radius:
+            el.getAttribute("data-radius") || el.getAttribute("data-paysynk-radius"),
         },
         into,
       );
@@ -232,6 +296,9 @@
             script.getAttribute("data-accent-text") ||
             script.getAttribute("data-paysynk-accent-text"),
           font: script.getAttribute("data-font") || script.getAttribute("data-paysynk-font"),
+          radius:
+            script.getAttribute("data-radius") ||
+            script.getAttribute("data-paysynk-radius"),
         },
         into,
       );
@@ -241,6 +308,7 @@
         accent: cssVar("--paysynk-accent", el),
         accentText: cssVar("--paysynk-accent-text", el),
         font: cssVar("--paysynk-font", el),
+        radius: cssVar("--paysynk-radius", el),
       },
       into,
     );
@@ -250,6 +318,7 @@
       accent: accent,
       accentText: into.accentText || contrastText(accent),
       fontFamily: safeFontFamily(into.font || "paysynk"),
+      buttonRadius: radiusCss(parseRadiusChoice(into.radius), el),
     };
   }
 
@@ -270,6 +339,7 @@
         btnOff: "#3f3f46",
         flash: brand.accent,
         font: brand.fontFamily,
+        radius: brand.buttonRadius,
       };
     }
     return {
@@ -286,6 +356,7 @@
       btnOff: "#d4d4d8",
       flash: brand.accent,
       font: brand.fontFamily,
+      radius: brand.buttonRadius,
     };
   }
 
@@ -453,7 +524,9 @@
       "</div>" +
       '<a href="' +
       href +
-      '" style="display:inline-block;background:#9FE870;color:#141414;text-decoration:none;padding:0.65rem 1rem;border-radius:999px;font-weight:600">Open shop</a>' +
+      '" style="display:inline-block;background:#9FE870;color:#141414;text-decoration:none;padding:0.65rem 1rem;border-radius:' +
+      readBrand(el).buttonRadius +
+      ';font-weight:600">Open shop</a>' +
       '<p style="margin:0.75rem 0 0;font-size:0.85rem;color:#a3a3a3">Shop cart: include cart.js with data-store=&quot;' +
       escapeHtml(slug) +
       '&quot; on any page</p></div>';
@@ -696,7 +769,9 @@
       html +=
         '<button type="button" data-ps-add ' +
         (addDisabled ? "disabled " : "") +
-        'style="width:100%;border:0;border-radius:999px;padding:0.7rem 1rem;font-weight:600;font-family:inherit;cursor:' +
+        'style="width:100%;border:0;border-radius:' +
+        t.radius +
+        ';padding:0.7rem 1rem;font-weight:600;font-family:inherit;cursor:' +
         (addDisabled ? "not-allowed" : "pointer") +
         ";appearance:none;-webkit-appearance:none;background:" +
         (addDisabled ? t.btnOff : t.btn) +

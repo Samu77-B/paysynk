@@ -8,10 +8,11 @@
  *     data-theme="dark"
  *     data-accent="#c4a37a"
  *     data-font="inherit"
+ *     data-radius="square"
  *     async></script>
  *
  * Product embeds (embed.js) write to the same cart key: paysynk-cart:{store}
- * Brand: Settings, or --paysynk-accent / --paysynk-font on the host page.
+ * Brand: Settings, or --paysynk-accent / --paysynk-font / --paysynk-radius on the host page.
  */
 (function () {
   var EVENT = "paysynk:cart-updated";
@@ -116,6 +117,64 @@
     return v;
   }
 
+  function firstRadiusToken(value) {
+    return String(value || "")
+      .trim()
+      .split(/\s+/)[0];
+  }
+
+  function parseRadiusChoice(value) {
+    var v = String(value || "")
+      .trim()
+      .toLowerCase();
+    if (!v) return "";
+    if (v === "square" || v === "sharp" || v === "0" || v === "0px") return "square";
+    if (v === "pill" || v === "paysynk" || v === "full") return "paysynk";
+    if (v === "inherit" || v === "match") return "inherit";
+    return v;
+  }
+
+  function sampleHostButtonRadius() {
+    var nodes = document.querySelectorAll(
+      "button, input[type=submit], input[type=button], .btn, a.button",
+    );
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      if (node.id === "paysynk-cart-launcher") continue;
+      if (
+        node.closest &&
+        node.closest(
+          "#paysynk-cart-root, .paysynk-product-embed, .paysynk-embed, [data-paysynk-product]",
+        )
+      ) {
+        continue;
+      }
+      try {
+        var cs = window.getComputedStyle(node);
+        if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") {
+          continue;
+        }
+        var box = node.getBoundingClientRect();
+        if (box.width < 64 || box.height < 28) continue;
+        var token = firstRadiusToken(cs.borderTopLeftRadius || cs.borderRadius);
+        if (!token) continue;
+        var n = parseFloat(token);
+        if (!isNaN(n) && (token.indexOf("%") !== -1 || n >= 40)) return "999px";
+        return token === "0px" ? "0" : token;
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    return "";
+  }
+
+  function radiusCss(choice) {
+    if (!choice || choice === "paysynk") return "999px";
+    if (choice === "square") return "0";
+    if (choice === "inherit") return sampleHostButtonRadius() || "999px";
+    return firstRadiusToken(choice) || "999px";
+  }
+
   function takeBrand(from, into) {
     if (!from) return;
     if (!into.accent) {
@@ -127,10 +186,13 @@
     if (!into.font) {
       into.font = String(from.font || from.embedFont || "").trim();
     }
+    if (!into.radius) {
+      into.radius = String(from.radius || from.embedRadius || "").trim();
+    }
   }
 
   function readBrand() {
-    var into = { accent: "", accentText: "", font: "" };
+    var into = { accent: "", accentText: "", font: "", radius: "" };
     if (script) {
       takeBrand(
         {
@@ -141,6 +203,9 @@
             script.getAttribute("data-accent-text") ||
             script.getAttribute("data-paysynk-accent-text"),
           font: script.getAttribute("data-font") || script.getAttribute("data-paysynk-font"),
+          radius:
+            script.getAttribute("data-radius") ||
+            script.getAttribute("data-paysynk-radius"),
         },
         into,
       );
@@ -150,6 +215,7 @@
         accent: cssVar("--paysynk-accent", document.body),
         accentText: cssVar("--paysynk-accent-text", document.body),
         font: cssVar("--paysynk-font", document.body),
+        radius: cssVar("--paysynk-radius", document.body),
       },
       into,
     );
@@ -159,6 +225,7 @@
       accent: accent,
       accentText: into.accentText || contrastText(accent),
       fontFamily: safeFontFamily(into.font || "paysynk"),
+      buttonRadius: radiusCss(parseRadiusChoice(into.radius)),
     };
   }
 
@@ -197,6 +264,7 @@
         btn: brand.accent,
         btnText: brand.accentText,
         font: brand.fontFamily,
+        radius: brand.buttonRadius,
       };
     }
     return {
@@ -215,6 +283,7 @@
       btn: brand.accent,
       btnText: brand.accentText,
       font: brand.fontFamily,
+      radius: brand.buttonRadius,
     };
   }
 
@@ -688,6 +757,7 @@
     embedAccent: null,
     embedAccentText: null,
     embedFont: "paysynk",
+    embedRadius: "paysynk",
   };
   var storeOffers = [];
   var open = false;
@@ -738,7 +808,9 @@
     button.setAttribute("aria-label", "Open PaySynk cart");
     var brand = readBrand();
     button.style.cssText =
-      "position:fixed;right:16px;bottom:16px;z-index:2147483000;border:0;border-radius:999px;padding:12px 18px;font:600 14px " +
+      "position:fixed;right:16px;bottom:16px;z-index:2147483000;border:0;border-radius:" +
+      brand.buttonRadius +
+      ";padding:12px 18px;font:600 14px " +
       brand.fontFamily +
       ";box-shadow:0 10px 30px rgba(0,0,0,.25);cursor:pointer;appearance:none;-webkit-appearance:none;background:" +
       brand.accent +
@@ -873,6 +945,7 @@
     button.style.setProperty("background", t.btn, "important");
     button.style.setProperty("color", t.btnText, "important");
     button.style.fontFamily = t.font;
+    button.style.borderRadius = t.radius;
 
     if (!open) {
       root.innerHTML = "";
@@ -1058,7 +1131,9 @@
           (storeMeta.paymentsActive
             ? '<button type="button" data-ps-checkout ' +
               (busy ? "disabled " : "") +
-              'style="width:100%;border:0;border-radius:999px;padding:0.75rem 1rem;font-weight:600;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background:' +
+              'style="width:100%;border:0;border-radius:' +
+              t.radius +
+              ';padding:0.75rem 1rem;font-weight:600;font-family:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background:' +
               t.btn +
               " !important;color:" +
               t.btnText +

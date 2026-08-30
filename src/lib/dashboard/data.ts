@@ -38,6 +38,7 @@ export type DashboardContext = {
   embedAccent: string | null;
   embedAccentText: string | null;
   embedFont: string;
+  embedRadius: string;
 };
 
 function slugify(value: string) {
@@ -195,6 +196,7 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     embedAccent: store.embedAccent,
     embedAccentText: store.embedAccentText,
     embedFont: store.embedFont ?? "paysynk",
+    embedRadius: store.embedRadius ?? "paysynk",
   };
 }
 

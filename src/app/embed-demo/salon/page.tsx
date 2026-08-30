@@ -26,6 +26,7 @@ export default function SalonEmbedDemoPage() {
           --paysynk-accent: #c4a37a;
           --paysynk-accent-text: #1a1612;
           --paysynk-font: inherit;
+          --paysynk-radius: 0;
         }
       `}</style>
       <header
@@ -61,11 +62,48 @@ export default function SalonEmbedDemoPage() {
           Product &amp; cart in this page’s type and colour
         </h1>
         <p style={{ margin: "0 0 1.5rem", maxWidth: 540, lineHeight: 1.6, color: "#5c534b" }}>
-          Button colour and type come from{" "}
-          <code style={{ fontSize: "0.85em" }}>--paysynk-accent</code> and{" "}
-          <code style={{ fontSize: "0.85em" }}>--paysynk-font</code>. A store
+          Button colour, type, and corners come from{" "}
+          <code style={{ fontSize: "0.85em" }}>--paysynk-accent</code>,{" "}
+          <code style={{ fontSize: "0.85em" }}>--paysynk-font</code>, and{" "}
+          <code style={{ fontSize: "0.85em" }}>--paysynk-radius</code>. A store
           owner sets the same values in Settings — no recopy of the snippet.
         </p>
+        <p style={{ margin: "0 0 1.5rem", fontSize: "0.95rem", maxWidth: 540, lineHeight: 1.6 }}>
+          310 Green Lanes, London N13 5TT — a few steps from
+          the heart of Palmers Green.
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem", marginBottom: "2rem" }}>
+          <button
+            type="button"
+            style={{
+              background: "#c4a37a",
+              color: "#1a1612",
+              border: 0,
+              borderRadius: 0,
+              padding: "0.85rem 1.4rem",
+              font: "inherit",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Contact us
+          </button>
+          <button
+            type="button"
+            style={{
+              background: "#fff",
+              color: "#1a1612",
+              border: "1px solid #1a1612",
+              borderRadius: 0,
+              padding: "0.85rem 1.4rem",
+              font: "inherit",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Book
+          </button>
+        </div>
         <p style={{ margin: "0 0 2rem", fontSize: "0.9rem" }}>
           <Link href="/embed-demo" style={{ color: "#8a7358" }}>
             Default PaySynk look →

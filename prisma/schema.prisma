@@ -102,6 +102,8 @@ model Store {
   embedAccentText   String?
   /// paysynk | inherit | serif — typeface for pasted widgets/cart.
   embedFont         String              @default("paysynk")
+  /// paysynk (pill) | inherit (copy host buttons) | square.
+  embedRadius       String              @default("paysynk")
   /// Shown on customer receipts (UK VAT / EU VAT ID).
   vatNumber         String?
   /// Order alerts and sales reports. Falls back to the owner login email.
