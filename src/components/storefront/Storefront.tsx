@@ -157,7 +157,9 @@ function ProductCard({
         <h2>{product.title}</h2>
         <p className="muted">{product.description}</p>
         <p className="price">
-          {formatMoney(product.variants[0]?.priceMinor ?? 0, currency)}
+          {selected && selected.priceMinor > 0
+            ? formatMoney(selected.priceMinor, currency)
+            : "Price to follow"}
         </p>
         <span className={stockPillClass(available)}>
           <span className="stock-pill-count">{available}</span>
@@ -752,7 +754,11 @@ export function Storefront({
   const categories = [...new Set(configProducts.map((p) => p.category || "Print"))];
   const merchCategories = [
     ...new Set(products.map((p) => p.category.trim() || "Merch")),
-  ];
+  ].sort((a, b) => {
+    if (a === "Featured") return -1;
+    if (b === "Featured") return 1;
+    return a.localeCompare(b);
+  });
   return (
     <CartProvider storeSlug={store.slug}>
       <div className="store-shell">

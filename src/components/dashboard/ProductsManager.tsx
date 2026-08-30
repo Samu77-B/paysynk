@@ -242,6 +242,8 @@ export function ProductsManager({
       map.set(key, list);
     }
     return [...map.entries()].sort(([a], [b]) => {
+      if (a === "Featured") return -1;
+      if (b === "Featured") return 1;
       if (a === "Uncategorised") return 1;
       if (b === "Uncategorised") return -1;
       return a.localeCompare(b);

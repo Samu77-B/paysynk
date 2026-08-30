@@ -612,7 +612,9 @@
         escapeHtml(product.description || "") +
         "</p>" +
         '<p style="margin:0 0 1rem;font-size:1.25rem;font-weight:700">' +
-        formatMoney(sel ? sel.priceMinor : 0, store.currency) +
+        (sel && sel.priceMinor > 0
+          ? formatMoney(sel.priceMinor, store.currency)
+          : "Price to follow") +
         "</p>";
 
       if (colours.length) {
