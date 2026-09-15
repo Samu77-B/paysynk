@@ -245,6 +245,7 @@ export async function saveConfigProduct(
     const optionIdMap = new Map<string, string>();
     const valueIdMap = new Map<string, string>();
 
+    /** The editor reorders in place, so array position is the order — not the incoming sort. */
     for (const [optionIndex, option] of input.options.entries()) {
       const name = option.name.trim();
       if (!name) continue;
@@ -253,7 +254,7 @@ export async function saveConfigProduct(
           productId: product.id,
           name,
           required: option.required,
-          sort: option.sort || optionIndex,
+          sort: optionIndex,
         },
       });
       if (option.id) optionIdMap.set(option.id, createdOption.id);
@@ -269,7 +270,7 @@ export async function saveConfigProduct(
           data: {
             optionId: createdOption.id,
             label,
-            sort: value.sort || valueIndex,
+            sort: valueIndex,
             modifierKind: kind,
             modifierValue: Math.round(value.modifierValue || 0),
             imageUrl: sanitizeMediaUrl(value.imageUrl),

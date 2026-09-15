@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { ChevronDown, Copy, Layers, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  Copy,
+  Layers,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,6 +107,18 @@ function MoneyInput({
       {...props}
     />
   );
+}
+
+/** Swap an item with its neighbour and rewrite sort so the new order is what gets saved. */
+function moved<T extends { sort: number }>(
+  items: T[],
+  from: number,
+  to: number,
+): T[] {
+  if (to < 0 || to >= items.length) return items;
+  const next = [...items];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next.map((item, i) => ({ ...item, sort: i }));
 }
 
 function emptyOption(): DashboardConfigOption {
@@ -610,8 +630,10 @@ export function ConfigProductsManager({
                   className="mt-0 min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4"
                 >
                   <p className="text-sm text-zinc-500">
-                    Rename, add, or delete dropdowns here — Size, Quantity,
-                    Binding, paper weights. Upload a photo on a choice and the
+                    Rename, reorder, add, or delete dropdowns here — Size,
+                    Quantity, Binding, paper weights. The arrows move a
+                    dropdown or a single choice up and down, and that is the
+                    order customers see. Upload a photo on a choice and the
                     shop preview updates when the customer picks it. PNG with a
                     clear background can layer on top of a size photo (for
                     example A3 landscape + left staple). Save when you are done.
@@ -657,6 +679,43 @@ export function ConfigProductsManager({
                           type="button"
                           variant="ghost"
                           size="icon"
+                          title="Move dropdown up"
+                          disabled={optionIndex === 0}
+                          onClick={() =>
+                            patch({
+                              options: moved(
+                                editing.options,
+                                optionIndex,
+                                optionIndex - 1,
+                              ),
+                            })
+                          }
+                        >
+                          <ArrowUp className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Move dropdown down"
+                          disabled={optionIndex === editing.options.length - 1}
+                          onClick={() =>
+                            patch({
+                              options: moved(
+                                editing.options,
+                                optionIndex,
+                                optionIndex + 1,
+                              ),
+                            })
+                          }
+                        >
+                          <ArrowDown className="size-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          title="Delete dropdown"
                           onClick={() =>
                             patch({
                               options: editing.options.filter(
@@ -740,23 +799,70 @@ export function ConfigProductsManager({
                                 }
                               />
                             )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                const options = [...editing.options];
-                                options[optionIndex] = {
-                                  ...option,
-                                  values: option.values.filter(
-                                    (_, i) => i !== valueIndex,
-                                  ),
-                                };
-                                patch({ options });
-                              }}
-                            >
-                              <Trash2 className="size-3" />
-                            </Button>
+                            <div className="flex items-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Move choice up"
+                                disabled={valueIndex === 0}
+                                onClick={() => {
+                                  const options = [...editing.options];
+                                  options[optionIndex] = {
+                                    ...option,
+                                    values: moved(
+                                      option.values,
+                                      valueIndex,
+                                      valueIndex - 1,
+                                    ),
+                                  };
+                                  patch({ options });
+                                }}
+                              >
+                                <ArrowUp className="size-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Move choice down"
+                                disabled={
+                                  valueIndex === option.values.length - 1
+                                }
+                                onClick={() => {
+                                  const options = [...editing.options];
+                                  options[optionIndex] = {
+                                    ...option,
+                                    values: moved(
+                                      option.values,
+                                      valueIndex,
+                                      valueIndex + 1,
+                                    ),
+                                  };
+                                  patch({ options });
+                                }}
+                              >
+                                <ArrowDown className="size-3" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                title="Delete choice"
+                                onClick={() => {
+                                  const options = [...editing.options];
+                                  options[optionIndex] = {
+                                    ...option,
+                                    values: option.values.filter(
+                                      (_, i) => i !== valueIndex,
+                                    ),
+                                  };
+                                  patch({ options });
+                                }}
+                              >
+                                <Trash2 className="size-3" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 pl-12 text-xs text-zinc-500">
                             <Input

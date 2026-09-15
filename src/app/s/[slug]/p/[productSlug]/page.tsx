@@ -13,7 +13,10 @@ export default async function StoreConfigProductRoute({ params }: Props) {
   const product = await prisma.configProduct.findFirst({
     where: { storeId: store.id, slug: productSlug, active: true },
     include: {
-      options: { include: { values: true }, orderBy: { sort: "asc" } },
+      options: {
+        include: { values: { orderBy: { sort: "asc" } } },
+        orderBy: { sort: "asc" },
+      },
       variations: { orderBy: { sort: "asc" } },
       relatedFrom: {
         orderBy: { sort: "asc" },
