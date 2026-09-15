@@ -1,3 +1,5 @@
+import { findMatchingVariation } from "@/lib/config-products/pricing";
+
 export type PreviewOption = {
   id: string;
   name: string;
@@ -9,6 +11,12 @@ export type PreviewOption = {
   }>;
 };
 
+export type PreviewVariation = {
+  match: unknown;
+  sort: number;
+  imageUrl?: string | null;
+};
+
 export type ConfigPreview = {
   /** Photos on the currently selected choices, in option order (later ones draw on top). */
   layers: Array<{ optionName: string; label: string; url: string }>;
@@ -18,7 +26,11 @@ export type ConfigPreview = {
 
 /** Build the live shop visual from the customer's current dropdowns. */
 export function configPreviewFromSelection(
-  product: { images: string[]; options: PreviewOption[] },
+  product: {
+    images: string[];
+    options: PreviewOption[];
+    variations?: PreviewVariation[];
+  },
   selections: Record<string, string>,
 ): ConfigPreview {
   const options = [...product.options].sort((a, b) => a.sort - b.sort);
@@ -40,9 +52,11 @@ export function configPreviewFromSelection(
     }
   }
 
+  const variation = findMatchingVariation(product.variations ?? [], selections);
+
   return {
     layers,
-    fallbackUrl: product.images[0] ?? null,
+    fallbackUrl: variation?.imageUrl || product.images[0] || null,
     caption: parts.join(" · "),
   };
 }

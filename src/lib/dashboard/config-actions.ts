@@ -156,6 +156,7 @@ export async function duplicateConfigProduct(
           priceMinor: row.priceMinor,
           sku: row.sku,
           sort: row.sort,
+          imageUrl: row.imageUrl,
         };
       }),
     });
@@ -299,7 +300,8 @@ export async function saveConfigProduct(
           match,
           priceMinor: Math.max(0, Math.round(variation.priceMinor || 0)),
           sku: variation.sku.trim(),
-          sort: variation.sort || index,
+          sort: index,
+          imageUrl: sanitizeMediaUrl(variation.imageUrl),
         },
       });
     }

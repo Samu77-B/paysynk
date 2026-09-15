@@ -24,6 +24,7 @@ export type ConfigVariationInput = {
   priceMinor: number;
   sku: string;
   sort: number;
+  imageUrl?: string | null;
 };
 
 export type ConfigProductPayload = {

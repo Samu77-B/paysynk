@@ -177,6 +177,7 @@ function draftFromDefinition(def: TemplateDefinition): {
         priceMinor: row.priceMinor,
         sku: row.sku ?? "",
         sort: i,
+        imageUrl: null,
       };
     },
   );
@@ -247,11 +248,8 @@ export function ConfigProductsManager({
     });
   }
 
-  async function uploadOptionImage(
-    optionIndex: number,
-    valueIndex: number,
-    file: File,
-  ) {
+  /** Compress, upload, and hand back the hosted URL — null means the error banner is already showing. */
+  async function uploadImageUrl(file: File): Promise<string | null> {
     const compressed = await compressProductImage(file);
     const body = new FormData();
     body.set("file", compressed);
@@ -262,9 +260,18 @@ export function ConfigProductsManager({
     const json = (await res.json()) as { url?: string; error?: string };
     if (!res.ok || !json.url) {
       setError(json.error || "Upload failed.");
-      return;
+      return null;
     }
-    patchValue(optionIndex, valueIndex, { imageUrl: json.url });
+    return json.url;
+  }
+
+  async function uploadOptionImage(
+    optionIndex: number,
+    valueIndex: number,
+    file: File,
+  ) {
+    const url = await uploadImageUrl(file);
+    if (url) patchValue(optionIndex, valueIndex, { imageUrl: url });
   }
 
   function save() {
@@ -303,19 +310,8 @@ export function ConfigProductsManager({
 
   async function uploadImage(file: File) {
     if (!editing) return;
-    const compressed = await compressProductImage(file);
-    const body = new FormData();
-    body.set("file", compressed);
-    const res = await fetch("/api/uploads/product-image", {
-      method: "POST",
-      body,
-    });
-    const json = (await res.json()) as { url?: string; error?: string };
-    if (!res.ok || !json.url) {
-      setError(json.error || "Upload failed.");
-      return;
-    }
-    patch({ images: [...editing.images, json.url] });
+    const url = await uploadImageUrl(file);
+    if (url) patch({ images: [...editing.images, url] });
   }
 
   return (
@@ -949,7 +945,9 @@ export function ConfigProductsManager({
                 >
                   <p className="text-sm text-zinc-500">
                     First matching row wins (top to bottom). Use Any for a
-                    wildcard — same as Ecwid.
+                    wildcard — same as Ecwid. Add a photo of the finished combo
+                    at the bottom of a row and the shop shows it as soon as the
+                    customer picks that exact set of choices.
                   </p>
                   {editing.variations.map((row, index) => (
                     <VariationRow
@@ -957,6 +955,7 @@ export function ConfigProductsManager({
                       row={row}
                       options={editing.options}
                       currency={currency}
+                      onUpload={uploadImageUrl}
                       onChange={(next) => {
                         const variations = [...editing.variations];
                         variations[index] = next;
@@ -984,6 +983,7 @@ export function ConfigProductsManager({
                             priceMinor: editing.basePriceMinor,
                             sku: "",
                             sort: editing.variations.length,
+                            imageUrl: null,
                           },
                         ],
                       })
@@ -1071,12 +1071,14 @@ function VariationRow({
   row,
   options,
   currency,
+  onUpload,
   onChange,
   onRemove,
 }: {
   row: DashboardConfigVariation;
   options: DashboardConfigOption[];
   currency: string;
+  onUpload: (file: File) => Promise<string | null>;
   onChange: (row: DashboardConfigVariation) => void;
   onRemove: () => void;
 }) {
@@ -1118,6 +1120,43 @@ function VariationRow({
         <Button type="button" variant="ghost" size="icon" onClick={onRemove}>
           <Trash2 className="size-4" />
         </Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-zinc-50 p-2">
+        {row.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={row.imageUrl}
+            alt=""
+            className="size-12 rounded object-contain bg-white"
+          />
+        ) : (
+          <span className="size-12 rounded bg-white" />
+        )}
+        <Input
+          type="file"
+          accept="image/*"
+          className="h-8 max-w-56 text-xs"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            const url = await onUpload(file);
+            if (url) onChange({ ...row, imageUrl: url });
+          }}
+        />
+        {row.imageUrl ? (
+          <button
+            type="button"
+            className="text-xs text-red-600 underline"
+            onClick={() => onChange({ ...row, imageUrl: null })}
+          >
+            Remove photo
+          </button>
+        ) : (
+          <span className="text-xs text-zinc-500">
+            Photo of this combo (optional)
+          </span>
+        )}
       </div>
       <p className="text-[11px] text-zinc-400">
         {formatMoney(row.priceMinor, currency)} for this combo

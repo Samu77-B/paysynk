@@ -11,6 +11,21 @@ export type ConfigProductForPrice = ConfigProduct & {
   variations: ConfigVariation[];
 };
 
+/** First row (top to bottom) whose match keys all agree with the selection. "*" and missing keys are wildcards. */
+export function findMatchingVariation<
+  T extends { match: unknown; sort: number },
+>(variations: T[], selections: Record<string, string>): T | undefined {
+  return [...variations]
+    .sort((a, b) => a.sort - b.sort)
+    .find((variation) => {
+      const match = (variation.match ?? {}) as Record<string, string>;
+      return Object.entries(match).every(([optionId, wanted]) => {
+        if (!wanted || wanted === "*") return true;
+        return selections[optionId] === wanted;
+      });
+    });
+}
+
 /**
  * Ecwid-style price:
  * 1. First matching variation (top to bottom) replaces the base price.
@@ -38,19 +53,10 @@ export function priceConfigSelection(
     labels.push(`${option.name}: ${value.label}`);
   }
 
-  const variations = [...product.variations].sort((a, b) => a.sort - b.sort);
-  let matched: ConfigVariation | undefined;
-  for (const variation of variations) {
-    const match = (variation.match ?? {}) as Record<string, string>;
-    const ok = Object.entries(match).every(([optionId, wanted]) => {
-      if (!wanted || wanted === "*") return true;
-      return selections[optionId] === wanted;
-    });
-    if (ok) {
-      matched = variation;
-      break;
-    }
-  }
+  const matched: ConfigVariation | undefined = findMatchingVariation(
+    product.variations,
+    selections,
+  );
 
   let price = matched ? matched.priceMinor : product.basePriceMinor;
   const breakdown: Array<{ label: string; amountMinor: number }> = [

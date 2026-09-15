@@ -342,6 +342,8 @@ model ConfigVariation {
   priceMinor Int
   sku        String @default("")
   sort       Int    @default(0)
+  /// Optional photo of this exact combination. Becomes the shop hero when the customer picks it.
+  imageUrl   String?
 
   @@index([productId])
 }

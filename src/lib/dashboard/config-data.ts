@@ -25,6 +25,7 @@ export type DashboardConfigVariation = {
   priceMinor: number;
   sku: string;
   sort: number;
+  imageUrl: string | null;
 };
 
 export type DashboardConfigProduct = {
@@ -98,6 +99,7 @@ export function toDashboardConfigProduct(
       priceMinor: row.priceMinor,
       sku: row.sku,
       sort: row.sort,
+      imageUrl: row.imageUrl,
     })),
     relatedIds: product.relatedFrom.map((row) => row.toProductId),
   };
