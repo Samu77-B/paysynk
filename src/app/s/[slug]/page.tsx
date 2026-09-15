@@ -90,6 +90,9 @@ export default async function StorePage({ params }: Props) {
         shippingFlatMinor: store.shippingFlatMinor,
         shippingIntlMinor: store.shippingIntlMinor,
         paymentsActive: store.paymentsActive,
+        loyaltyEnabled: store.loyaltyEnabled,
+        loyaltyProductPtsPerPound: store.loyaltyProductPtsPerPound,
+        loyaltyServicePtsPerPound: store.loyaltyServicePtsPerPound,
       }}
       products={sellable}
       configProducts={configProducts}

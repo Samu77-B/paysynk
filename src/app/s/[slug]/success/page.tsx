@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { hostedShopSurface } from "@/lib/embed-brand";
+import { memberBalance, normalizeLoyaltyEmail } from "@/lib/loyalty";
 import { prisma } from "@/lib/prisma";
 import { formatMoney } from "@/lib/pricing";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
@@ -38,6 +39,37 @@ export default async function SuccessPage({ params, searchParams }: Props) {
   const paid = order?.status === "paid" || order?.status === "fulfilled";
   const logoVariant =
     hostedShopSurface(store) === "light" ? "black" : "white";
+
+  let loyaltyNote: string | null = null;
+  if (store?.loyaltyEnabled && order?.customerEmail) {
+    const member = await prisma.loyaltyMember.findUnique({
+      where: {
+        storeId_email: {
+          storeId: store.id,
+          email: normalizeLoyaltyEmail(order.customerEmail),
+        },
+      },
+    });
+    if (member) {
+      const [balance, earnRow] = await Promise.all([
+        memberBalance(member.id),
+        prisma.loyaltyEntry.findUnique({
+          where: {
+            storeId_source_sourceId: {
+              storeId: store.id,
+              source: "order",
+              sourceId: order.id,
+            },
+          },
+        }),
+      ]);
+      const earned = earnRow?.points ?? 0;
+      loyaltyNote =
+        earned > 0
+          ? `You earned ${earned} point${earned === 1 ? "" : "s"} on this order. Balance: ${balance}.`
+          : `Points club balance: ${balance}.`;
+    }
+  }
 
   return (
     <main className="success-page">
@@ -100,6 +132,11 @@ export default async function SuccessPage({ params, searchParams }: Props) {
           {store?.vatNumber ? (
             <p className="muted small" style={{ marginTop: "1rem" }}>
               VAT: {store.vatNumber}
+            </p>
+          ) : null}
+          {loyaltyNote ? (
+            <p className="muted" style={{ marginTop: "1rem" }}>
+              {loyaltyNote}
             </p>
           ) : null}
         </div>

@@ -14,6 +14,7 @@ import { StoreLogoSettings } from "@/components/dashboard/StoreLogoSettings";
 import { StoreIdentitySettings } from "@/components/dashboard/StoreIdentitySettings";
 import { StoreProfileSettings } from "@/components/dashboard/StoreProfileSettings";
 import { EmbedThemeSettings } from "@/components/dashboard/EmbedThemeSettings";
+import { LoyaltySettings } from "@/components/dashboard/LoyaltySettings";
 
 export default async function SettingsPage() {
   const ctx = await getDashboardContext();
@@ -24,7 +25,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500">
-          Store profile, VAT, order emails, website product and cart look,
+          Store profile, VAT, points club, website product and cart look,
           delivery charge, payments, and subscription
         </p>
       </div>
@@ -93,6 +94,14 @@ export default async function SettingsPage() {
             embedAccentText={ctx.embedAccentText}
             embedFont={ctx.embedFont}
             embedRadius={ctx.embedRadius}
+          />
+          <LoyaltySettings
+            loyaltyEnabled={ctx.loyaltyEnabled}
+            loyaltyProductPtsPerPound={ctx.loyaltyProductPtsPerPound}
+            loyaltyServicePtsPerPound={ctx.loyaltyServicePtsPerPound}
+            loyaltyRedeemPtsPerPound={ctx.loyaltyRedeemPtsPerPound}
+            loyaltyApiKeyLast4={ctx.loyaltyApiKeyLast4}
+            storeSlug={ctx.merchant.slug}
           />
           <StoreProfileSettings
             vatNumber={ctx.vatNumber}

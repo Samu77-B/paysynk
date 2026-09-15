@@ -10,6 +10,7 @@ import {
   type CheckoutCustomer,
 } from "@/lib/checkout-customer";
 import type { Prisma } from "@/generated/prisma/client";
+import { joinLoyaltyMember } from "@/lib/loyalty";
 
 export type CheckoutMerchItem = {
   variantId: string;
@@ -41,6 +42,7 @@ export async function createStoreCheckout(opts: {
   customer: CheckoutCustomer;
   channel?: "online" | "pos";
   appUrl: string;
+  joinLoyalty?: boolean;
 }) {
   const { storeSlug, items, appUrl } = opts;
   const channel = opts.channel ?? "online";
@@ -256,6 +258,15 @@ export async function createStoreCheckout(opts: {
       },
     },
   });
+
+  if (store.loyaltyEnabled && opts.joinLoyalty) {
+    await joinLoyaltyMember({
+      storeId: store.id,
+      email: opts.customer.email,
+      name: opts.customer.name,
+      phone: opts.customer.phone,
+    });
+  }
 
   const giftNote =
     giftItems.length > 0

@@ -31,6 +31,57 @@ export function cartEmbedSnippet(
   return `<script src="https://www.paysynk.com/cart.js" data-store="${storeSlug}" data-merchant-id="${merchantId}"${themeAttr} async></script>`;
 }
 
+export function shopPageEmbedSnippet(
+  storeSlug: string,
+  productSlugs: string[],
+) {
+  const mounts = productSlugs
+    .map(
+      (slug) =>
+        `  <div data-paysynk-product="${slug}" data-store="${storeSlug}"></div>`,
+    )
+    .join("\n");
+  return `<div class="shop-grid">
+${mounts || `  <div data-paysynk-product="your-product-slug" data-store="${storeSlug}"></div>`}
+</div>
+<script src="https://www.paysynk.com/embed.js" defer></script>`;
+}
+
+export function loyaltyJoinSnippet(storeSlug: string) {
+  return `<form id="paysynk-points-join">
+  <input name="name" placeholder="Name" required>
+  <input name="email" type="email" placeholder="Email" required>
+  <button type="submit">Join points club</button>
+</form>
+<script>
+document.getElementById("paysynk-points-join").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  var fd = new FormData(e.target);
+  var res = await fetch("https://www.paysynk.com/api/stores/${storeSlug}/loyalty/join", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: fd.get("name"), email: fd.get("email") })
+  });
+  var data = await res.json();
+  alert(res.ok ? "You're in. Balance: " + data.balance : (data.error || "Could not join"));
+});
+</script>`;
+}
+
+export function salonSynkEarnSnippet(storeSlug: string) {
+  return `POST https://www.paysynk.com/api/stores/${storeSlug}/loyalty/earn
+Authorization: Bearer psk_YOUR_KEY
+Content-Type: application/json
+
+{
+  "email": "client@example.com",
+  "name": "Jane Client",
+  "kind": "service",
+  "amountMinor": 8500,
+  "sourceId": "salonsynk-booking-12345"
+}`;
+}
+
 export function CopySnippetButton({
   snippet,
   label = "Copy embed code",

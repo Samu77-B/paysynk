@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/payments";
 import { markOrderPaidIdempotent } from "@/lib/orders";
+import { awardPaidOrderPoints } from "@/lib/loyalty";
 import { prisma } from "@/lib/prisma";
 import {
   sendPaidOrderEmails,
@@ -95,6 +96,11 @@ export async function POST(req: Request) {
           include: { items: true, store: { include: { users: true } } },
         });
         if (paidOrder) {
+          try {
+            await awardPaidOrderPoints(paidOrder);
+          } catch (err) {
+            console.error("Loyalty earn failed", orderId, err);
+          }
           try {
             await sendPaidOrderEmails({
               order: paidOrder,

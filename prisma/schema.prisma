@@ -70,6 +70,13 @@ enum ModifierKind {
   percent
 }
 
+enum LoyaltyEntryKind {
+  product
+  service
+  redeem
+  adjust
+}
+
 model Store {
   id                String              @id @default(cuid())
   slug              String              @unique
@@ -104,6 +111,17 @@ model Store {
   embedFont         String              @default("paysynk")
   /// paysynk (pill) | inherit (copy host buttons) | square.
   embedRadius       String              @default("paysynk")
+  /// Points club: £1 products / services → pts (PaySynk holds the ledger).
+  loyaltyEnabled    Boolean             @default(false)
+  /// Points awarded per whole pound of retail products.
+  loyaltyProductPtsPerPound Int         @default(2)
+  /// Points awarded per whole pound of salon services (SalonSynk / staff).
+  loyaltyServicePtsPerPound Int         @default(1)
+  /// Points a member must spend to take £1 off. Null = redeem not offered yet.
+  loyaltyRedeemPtsPerPound Int?
+  /// SHA-256 hex of the SalonSynk / till API key. Shown in full only when generated.
+  loyaltyApiKeyHash String?
+  loyaltyApiKeyLast4 String?
   /// Shown on customer receipts (UK VAT / EU VAT ID).
   vatNumber         String?
   /// Order alerts and sales reports. Falls back to the owner login email.
@@ -112,11 +130,13 @@ model Store {
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 
-  products       Product[]
-  configProducts ConfigProduct[]
-  orders         Order[]
-  users          MerchantUser[]
-  offers         Offer[]
+  products        Product[]
+  configProducts  ConfigProduct[]
+  orders          Order[]
+  users           MerchantUser[]
+  offers          Offer[]
+  loyaltyMembers  LoyaltyMember[]
+  loyaltyEntries  LoyaltyEntry[]
 
   @@index([signupStatus])
 }
@@ -334,4 +354,43 @@ model ConfigRelated {
   sort          Int           @default(0)
 
   @@id([fromProductId, toProductId])
+}
+
+/// Customer in a shop’s points club. Email is the join key across PaySynk + SalonSynk.
+model LoyaltyMember {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  email     String
+  name      String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries LoyaltyEntry[]
+
+  @@unique([storeId, email])
+  @@index([storeId])
+}
+
+model LoyaltyEntry {
+  id          String           @id @default(cuid())
+  storeId     String
+  store       Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  memberId    String
+  member      LoyaltyMember    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  kind        LoyaltyEntryKind
+  /// Signed. Earn is positive; redeem / void is negative.
+  points      Int
+  amountMinor Int              @default(0)
+  /// order | salonsynk | staff | join
+  source      String
+  /// Idempotency key (order id, booking id, staff cuid).
+  sourceId    String
+  note        String?
+  createdAt   DateTime         @default(now())
+
+  @@unique([storeId, source, sourceId])
+  @@index([memberId])
+  @@index([storeId])
 }

@@ -15,8 +15,11 @@ import { EmbedThemeSettings } from "@/components/dashboard/EmbedThemeSettings";
 import {
   cartEmbedSnippet,
   CopySnippetButton,
+  loyaltyJoinSnippet,
   printCatalogEmbedSnippet,
   productEmbedSnippet,
+  salonSynkEarnSnippet,
+  shopPageEmbedSnippet,
 } from "@/components/dashboard/embed-snippets";
 
 export function IntegrationHub({
@@ -28,6 +31,7 @@ export function IntegrationHub({
   embedAccentText,
   embedFont,
   embedRadius,
+  productSlugs = [],
 }: {
   merchantId: string;
   merchantName: string;
@@ -37,6 +41,7 @@ export function IntegrationHub({
   embedAccentText: string | null;
   embedFont: string;
   embedRadius: string;
+  productSlugs?: string[];
 }) {
   const cartSnippet = cartEmbedSnippet(storeSlug, merchantId);
   const exampleProductSnippet = productEmbedSnippet(
@@ -192,6 +197,70 @@ export function IntegrationHub({
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-zinc-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Shop page on your website</CardTitle>
+          <CardDescription>
+            Paste into a Products page on your Vercel/HTML site (not an iframe).
+            Load embed.js once. Cart snippet above must be in the site header.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <pre className="overflow-x-auto rounded-xl bg-[#141414] p-4 text-sm text-[#9FE870]">
+            {shopPageEmbedSnippet(storeSlug, productSlugs)}
+          </pre>
+          <CopySnippetButton
+            snippet={shopPageEmbedSnippet(storeSlug, productSlugs)}
+            label="Copy shop page code"
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border-zinc-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Points club — website join</CardTitle>
+          <CardDescription>
+            Optional form for the salon site (same club as checkout). Pair with
+            the 10% signup if you like.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <pre className="overflow-x-auto rounded-xl bg-[#141414] p-4 text-sm text-[#9FE870]">
+            {loyaltyJoinSnippet(storeSlug)}
+          </pre>
+          <CopySnippetButton
+            snippet={loyaltyJoinSnippet(storeSlug)}
+            label="Copy join form"
+          />
+        </CardContent>
+      </Card>
+
+      <Card className="border-zinc-200 shadow-sm">
+        <CardHeader>
+          <CardTitle>Points club — SalonSynk earn</CardTitle>
+          <CardDescription>
+            Call this from the booking app when a service is paid. Use the key
+            from Settings → Points club. Never put that key in public HTML.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <pre className="overflow-x-auto rounded-xl bg-[#141414] p-4 text-sm text-[#9FE870]">
+            {salonSynkEarnSnippet(storeSlug)}
+          </pre>
+          <CopySnippetButton
+            snippet={salonSynkEarnSnippet(storeSlug)}
+            label="Copy earn API example"
+          />
+          <p className="text-sm text-zinc-600">
+            Look up a balance:{" "}
+            <code className="rounded bg-zinc-100 px-1 text-xs">
+              GET /api/stores/{storeSlug}/loyalty/members?email=
+            </code>{" "}
+            with the same Bearer key.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card className="border-zinc-200 shadow-sm">
         <CardHeader>

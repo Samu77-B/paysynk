@@ -10,6 +10,8 @@ import {
 export type { ShippingBits };
 import { resolveAppOrigin } from "@/lib/app-url";
 import { shippingLabelForCountry } from "@/lib/checkout-customer";
+import { memberBalance } from "@/lib/loyalty";
+import { prisma } from "@/lib/prisma";
 
 type PaidOrder = Order & {
   items: OrderItem[];
@@ -58,6 +60,41 @@ export async function sendPaidOrderEmails(opts: {
     order.store.homeCountry,
   );
 
+  let loyalty: {
+    balance: number;
+    earned: number;
+    productPtsPerPound: number;
+  } | null = null;
+  if (store.loyaltyEnabled && order.customerEmail) {
+    const member = await prisma.loyaltyMember.findUnique({
+      where: {
+        storeId_email: {
+          storeId: store.id,
+          email: order.customerEmail.trim().toLowerCase(),
+        },
+      },
+    });
+    if (member) {
+      const [balance, earnRow] = await Promise.all([
+        memberBalance(member.id),
+        prisma.loyaltyEntry.findUnique({
+          where: {
+            storeId_source_sourceId: {
+              storeId: store.id,
+              source: "order",
+              sourceId: order.id,
+            },
+          },
+        }),
+      ]);
+      loyalty = {
+        balance,
+        earned: earnRow?.points ?? 0,
+        productPtsPerPound: store.loyaltyProductPtsPerPound,
+      };
+    }
+  }
+
   const jobs: Promise<unknown>[] = [];
 
   if (order.customerEmail) {
@@ -80,6 +117,7 @@ export async function sendPaidOrderEmails(opts: {
           totalMinor: order.totalMinor,
           shipping: opts.shipping,
           shippingLabel,
+          loyalty,
         }),
       }),
     );

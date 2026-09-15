@@ -13,6 +13,12 @@ import {
   parseEmbedFont,
   parseEmbedRadius,
 } from "@/lib/embed-brand";
+import {
+  earnLoyaltyPoints,
+  generateLoyaltyApiKey,
+  hashLoyaltyApiKey,
+} from "@/lib/loyalty";
+import { randomBytes } from "crypto";
 
 function slugify(value: string) {
   return value
@@ -517,4 +523,122 @@ export async function saveStoreIdentitySettings(input: {
     revalidatePath(`/s/${session.user.storeSlug}`);
   }
   return { name, currency, fxQuoteCurrency, exchangeRate };
+}
+
+export async function saveLoyaltySettings(input: {
+  enabled: boolean;
+  productPts: number;
+  servicePts: number;
+  redeemPts: number | null;
+}): Promise<{
+  error?: string;
+  loyaltyEnabled?: boolean;
+  loyaltyProductPtsPerPound?: number;
+  loyaltyServicePtsPerPound?: number;
+  loyaltyRedeemPtsPerPound?: number | null;
+}> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to update points." };
+
+  const productPts = Math.floor(Number(input.productPts));
+  const servicePts = Math.floor(Number(input.servicePts));
+  if (
+    !Number.isFinite(productPts) ||
+    productPts < 0 ||
+    productPts > 100 ||
+    !Number.isFinite(servicePts) ||
+    servicePts < 0 ||
+    servicePts > 100
+  ) {
+    return { error: "Rates must be between 0 and 100 points per pound." };
+  }
+  let redeemPts: number | null = null;
+  if (input.redeemPts != null && input.redeemPts !== 0) {
+    const n = Math.floor(Number(input.redeemPts));
+    if (!Number.isFinite(n) || n < 1 || n > 1000) {
+      return { error: "Redeem rate must be 1–1000 points per £1 off, or blank." };
+    }
+    redeemPts = n;
+  }
+
+  await prisma.store.update({
+    where: { id: storeId },
+    data: {
+      loyaltyEnabled: Boolean(input.enabled),
+      loyaltyProductPtsPerPound: productPts,
+      loyaltyServicePtsPerPound: servicePts,
+      loyaltyRedeemPtsPerPound: redeemPts,
+    },
+  });
+  revalidatePath("/app/settings");
+  revalidatePath("/app/points");
+  revalidatePath("/app/integration");
+  return {
+    loyaltyEnabled: Boolean(input.enabled),
+    loyaltyProductPtsPerPound: productPts,
+    loyaltyServicePtsPerPound: servicePts,
+    loyaltyRedeemPtsPerPound: redeemPts,
+  };
+}
+
+export async function rotateLoyaltyApiKey(): Promise<{
+  error?: string;
+  apiKey?: string;
+  last4?: string;
+}> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to create a key." };
+
+  const apiKey = generateLoyaltyApiKey();
+  const last4 = apiKey.slice(-4);
+  await prisma.store.update({
+    where: { id: storeId },
+    data: {
+      loyaltyApiKeyHash: hashLoyaltyApiKey(apiKey),
+      loyaltyApiKeyLast4: last4,
+    },
+  });
+  revalidatePath("/app/settings");
+  revalidatePath("/app/integration");
+  return { apiKey, last4 };
+}
+
+export async function addServiceLoyaltyPoints(input: {
+  email: string;
+  name?: string;
+  amountPounds: number;
+  note?: string;
+}): Promise<{ error?: string; balance?: number; points?: number }> {
+  const session = await auth();
+  const storeId = session?.user?.storeId;
+  if (!storeId) return { error: "Sign in to add points." };
+
+  const pounds = Number(input.amountPounds);
+  if (!Number.isFinite(pounds) || pounds === 0 || Math.abs(pounds) > 50_000) {
+    return { error: "Enter the service total in pounds." };
+  }
+
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
+  if (!store) return { error: "Store not found." };
+  if (!store.loyaltyEnabled) return { error: "Turn the points club on in Settings first." };
+
+  const result = await earnLoyaltyPoints({
+    store,
+    email: input.email,
+    name: input.name,
+    kind: "service",
+    amountMinor: Math.round(pounds * 100),
+    source: "staff",
+    sourceId: `staff-${randomBytes(8).toString("hex")}`,
+    note: input.note,
+    createMember: true,
+  });
+  if ("error" in result && result.error) return { error: result.error };
+  if (!("entry" in result) || !result.entry) {
+    return { error: "No points to add for that amount." };
+  }
+  revalidatePath("/app/points");
+  return { points: result.entry.points, balance: result.balance };
 }

@@ -78,6 +78,7 @@ export function customerOrderHtml(opts: {
   totalMinor: number;
   shipping?: ShippingBits | null;
   shippingLabel?: string;
+  loyalty?: { balance: number; earned: number; productPtsPerPound: number } | null;
 }) {
   const discount =
     opts.discountMinor > 0
@@ -104,6 +105,11 @@ export function customerOrderHtml(opts: {
       <td style="padding:12px 0;text-align:right"><strong>${escapeHtml(money(opts.totalMinor, opts.currency))}</strong></td></tr>
     </table>
     ${ship}
+    ${
+      opts.loyalty
+        ? `<p style="margin-top:16px">You earned <strong>${opts.loyalty.earned} point${opts.loyalty.earned === 1 ? "" : "s"}</strong> on this order (£1 products = ${opts.loyalty.productPtsPerPound} pts). Balance: <strong>${opts.loyalty.balance}</strong>.</p>`
+        : ""
+    }
     <p>We’ll get this packed and on its way.</p>
   `;
   return wrap(opts.storeName, opts.logoUrl, body, opts.vatNumber);

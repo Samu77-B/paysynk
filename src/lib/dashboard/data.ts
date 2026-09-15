@@ -39,6 +39,11 @@ export type DashboardContext = {
   embedAccentText: string | null;
   embedFont: string;
   embedRadius: string;
+  loyaltyEnabled: boolean;
+  loyaltyProductPtsPerPound: number;
+  loyaltyServicePtsPerPound: number;
+  loyaltyRedeemPtsPerPound: number | null;
+  loyaltyApiKeyLast4: string | null;
 };
 
 function slugify(value: string) {
@@ -197,6 +202,11 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     embedAccentText: store.embedAccentText,
     embedFont: store.embedFont ?? "paysynk",
     embedRadius: store.embedRadius ?? "paysynk",
+    loyaltyEnabled: store.loyaltyEnabled,
+    loyaltyProductPtsPerPound: store.loyaltyProductPtsPerPound,
+    loyaltyServicePtsPerPound: store.loyaltyServicePtsPerPound,
+    loyaltyRedeemPtsPerPound: store.loyaltyRedeemPtsPerPound,
+    loyaltyApiKeyLast4: store.loyaltyApiKeyLast4,
   };
 }
 
@@ -251,6 +261,33 @@ export async function getMerchantOrders(merchantId: string): Promise<Order[]> {
     orderBy: { createdAt: "desc" },
   });
   return orders.map(toDashboardOrder);
+}
+
+export type DashboardLoyaltyMember = {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  balance: number;
+  joinedAt: string;
+};
+
+export async function getMerchantLoyaltyMembers(
+  merchantId: string,
+): Promise<DashboardLoyaltyMember[]> {
+  const members = await prisma.loyaltyMember.findMany({
+    where: { storeId: merchantId },
+    include: { entries: { select: { points: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  return members.map((row) => ({
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    phone: row.phone,
+    balance: row.entries.reduce((sum, entry) => sum + entry.points, 0),
+    joinedAt: row.createdAt.toISOString(),
+  }));
 }
 
 export { getMerchantConfigProducts, getConfigTemplates } from "@/lib/dashboard/config-data";

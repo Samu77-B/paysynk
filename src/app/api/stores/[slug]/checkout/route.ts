@@ -40,6 +40,7 @@ const bodySchema = z.object({
     .max(50),
   discountCode: z.string().max(40).optional(),
   customer: z.unknown(),
+  joinLoyalty: z.boolean().optional(),
 });
 
 export async function OPTIONS() {
@@ -85,6 +86,7 @@ export async function POST(req: Request, { params }: Params) {
       customer: customerResult.customer,
       appUrl,
       channel: "online",
+      joinLoyalty: parsed.data.joinLoyalty,
     });
 
     return withEmbedCors(

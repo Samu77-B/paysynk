@@ -16,6 +16,7 @@ import {
   Store,
   Menu,
   Tag,
+  Sparkles,
 } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -45,6 +46,7 @@ const NAV = [
   { href: "/app/products", label: "Products", icon: Package },
   { href: "/app/offers", label: "Offers", icon: Tag },
   { href: "/app/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/app/points", label: "Points", icon: Sparkles },
   { href: "/app/integration", label: "Integration", icon: Code2 },
   { href: "/app/settings", label: "Settings", icon: Settings },
   { href: "/app/settings/billing", label: "Billing", icon: CreditCard },

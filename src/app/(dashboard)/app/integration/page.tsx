@@ -1,8 +1,9 @@
-import { getDashboardContext } from "@/lib/dashboard/data";
+import { getDashboardContext, getMerchantProducts } from "@/lib/dashboard/data";
 import { IntegrationHub } from "@/components/dashboard/IntegrationHub";
 
 export default async function IntegrationPage() {
   const ctx = await getDashboardContext();
+  const products = await getMerchantProducts(ctx.merchant.id);
 
   return (
     <IntegrationHub
@@ -14,6 +15,7 @@ export default async function IntegrationPage() {
       embedAccentText={ctx.embedAccentText}
       embedFont={ctx.embedFont}
       embedRadius={ctx.embedRadius}
+      productSlugs={products.filter((p) => p.is_active).map((p) => p.slug)}
     />
   );
 }

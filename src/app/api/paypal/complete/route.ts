@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { capturePaypalOrder } from "@/lib/payments/paypal";
 import { markOrderPaidIdempotent } from "@/lib/orders";
+import { awardPaidOrderPoints } from "@/lib/loyalty";
 import { sendPaidOrderEmails } from "@/lib/email/order-emails";
 import { resolveAppOrigin } from "@/lib/app-url";
 
@@ -44,6 +45,9 @@ export async function GET(req: Request) {
         include: { items: true, store: { include: { users: true } } },
       });
       if (paidOrder) {
+        await awardPaidOrderPoints(paidOrder).catch((err) => {
+          console.error("PayPal loyalty earn failed", order.id, err);
+        });
         await sendPaidOrderEmails({ order: paidOrder }).catch((err) => {
           console.error("PayPal order emails failed", order.id, err);
         });

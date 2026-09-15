@@ -37,6 +37,9 @@ export type StorefrontStore = {
   shippingFlatMinor: number;
   shippingIntlMinor?: number | null;
   paymentsActive: boolean;
+  loyaltyEnabled?: boolean;
+  loyaltyProductPtsPerPound?: number;
+  loyaltyServicePtsPerPound?: number;
 };
 
 export type StorefrontConfigProduct = {
@@ -255,6 +258,7 @@ function CartPanel({
     CheckoutCustomerField | "discountCode" | null
   >(null);
   const [invalidVariantIds, setInvalidVariantIds] = useState<string[]>([]);
+  const [joinLoyalty, setJoinLoyalty] = useState(Boolean(store.loyaltyEnabled));
   const deliveryRef = useRef<HTMLFieldSetElement>(null);
   const [customer, setCustomer] = useState({
     name: "",
@@ -347,6 +351,7 @@ function CartPanel({
           items: items.map(toCheckoutItem),
           discountCode: discountCode || undefined,
           customer: parsed.customer,
+          joinLoyalty: store.loyaltyEnabled ? joinLoyalty : false,
         }),
       });
       const data = (await res.json()) as {
@@ -710,6 +715,22 @@ function CartPanel({
               Stripe will show this address filled in, then take the card.
             </p>
           </fieldset>
+
+          {store.loyaltyEnabled ? (
+            <label className="muted small" style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", margin: "0 0 0.85rem" }}>
+              <input
+                type="checkbox"
+                checked={joinLoyalty}
+                onChange={(e) => setJoinLoyalty(e.target.checked)}
+                style={{ marginTop: "0.2rem" }}
+              />
+              <span>
+                Join the points club — £1 products = {store.loyaltyProductPtsPerPound ?? 2}{" "}
+                pts, £1 salon services = {store.loyaltyServicePtsPerPound ?? 1} pt
+                {(store.loyaltyServicePtsPerPound ?? 1) === 1 ? "" : "s"}.
+              </span>
+            </label>
+          ) : null}
 
           {store.paymentsActive ? (
             <button

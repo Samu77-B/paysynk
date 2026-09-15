@@ -758,10 +758,14 @@
     embedAccentText: null,
     embedFont: "paysynk",
     embedRadius: "paysynk",
+    loyaltyEnabled: false,
+    loyaltyProductPtsPerPound: 2,
+    loyaltyServicePtsPerPound: 1,
   };
   var storeOffers = [];
   var open = false;
   var busy = false;
+  var joinLoyalty = true;
   var root = null;
   var button = null;
 
@@ -893,6 +897,7 @@
         }),
         discountCode: readCode() || undefined,
         customer: ship,
+        joinLoyalty: storeMeta.loyaltyEnabled ? joinLoyalty : false,
       }),
     })
       .then(function (res) {
@@ -1121,6 +1126,17 @@
           '<div style="display:flex;justify-content:space-between;font-weight:700;margin-bottom:12px"><span>Total</span><span>' +
           formatMoney(total, storeMeta.currency) +
           "</span></div>" +
+          (storeMeta.loyaltyEnabled
+            ? '<label style="display:flex;gap:8px;align-items:flex-start;margin:0 0 12px;font-size:0.82rem;color:' +
+              t.muted +
+              ';cursor:pointer"><input type="checkbox" data-ps-join-loyalty' +
+              (joinLoyalty ? " checked" : "") +
+              ' style="margin-top:3px" /> <span>Join the points club — £1 products = ' +
+              (storeMeta.loyaltyProductPtsPerPound || 2) +
+              " pts, £1 salon services = " +
+              (storeMeta.loyaltyServicePtsPerPound || 1) +
+              " pt.</span></label>"
+            : "") +
           (errorMessage
             ? '<p style="color:' +
               t.error +
@@ -1181,6 +1197,13 @@
         var input = root.querySelector("[data-ps-code]");
         writeCode(input ? input.value : "");
         render();
+      };
+    }
+
+    var joinBox = root.querySelector("[data-ps-join-loyalty]");
+    if (joinBox) {
+      joinBox.onchange = function () {
+        joinLoyalty = Boolean(joinBox.checked);
       };
     }
 
