@@ -6,6 +6,7 @@ import {
   ArrowUp,
   ChevronDown,
   Copy,
+  Image as ImageIcon,
   Layers,
   Plus,
   Trash2,
@@ -49,6 +50,10 @@ import {
   duplicateConfigProduct,
   saveConfigProduct,
 } from "@/lib/dashboard/config-actions";
+import {
+  artworkPackFor,
+  buildArtworkPlan,
+} from "@/lib/config-products/artwork";
 import { PRINT_TEMPLATES } from "@/lib/config-products/templates";
 import type { TemplateDefinition } from "@/lib/config-products/types";
 import type {
@@ -220,6 +225,53 @@ export function ConfigProductsManager({
           t.title.toLowerCase() === editing.title.toLowerCase(),
       )
     : undefined;
+
+  const artworkPack = editing ? artworkPackFor(editing) : undefined;
+
+  /** Rebuild this pack's photo rows from the graphics folder, leaving price rows untouched. */
+  function applyArtworkPack() {
+    if (!editing || !artworkPack) return;
+    const plan = buildArtworkPlan(artworkPack, editing.options);
+    if (plan.missing.length) {
+      setError(
+        `Could not match these dropdowns or choices: ${plan.missing.join(", ")}. Check the Options tab names, then try again.`,
+      );
+      return;
+    }
+
+    const kept = editing.variations.filter(
+      (row) => !row.imageUrl?.startsWith(artworkPack.baseDir),
+    );
+    const variations: DashboardConfigVariation[] = [
+      ...kept,
+      ...plan.rows.map((row, i) => ({
+        id: tempId(),
+        match: row.match,
+        priceMinor: editing.basePriceMinor,
+        sku: "",
+        sort: kept.length + i,
+        imageUrl: row.imageUrl,
+      })),
+    ].map((row, i) => ({ ...row, sort: i }));
+
+    const options = editing.options.map((option) => {
+      const hits = plan.overlays.filter((o) => o.optionId === option.id);
+      if (!hits.length) return option;
+      return {
+        ...option,
+        values: option.values.map((value) => {
+          const hit = hits.find((o) => o.valueId === value.id);
+          return hit ? { ...value, imageUrl: hit.url } : value;
+        }),
+      };
+    });
+
+    patch({ options, variations });
+    setError(null);
+    setMessage(
+      `Loaded ${plan.rows.length} photo rows and ${plan.overlays.length} overlay${plan.overlays.length === 1 ? "" : "s"}. Press Save to publish.`,
+    );
+  }
 
   function open(product: DashboardConfigProduct) {
     setEditing(structuredClone(product));
@@ -951,6 +1003,16 @@ export function ConfigProductsManager({
                     quantity price rows at the top and add photo rows below
                     them — the two will not fight each other.
                   </p>
+                  {artworkPack ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={applyArtworkPack}
+                    >
+                      <ImageIcon className="size-4" />
+                      Load {artworkPack.buttonLabel}
+                    </Button>
+                  ) : null}
                   {editing.variations.map((row, index) => (
                     <VariationRow
                       key={row.id}
