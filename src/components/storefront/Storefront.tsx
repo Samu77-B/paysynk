@@ -230,6 +230,7 @@ function ProductCard({
               title: product.title,
               optionsLabel: optionLabel(selected.options as Record<string, string>),
               kind: product.kind,
+              imageUrl: image ?? null,
               priceMinor: selected.priceMinor,
               maxStock: selected.stockQty,
             });
@@ -421,19 +422,30 @@ function CartPanel({
                   data-cart-line={item.cartKey}
                   className={lineInvalid ? "is-invalid" : undefined}
                 >
-                  <div>
-                    <strong>{item.title}</strong>
-                    {item.optionsLabel && (
-                      <div className="muted small">{item.optionsLabel}</div>
-                    )}
-                    <div className="muted small">
-                      {formatMoney(item.priceMinor, store.currency)} each
-                    </div>
-                    {lineInvalid ? (
-                      <div className="field-error">
-                        This item is no longer available.
-                      </div>
+                  <div className="cart-line-main">
+                    {item.imageUrl ? (
+                      <Image
+                        src={item.imageUrl}
+                        alt=""
+                        width={48}
+                        height={48}
+                        className="cart-line-thumb"
+                      />
                     ) : null}
+                    <div>
+                      <strong>{item.title}</strong>
+                      {item.optionsLabel && (
+                        <div className="muted small">{item.optionsLabel}</div>
+                      )}
+                      <div className="muted small">
+                        {formatMoney(item.priceMinor, store.currency)} each
+                      </div>
+                      {lineInvalid ? (
+                        <div className="field-error">
+                          This item is no longer available.
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="cart-qty">
                     <input

@@ -182,6 +182,7 @@ function ConfigProductBuilder({
                 title: product.title,
                 optionsLabel: priced.optionsLabel,
                 kind: "other",
+                imageUrl: preview.thumbnailUrl,
                 priceMinor: priced.priceMinor,
                 maxStock: 99,
                 selections,

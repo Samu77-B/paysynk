@@ -21,6 +21,8 @@ export type ConfigPreview = {
   /** Photos on the currently selected choices, in option order (later ones draw on top). */
   layers: Array<{ optionName: string; label: string; url: string }>;
   fallbackUrl: string | null;
+  /** One flat image for places that cannot stack layers, such as the cart line. */
+  thumbnailUrl: string | null;
   caption: string;
 };
 
@@ -53,10 +55,12 @@ export function configPreviewFromSelection(
   }
 
   const variation = findMatchingVariation(product.variations ?? [], selections);
+  const base = variation?.imageUrl || product.images[0] || null;
 
   return {
     layers,
-    fallbackUrl: variation?.imageUrl || product.images[0] || null,
+    fallbackUrl: base,
+    thumbnailUrl: variation?.imageUrl || layers.at(-1)?.url || base,
     caption: parts.join(" · "),
   };
 }

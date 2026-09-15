@@ -16,6 +16,8 @@ export type CartItem = {
   title: string;
   optionsLabel: string;
   kind: "tee" | "tote" | "other";
+  /** Photo of what was actually picked, so the cart line matches the shop preview. */
+  imageUrl?: string | null;
   priceMinor: number;
   quantity: number;
   maxStock: number;
