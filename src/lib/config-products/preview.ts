@@ -54,7 +54,14 @@ export function configPreviewFromSelection(
     }
   }
 
-  const variation = findMatchingVariation(product.variations ?? [], selections);
+  /**
+   * Only rows that carry a photo compete here, so appearance rows can sit below the
+   * quantity price rows without the price rows swallowing the match.
+   */
+  const variation = findMatchingVariation(
+    (product.variations ?? []).filter((row) => row.imageUrl),
+    selections,
+  );
   const base = variation?.imageUrl || product.images[0] || null;
 
   return {

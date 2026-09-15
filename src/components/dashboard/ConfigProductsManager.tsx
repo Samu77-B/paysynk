@@ -945,9 +945,11 @@ export function ConfigProductsManager({
                 >
                   <p className="text-sm text-zinc-500">
                     First matching row wins (top to bottom). Use Any for a
-                    wildcard — same as Ecwid. Add a photo of the finished combo
-                    at the bottom of a row and the shop shows it as soon as the
-                    customer picks that exact set of choices.
+                    wildcard — same as Ecwid. Photos work on a separate track:
+                    the price comes from the first matching row, the picture
+                    from the first matching row that has a photo. So keep your
+                    quantity price rows at the top and add photo rows below
+                    them — the two will not fight each other.
                   </p>
                   {editing.variations.map((row, index) => (
                     <VariationRow
