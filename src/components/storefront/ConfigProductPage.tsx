@@ -128,16 +128,35 @@ function ConfigProductBuilder({
                     priority
                   />
                 ) : null}
-                {preview.layers.map((layer, index) => (
-                  <ConfigHeroImage
-                    key={`${layer.optionName}-${layer.url}`}
-                    src={layer.url}
-                    alt={layer.label}
-                    className="store-product-img"
-                    style={{ zIndex: index + 2 }}
-                    sizes="(min-width: 860px) 50vw, 90vw"
-                  />
-                ))}
+                {preview.layers.map((layer, index) => {
+                  const isBoxes = layer.url.includes("boxes-add");
+                  const image = (
+                    <ConfigHeroImage
+                      src={layer.url}
+                      alt={layer.label}
+                      className="store-product-img"
+                      sizes="(min-width: 860px) 50vw, 90vw"
+                    />
+                  );
+                  return isBoxes ? (
+                    <div
+                      key={`${layer.optionName}-${layer.url}`}
+                      className="config-hero-boxes-slot"
+                      style={{ zIndex: index + 2 }}
+                    >
+                      {image}
+                    </div>
+                  ) : (
+                    <ConfigHeroImage
+                      key={`${layer.optionName}-${layer.url}`}
+                      src={layer.url}
+                      alt={layer.label}
+                      className="store-product-img"
+                      style={{ zIndex: index + 2 }}
+                      sizes="(min-width: 860px) 50vw, 90vw"
+                    />
+                  );
+                })}
               </>
             ) : (
               <span>Print</span>

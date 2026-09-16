@@ -1005,6 +1005,17 @@ h3 {
   transform: scale(1);
 }
 
+/* Box art is full-canvas; pin it to the bottom so the card stays visible. */
+.config-hero-boxes-slot {
+  position: absolute;
+  left: 50%;
+  bottom: 0.65rem;
+  width: min(56%, 320px);
+  height: 40%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .config-hero-caption {
   position: absolute;
   z-index: 20;
