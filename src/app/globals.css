@@ -1005,6 +1005,14 @@ h3 {
   transform: scale(1);
 }
 
+.config-hero-layer-anim.config-hero-size-85.is-visible {
+  transform: scale(0.82);
+}
+
+.config-hero-layer-anim.config-hero-size-90.is-visible {
+  transform: scale(0.96);
+}
+
 /* Box art is full-canvas; pin it to the bottom so the card stays visible. */
 .config-hero-boxes-slot {
   position: absolute;

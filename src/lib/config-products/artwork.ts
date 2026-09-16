@@ -55,7 +55,12 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
       },
       {
         optionName: "Size",
-        tokens: { "85x55": "85x55", "90x50": "90x50" },
+        /** Filenames stay 85x55 / 90x50; live labels like 90 × 60mm still map by width. */
+        tokens: {
+          "85x55": "85x55",
+          "90x50": "90x50",
+          "90x60": "90x50",
+        },
       },
     ],
     overlays: [
@@ -243,10 +248,26 @@ function tokenFor(
 ): string | undefined {
   const key = normalizeLabel(label);
   if (tokens[key]) return tokens[key];
+  const keyWidth = key.split("x")[0];
+  if (/^\d+$/.test(keyWidth)) {
+    const byWidth = Object.entries(tokens).find(([from]) => {
+      const fromWidth = from.split("x")[0];
+      return /^\d+$/.test(fromWidth) && fromWidth === keyWidth;
+    });
+    if (byWidth) return byWidth[1];
+  }
   const loose = Object.keys(tokens)
     .sort((a, b) => b.length - a.length)
     .find((candidate) => key.includes(candidate));
   return loose ? tokens[loose] : undefined;
+}
+
+/** Hero scale class from the file we actually loaded (85 vs 90). */
+export function artworkHeroSizeClass(imageUrl: string | null): string {
+  if (!imageUrl) return "";
+  if (imageUrl.includes("90x")) return "config-hero-size-90";
+  if (imageUrl.includes("85x")) return "config-hero-size-85";
+  return "";
 }
 
 export function buildArtworkPlan(

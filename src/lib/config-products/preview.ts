@@ -1,5 +1,6 @@
 import {
   artworkBaseImageFromSelections,
+  artworkHeroSizeClass,
   artworkOverlayUrl,
   artworkPackFor,
   defaultArtworkCatalogImage,
@@ -32,6 +33,7 @@ export type ConfigPreview = {
   /** One flat image for places that cannot stack layers, such as the cart line. */
   thumbnailUrl: string | null;
   caption: string;
+  sizeClass?: string;
 };
 
 /** Build the live shop visual from the customer's current dropdowns. */
@@ -106,8 +108,8 @@ export function configPreviewFromSelection(
       ? artworkBaseImageFromSelections(pack, options, selections)
       : null;
   const base =
-    variation?.imageUrl ||
     builtBase ||
+    variation?.imageUrl ||
     packDefault ||
     product.images[0] ||
     null;
@@ -117,6 +119,7 @@ export function configPreviewFromSelection(
     fallbackUrl: base,
     thumbnailUrl: base || layers.at(-1)?.url || null,
     caption: parts.join(" · "),
+    sizeClass: artworkHeroSizeClass(base),
   };
 }
 

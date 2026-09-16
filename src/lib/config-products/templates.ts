@@ -333,7 +333,7 @@ export const PRINT_TEMPLATES: PrintTemplateSeed[] = [
         },
         {
           name: "Size",
-          values: [{ label: "85 × 55mm" }, { label: "90 × 50mm" }],
+          values: [{ label: "85 × 55mm" }, { label: "90 × 60mm" }],
         },
         {
           name: "Quantity",

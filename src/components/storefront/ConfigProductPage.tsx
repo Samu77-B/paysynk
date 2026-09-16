@@ -123,7 +123,7 @@ function ConfigProductBuilder({
                   <ConfigHeroImage
                     src={preview.fallbackUrl}
                     alt={product.title}
-                    className="store-product-img"
+                    className={`store-product-img ${preview.sizeClass ?? ""}`.trim()}
                     sizes="(min-width: 860px) 50vw, 90vw"
                     priority
                   />
