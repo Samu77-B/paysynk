@@ -16,6 +16,8 @@ export type ArtworkOverlay = {
   optionName: string;
   valueLabel: string;
   url: string;
+  /** When set, this graphic only applies if every named dropdown matches (e.g. Portrait + Double). */
+  when?: Record<string, string>;
 };
 
 export type ArtworkPack = {
@@ -57,6 +59,12 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
       },
     ],
     overlays: [
+      {
+        optionName: "Printed sides",
+        valueLabel: "Double",
+        when: { Orientation: "Portrait" },
+        url: "/print/business-cards/overlays/sides-double-portrait.png",
+      },
       {
         optionName: "Printed sides",
         valueLabel: "Double",
@@ -121,6 +129,73 @@ export type ArtworkPlan = {
   report: Array<{ optionName: string; matched: string[]; skipped: string[] }>;
 };
 
+function labelMatches(selectedLabel: string, wantedLabel: string): boolean {
+  const a = normalizeLabel(selectedLabel);
+  const b = normalizeLabel(wantedLabel);
+  if (a === b) return true;
+  return a.includes(b) || b.includes(a);
+}
+
+function findOptionByName<
+  T extends { name: string; id: string; values: Array<{ id: string; label: string }> },
+>(options: T[], name: string): T | undefined {
+  return options.find(
+    (option) => option.name.trim().toLowerCase() === name.toLowerCase(),
+  );
+}
+
+/** Pick the overlay PNG for the current dropdowns (conditional rows beat the default). */
+export function artworkOverlayUrl(
+  pack: ArtworkPack,
+  options: Array<{
+    id: string;
+    name: string;
+    values: Array<{ id: string; label: string }>;
+  }>,
+  selections: Record<string, string>,
+  optionName: string,
+  valueLabel: string,
+): string | null {
+  const candidates = pack.overlays.filter(
+    (row) =>
+      row.optionName.toLowerCase() === optionName.toLowerCase() &&
+      labelMatches(valueLabel, row.valueLabel),
+  );
+  if (!candidates.length) return null;
+
+  const conditional = candidates.filter(
+    (row) => row.when && Object.keys(row.when).length,
+  );
+  for (const row of conditional) {
+    const ok = Object.entries(row.when!).every(([whenName, whenLabel]) => {
+      const option = findOptionByName(options, whenName);
+      if (!option) return false;
+      const valueId = selections[option.id];
+      if (!valueId) return false;
+      const value = option.values.find((v) => v.id === valueId);
+      return value ? labelMatches(value.label, whenLabel) : false;
+    });
+    if (ok) return row.url;
+  }
+
+  const fallback = candidates.find(
+    (row) => !row.when || !Object.keys(row.when).length,
+  );
+  return fallback?.url ?? null;
+}
+
+export function packManagesOverlay(
+  pack: ArtworkPack,
+  optionName: string,
+  valueLabel: string,
+): boolean {
+  return pack.overlays.some(
+    (row) =>
+      row.optionName.toLowerCase() === optionName.toLowerCase() &&
+      labelMatches(valueLabel, row.valueLabel),
+  );
+}
+
 /** Exact normalised match first, then a contains test so "Portrait (tall)" still finds "portrait". */
 function tokenFor(
   tokens: Record<string, string>,
@@ -176,16 +251,20 @@ export function buildArtworkPlan(
   }
 
   const overlays: ArtworkPlan["overlays"] = [];
+  const overlayKeysApplied = new Set<string>();
   for (const overlay of pack.overlays) {
+    if (overlay.when && Object.keys(overlay.when).length) continue;
+    const key = `${overlay.optionName}:${normalizeLabel(overlay.valueLabel)}`;
+    if (overlayKeysApplied.has(key)) continue;
     const option = findOption(overlay.optionName);
-    const value = option?.values.find(
-      (row) =>
-        normalizeLabel(row.label) === normalizeLabel(overlay.valueLabel),
+    const value = option?.values.find((row) =>
+      labelMatches(row.label, overlay.valueLabel),
     );
     if (!option || !value) {
       missing.push(`${overlay.optionName}: ${overlay.valueLabel}`);
       continue;
     }
+    overlayKeysApplied.add(key);
     overlays.push({ optionId: option.id, valueId: value.id, url: overlay.url });
   }
 

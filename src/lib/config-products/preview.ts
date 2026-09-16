@@ -1,4 +1,9 @@
-import { defaultArtworkCatalogImage } from "@/lib/config-products/artwork";
+import {
+  artworkOverlayUrl,
+  artworkPackFor,
+  defaultArtworkCatalogImage,
+  packManagesOverlay,
+} from "@/lib/config-products/artwork";
 import { findMatchingVariation } from "@/lib/config-products/pricing";
 
 export type PreviewOption = {
@@ -41,6 +46,13 @@ export function configPreviewFromSelection(
   const options = [...product.options].sort((a, b) => a.sort - b.sort);
   const layers: ConfigPreview["layers"] = [];
   const parts: string[] = [];
+  const pack =
+    product.slug != null
+      ? artworkPackFor({
+          slug: product.slug,
+          title: product.title ?? "",
+        })
+      : undefined;
 
   for (const option of options) {
     const valueId = selections[option.id];
@@ -48,11 +60,24 @@ export function configPreviewFromSelection(
     const value = option.values.find((row) => row.id === valueId);
     if (!value) continue;
     parts.push(value.label);
-    if (value.imageUrl) {
+    let layerUrl: string | null | undefined = value.imageUrl;
+    if (
+      pack &&
+      packManagesOverlay(pack, option.name, value.label)
+    ) {
+      layerUrl = artworkOverlayUrl(
+        pack,
+        options,
+        selections,
+        option.name,
+        value.label,
+      );
+    }
+    if (layerUrl) {
       layers.push({
         optionName: option.name,
         label: value.label,
-        url: value.imageUrl,
+        url: layerUrl,
       });
     }
   }
