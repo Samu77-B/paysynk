@@ -285,7 +285,7 @@ export function ConfigProductsManager({
         : null,
     );
     setMessage(
-      `Loaded ${plan.rows.length} photo rows and ${artworkPack.overlays.length} overlay rule${artworkPack.overlays.length === 1 ? "" : "s"} (portrait/landscape double-sided picks the right mark). Press Save to publish.`,
+      `Loaded ${plan.rows.length} photo rows. Double sided and boxes show as icons on the shop, not extra photos. Press Save to publish.`,
     );
   }
 

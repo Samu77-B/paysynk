@@ -20,6 +20,13 @@ export type ArtworkOverlay = {
   when?: Record<string, string>;
 };
 
+export type ArtworkBadge = {
+  id: "double" | "boxes";
+  optionName: string;
+  valueLabel: string;
+  label: string;
+};
+
 export type ArtworkPack = {
   /** Product slug or title this pack belongs to. */
   match: string[];
@@ -28,6 +35,8 @@ export type ArtworkPack = {
   baseDir: string;
   dimensions: ArtworkDimension[];
   overlays: ArtworkOverlay[];
+  /** Extra flags shown as UI chips on the hero — not stacked PNGs. */
+  badges: ArtworkBadge[];
 };
 
 /** "85 × 55mm" and "85x55mm" both land on "85x55" so merchant edits do not break matching. */
@@ -63,22 +72,19 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
         },
       },
     ],
-    overlays: [
+    overlays: [],
+    badges: [
       {
+        id: "double",
         optionName: "Printed sides",
         valueLabel: "Double",
-        when: { Orientation: "Portrait" },
-        url: "/print/business-cards/overlays/sides-double-portrait.png",
+        label: "Double sided",
       },
       {
-        optionName: "Printed sides",
-        valueLabel: "Double",
-        url: "/print/business-cards/overlays/sides-double.png",
-      },
-      {
+        id: "boxes",
         optionName: "Add boxes?",
         valueLabel: "Add boxes",
-        url: "/print/business-cards/overlays/boxes-add.png",
+        label: "Boxes included",
       },
     ],
   },
@@ -192,6 +198,26 @@ export function artworkOverlayUrl(
     (row) => !row.when || !Object.keys(row.when).length,
   );
   return fallback?.url ?? null;
+}
+
+/** Which add-on chips to show for the current dropdowns (double sided, boxes). */
+export function artworkBadgesFromSelections(
+  pack: ArtworkPack,
+  options: Array<{
+    id: string;
+    name: string;
+    values: Array<{ id: string; label: string }>;
+  }>,
+  selections: Record<string, string>,
+): ArtworkBadge[] {
+  return pack.badges.filter((badge) => {
+    const option = findOptionByName(options, badge.optionName);
+    if (!option) return false;
+    const valueId = selections[option.id];
+    if (!valueId) return false;
+    const value = option.values.find((row) => row.id === valueId);
+    return value ? labelMatches(value.label, badge.valueLabel) : false;
+  });
 }
 
 export function packManagesOverlay(

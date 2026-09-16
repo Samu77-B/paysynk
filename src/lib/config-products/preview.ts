@@ -1,11 +1,12 @@
 import {
+  artworkBadgesFromSelections,
   artworkBaseImageFromSelections,
   artworkHeroSizeClass,
-  artworkOverlayUrl,
   artworkPackFor,
   defaultArtworkCatalogImage,
   isArtworkBaseImageUrl,
   packManagesOverlay,
+  type ArtworkBadge,
 } from "@/lib/config-products/artwork";
 import { findMatchingVariation } from "@/lib/config-products/pricing";
 
@@ -34,6 +35,7 @@ export type ConfigPreview = {
   thumbnailUrl: string | null;
   caption: string;
   sizeClass?: string;
+  badges: ArtworkBadge[];
 };
 
 /** Build the live shop visual from the customer's current dropdowns. */
@@ -64,24 +66,12 @@ export function configPreviewFromSelection(
     const value = option.values.find((row) => row.id === valueId);
     if (!value) continue;
     parts.push(value.label);
-    let layerUrl: string | null | undefined = value.imageUrl;
-    if (
-      pack &&
-      packManagesOverlay(pack, option.name, value.label)
-    ) {
-      layerUrl = artworkOverlayUrl(
-        pack,
-        options,
-        selections,
-        option.name,
-        value.label,
-      );
-    }
-    if (layerUrl) {
+    if (pack) continue;
+    if (value.imageUrl && isArtworkBaseImageUrl(value.imageUrl)) {
       layers.push({
         optionName: option.name,
         label: value.label,
-        url: layerUrl,
+        url: value.imageUrl,
       });
     }
   }
@@ -120,6 +110,7 @@ export function configPreviewFromSelection(
     thumbnailUrl: base || layers.at(-1)?.url || null,
     caption: parts.join(" · "),
     sizeClass: artworkHeroSizeClass(base),
+    badges: pack ? artworkBadgesFromSelections(pack, options, selections) : [],
   };
 }
 
@@ -146,18 +137,11 @@ export function choicePreviewImageUrl(
         })
       : undefined;
 
+  if (value.imageUrl && !isArtworkBaseImageUrl(value.imageUrl)) {
+    return null;
+  }
   if (pack && packManagesOverlay(pack, option.name, value.label)) {
-    return (
-      artworkOverlayUrl(
-        pack,
-        product.options,
-        selections,
-        option.name,
-        value.label,
-      ) ??
-      value.imageUrl ??
-      null
-    );
+    return null;
   }
   return value.imageUrl ?? null;
 }

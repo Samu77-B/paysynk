@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ConfigHeroImage } from "@/components/storefront/ConfigHeroImage";
+import {
+  BoxesIcon,
+  DoubleSidedIcon,
+} from "@/components/storefront/ConfigHeroBadges";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/pricing";
@@ -117,46 +121,29 @@ function ConfigProductBuilder({
       <div className="config-layout">
         <div>
           <div className="store-product-visual store-product-visual-photo config-hero">
-            {preview.fallbackUrl || preview.layers.length ? (
+            {preview.fallbackUrl ? (
               <>
-                {preview.fallbackUrl ? (
-                  <ConfigHeroImage
-                    src={preview.fallbackUrl}
-                    alt={product.title}
-                    className={`store-product-img ${preview.sizeClass ?? ""}`.trim()}
-                    sizes="(min-width: 860px) 50vw, 90vw"
-                    priority
-                  />
+                <ConfigHeroImage
+                  src={preview.fallbackUrl}
+                  alt={product.title}
+                  className={`store-product-img ${preview.sizeClass ?? ""}`.trim()}
+                  sizes="(min-width: 860px) 50vw, 90vw"
+                  priority
+                />
+                {preview.badges.length ? (
+                  <ul className="config-hero-badges">
+                    {preview.badges.map((badge) => (
+                      <li key={badge.id} className="config-hero-badge">
+                        {badge.id === "double" ? (
+                          <DoubleSidedIcon />
+                        ) : (
+                          <BoxesIcon />
+                        )}
+                        <span>{badge.label}</span>
+                      </li>
+                    ))}
+                  </ul>
                 ) : null}
-                {preview.layers.map((layer, index) => {
-                  const isBoxes = layer.url.includes("boxes-add");
-                  const image = (
-                    <ConfigHeroImage
-                      src={layer.url}
-                      alt={layer.label}
-                      className="store-product-img"
-                      sizes="(min-width: 860px) 50vw, 90vw"
-                    />
-                  );
-                  return isBoxes ? (
-                    <div
-                      key={`${layer.optionName}-${layer.url}`}
-                      className="config-hero-boxes-slot"
-                      style={{ zIndex: index + 2 }}
-                    >
-                      {image}
-                    </div>
-                  ) : (
-                    <ConfigHeroImage
-                      key={`${layer.optionName}-${layer.url}`}
-                      src={layer.url}
-                      alt={layer.label}
-                      className="store-product-img"
-                      style={{ zIndex: index + 2 }}
-                      sizes="(min-width: 860px) 50vw, 90vw"
-                    />
-                  );
-                })}
               </>
             ) : (
               <span>Print</span>
