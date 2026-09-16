@@ -66,6 +66,33 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
   },
 ];
 
+/** Default shop/catalog graphic for the usual first-pick combo (landscape · normal · 85×55). */
+export function defaultArtworkCatalogImage(product: {
+  slug: string;
+  title: string;
+}): string | null {
+  const pack = artworkPackFor(product);
+  if (!pack) return null;
+  return `${pack.baseDir}/landscape-normal-85x55.png`;
+}
+
+/** Catalog tile: artwork pack beats a stray General-tab upload; otherwise DB photos. */
+export function configCatalogImageUrl(product: {
+  slug: string;
+  title: string;
+  images: string[];
+  variationImages?: Array<string | null | undefined>;
+}): string | null {
+  const pack = artworkPackFor(product);
+  const fromVariation = (product.variationImages ?? []).find(
+    (url) => url?.trim(),
+  );
+  if (pack) {
+    return fromVariation ?? defaultArtworkCatalogImage(product);
+  }
+  return product.images[0]?.trim() || fromVariation || null;
+}
+
 export function artworkPackFor(product: {
   slug: string;
   title: string;

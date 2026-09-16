@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
+import { StoreCatalogImage } from "@/components/storefront/StoreCatalogImage";
 import { CartProvider, useCart, toCheckoutItem } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
 import { imageForSelection } from "@/lib/product-images";
@@ -48,6 +49,7 @@ export type StorefrontConfigProduct = {
   title: string;
   description: string;
   images: string[];
+  catalogImageUrl?: string | null;
   category: string;
   fromPriceMinor: number | null;
 };
@@ -832,14 +834,8 @@ export function Storefront({
                         href={`/s/${store.slug}/p/${p.slug}`}
                       >
                         <div className="store-product-visual store-product-visual-photo">
-                          {p.images[0] ? (
-                            <Image
-                              src={p.images[0]}
-                              alt=""
-                              fill
-                              className="store-product-img"
-                              sizes="240px"
-                            />
+                          {p.catalogImageUrl ? (
+                            <StoreCatalogImage src={p.catalogImageUrl} />
                           ) : (
                             <span>Print</span>
                           )}

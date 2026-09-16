@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ConfigHeroImage } from "@/components/storefront/ConfigHeroImage";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/pricing";
@@ -117,22 +117,20 @@ function ConfigProductBuilder({
             {preview.fallbackUrl || preview.layers.length ? (
               <>
                 {preview.fallbackUrl ? (
-                  <Image
+                  <ConfigHeroImage
                     src={preview.fallbackUrl}
                     alt={product.title}
-                    fill
-                    className="store-product-img config-hero-layer"
+                    className="store-product-img"
                     sizes="(min-width: 860px) 50vw, 90vw"
                     priority
                   />
                 ) : null}
                 {preview.layers.map((layer, index) => (
-                  <Image
+                  <ConfigHeroImage
                     key={`${layer.optionName}-${layer.url}`}
                     src={layer.url}
                     alt={layer.label}
-                    fill
-                    className="store-product-img config-hero-layer"
+                    className="store-product-img"
                     style={{ zIndex: index + 2 }}
                     sizes="(min-width: 860px) 50vw, 90vw"
                   />

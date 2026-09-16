@@ -990,6 +990,21 @@ h3 {
   pointer-events: none;
 }
 
+.config-hero-layer-anim,
+.store-catalog-img-anim {
+  opacity: 0;
+  transform: scale(0.985);
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+
+.config-hero-layer-anim.is-visible,
+.store-catalog-img-anim.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .config-hero-caption {
   position: absolute;
   z-index: 20;

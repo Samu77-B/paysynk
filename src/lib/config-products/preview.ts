@@ -1,3 +1,4 @@
+import { defaultArtworkCatalogImage } from "@/lib/config-products/artwork";
 import { findMatchingVariation } from "@/lib/config-products/pricing";
 
 export type PreviewOption = {
@@ -29,6 +30,8 @@ export type ConfigPreview = {
 /** Build the live shop visual from the customer's current dropdowns. */
 export function configPreviewFromSelection(
   product: {
+    slug?: string;
+    title?: string;
     images: string[];
     options: PreviewOption[];
     variations?: PreviewVariation[];
@@ -62,7 +65,15 @@ export function configPreviewFromSelection(
     (product.variations ?? []).filter((row) => row.imageUrl),
     selections,
   );
-  const base = variation?.imageUrl || product.images[0] || null;
+  const packDefault =
+    product.slug != null
+      ? defaultArtworkCatalogImage({
+          slug: product.slug,
+          title: product.title ?? "",
+        })
+      : null;
+  const base =
+    variation?.imageUrl || packDefault || product.images[0] || null;
 
   return {
     layers,

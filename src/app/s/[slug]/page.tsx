@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Storefront } from "@/components/storefront/Storefront";
 import { getActiveStoreOffers } from "@/lib/store-offers";
+import { configCatalogImageUrl } from "@/lib/config-products/artwork";
 import { findStoreByPublicSlug } from "@/lib/store-lookup";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -67,6 +68,12 @@ export default async function StorePage({ params }: Props) {
     title: p.title,
     description: p.description,
     images: p.images,
+    catalogImageUrl: configCatalogImageUrl({
+      slug: p.slug,
+      title: p.title,
+      images: p.images,
+      variationImages: p.variations.map((v) => v.imageUrl),
+    }),
     category: p.category || "Print",
     fromPriceMinor: (() => {
       const prices = [
