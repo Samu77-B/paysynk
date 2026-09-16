@@ -6,6 +6,7 @@ import { ConfigHeroImage } from "@/components/storefront/ConfigHeroImage";
 import {
   BoxesIcon,
   DoubleSidedIcon,
+  PaperWeightIcon,
 } from "@/components/storefront/ConfigHeroBadges";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
@@ -136,8 +137,10 @@ function ConfigProductBuilder({
                       <li key={badge.id} className="config-hero-badge">
                         {badge.id === "double" ? (
                           <DoubleSidedIcon />
-                        ) : (
+                        ) : badge.id === "boxes" ? (
                           <BoxesIcon />
+                        ) : (
+                          <PaperWeightIcon />
                         )}
                         <span>{badge.label}</span>
                       </li>

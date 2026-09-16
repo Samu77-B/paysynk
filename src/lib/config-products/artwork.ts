@@ -21,8 +21,9 @@ export type ArtworkOverlay = {
 };
 
 export type ArtworkBadge = {
-  id: "double" | "boxes";
+  id: "double" | "boxes" | "weight";
   optionName: string;
+  /** Use "*" to show whatever is currently selected (e.g. 350gsm Silk). */
   valueLabel: string;
   label: string;
 };
@@ -74,6 +75,12 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
     ],
     overlays: [],
     badges: [
+      {
+        id: "weight",
+        optionName: "Material",
+        valueLabel: "*",
+        label: "Stock",
+      },
       {
         id: "double",
         optionName: "Printed sides",
@@ -210,14 +217,21 @@ export function artworkBadgesFromSelections(
   }>,
   selections: Record<string, string>,
 ): ArtworkBadge[] {
-  return pack.badges.filter((badge) => {
+  const shown: ArtworkBadge[] = [];
+  for (const badge of pack.badges) {
     const option = findOptionByName(options, badge.optionName);
-    if (!option) return false;
+    if (!option) continue;
     const valueId = selections[option.id];
-    if (!valueId) return false;
+    if (!valueId) continue;
     const value = option.values.find((row) => row.id === valueId);
-    return value ? labelMatches(value.label, badge.valueLabel) : false;
-  });
+    if (!value) continue;
+    if (badge.valueLabel === "*") {
+      shown.push({ ...badge, label: value.label });
+      continue;
+    }
+    if (labelMatches(value.label, badge.valueLabel)) shown.push(badge);
+  }
+  return shown;
 }
 
 export function packManagesOverlay(
