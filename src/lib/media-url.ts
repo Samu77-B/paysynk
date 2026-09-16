@@ -3,12 +3,14 @@ const BLOB_HOST_SUFFIXES = [
   ".blob.vercel-storage.com",
 ];
 
-/** Photos must be local `/uploads/...`, seeded `/products/...`, or a Vercel Blob HTTPS URL. */
+const LOCAL_MEDIA_PREFIXES = ["/uploads/", "/products/", "/print/"];
+
+/** Photos must be a local path under `public`, or a Vercel Blob HTTPS URL. */
 export function isAllowedMediaUrl(value: string | null | undefined): boolean {
   if (!value) return true;
   const url = value.trim();
   if (!url) return true;
-  if (url.startsWith("/uploads/") || url.startsWith("/products/")) {
+  if (LOCAL_MEDIA_PREFIXES.some((prefix) => url.startsWith(prefix))) {
     return !url.includes("..") && !url.includes("\\");
   }
   try {
