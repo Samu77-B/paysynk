@@ -70,6 +70,11 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
         valueLabel: "Double",
         url: "/print/business-cards/overlays/sides-double.png",
       },
+      {
+        optionName: "Add boxes?",
+        valueLabel: "Add boxes",
+        url: "/print/business-cards/overlays/boxes-add.png",
+      },
     ],
   },
 ];
