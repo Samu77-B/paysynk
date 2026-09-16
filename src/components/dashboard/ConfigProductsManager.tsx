@@ -232,9 +232,20 @@ export function ConfigProductsManager({
   function applyArtworkPack() {
     if (!editing || !artworkPack) return;
     const plan = buildArtworkPlan(artworkPack, editing.options);
+    const summary = plan.report
+      .map(
+        (line) =>
+          `${line.optionName}: matched ${line.matched.join(", ") || "nothing"}${
+            line.skipped.length
+              ? ` — no graphic for ${line.skipped.join(", ")}`
+              : ""
+          }`,
+      )
+      .join(". ");
+
     if (plan.missing.length) {
       setError(
-        `Could not match these dropdowns or choices: ${plan.missing.join(", ")}. Check the Options tab names, then try again.`,
+        `Could not build the rows: ${plan.missing.join(", ")}. ${summary}`,
       );
       return;
     }
@@ -267,7 +278,12 @@ export function ConfigProductsManager({
     });
 
     patch({ options, variations });
-    setError(null);
+    const shortfall = plan.report.some((line) => line.skipped.length);
+    setError(
+      shortfall
+        ? `Some choices have no graphic, so fewer rows were built. ${summary}`
+        : null,
+    );
     setMessage(
       `Loaded ${plan.rows.length} photo rows and ${plan.overlays.length} overlay${plan.overlays.length === 1 ? "" : "s"}. Press Save to publish.`,
     );

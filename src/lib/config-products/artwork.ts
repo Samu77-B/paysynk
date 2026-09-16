@@ -90,13 +90,29 @@ export type ArtworkPlan = {
   overlays: Array<{ optionId: string; valueId: string; url: string }>;
   /** Dropdowns or choices the pack expected but could not find. */
   missing: string[];
+  /** Which choices each dimension recognised, so a short row count can be explained. */
+  report: Array<{ optionName: string; matched: string[]; skipped: string[] }>;
 };
+
+/** Exact normalised match first, then a contains test so "Portrait (tall)" still finds "portrait". */
+function tokenFor(
+  tokens: Record<string, string>,
+  label: string,
+): string | undefined {
+  const key = normalizeLabel(label);
+  if (tokens[key]) return tokens[key];
+  const loose = Object.keys(tokens)
+    .sort((a, b) => b.length - a.length)
+    .find((candidate) => key.includes(candidate));
+  return loose ? tokens[loose] : undefined;
+}
 
 export function buildArtworkPlan(
   pack: ArtworkPack,
   options: PlanOption[],
 ): ArtworkPlan {
   const missing: string[] = [];
+  const report: ArtworkPlan["report"] = [];
   const findOption = (name: string) =>
     options.find(
       (option) => option.name.trim().toLowerCase() === name.toLowerCase(),
@@ -106,14 +122,27 @@ export function buildArtworkPlan(
     [];
   for (const dimension of pack.dimensions) {
     const option = findOption(dimension.optionName);
-    const entries = (option?.values ?? []).flatMap((value) => {
-      const token = dimension.tokens[normalizeLabel(value.label)];
-      return token
-        ? [{ optionId: option!.id, valueId: value.id, token }]
-        : [];
-    });
+    if (!option) {
+      missing.push(`no "${dimension.optionName}" dropdown`);
+      report.push({ optionName: dimension.optionName, matched: [], skipped: [] });
+      continue;
+    }
+    const entries: Array<{ optionId: string; valueId: string; token: string }> =
+      [];
+    const matched: string[] = [];
+    const skipped: string[] = [];
+    for (const value of option.values) {
+      const token = tokenFor(dimension.tokens, value.label);
+      if (token) {
+        entries.push({ optionId: option.id, valueId: value.id, token });
+        matched.push(value.label);
+      } else {
+        skipped.push(value.label);
+      }
+    }
+    report.push({ optionName: dimension.optionName, matched, skipped });
     if (!entries.length) {
-      missing.push(dimension.optionName);
+      missing.push(`no usable choices in "${dimension.optionName}"`);
       continue;
     }
     axes.push(entries);
@@ -134,7 +163,7 @@ export function buildArtworkPlan(
   }
 
   // A missing dimension would produce filenames that do not exist, so build nothing.
-  if (missing.length) return { rows: [], overlays: [], missing };
+  if (missing.length) return { rows: [], overlays: [], missing, report };
 
   let rows: ArtworkPlan["rows"] = [{ match: {}, imageUrl: "" }];
   for (const axis of axes) {
@@ -155,5 +184,6 @@ export function buildArtworkPlan(
     })),
     overlays,
     missing,
+    report,
   };
 }
