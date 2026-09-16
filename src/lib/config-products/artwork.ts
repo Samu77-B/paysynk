@@ -196,6 +196,41 @@ export function packManagesOverlay(
   );
 }
 
+/** Overlay PNGs must not become the full-size hero — they are mostly transparent. */
+export function isArtworkBaseImageUrl(
+  url: string | null | undefined,
+): boolean {
+  const trimmed = url?.trim();
+  if (!trimmed) return false;
+  return !trimmed.includes("/overlays/");
+}
+
+/** Build `/print/.../portrait-round-85x55.png` from the customer's current shape dropdowns. */
+export function artworkBaseImageFromSelections(
+  pack: ArtworkPack,
+  options: Array<{
+    id: string;
+    name: string;
+    values: Array<{ id: string; label: string }>;
+  }>,
+  selections: Record<string, string>,
+): string | null {
+  const parts: string[] = [];
+  for (const dimension of pack.dimensions) {
+    const option = findOptionByName(options, dimension.optionName);
+    if (!option) return null;
+    const valueId = selections[option.id];
+    if (!valueId) return null;
+    const value = option.values.find((v) => v.id === valueId);
+    if (!value) return null;
+    const token = tokenFor(dimension.tokens, value.label);
+    if (!token) return null;
+    parts.push(token);
+  }
+  if (!parts.length) return null;
+  return `${pack.baseDir}/${parts.join("-")}.png`;
+}
+
 /** Exact normalised match first, then a contains test so "Portrait (tall)" still finds "portrait". */
 function tokenFor(
   tokens: Record<string, string>,

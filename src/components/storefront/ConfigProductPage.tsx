@@ -7,7 +7,10 @@ import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
 import { formatMoney } from "@/lib/pricing";
 import { priceConfigSelection } from "@/lib/config-products/pricing";
-import { configPreviewFromSelection } from "@/lib/config-products/preview";
+import {
+  choicePreviewImageUrl,
+  configPreviewFromSelection,
+} from "@/lib/config-products/preview";
 import type { ConfigProductForPrice } from "@/lib/config-products/pricing";
 
 export type PublicConfigProduct = ConfigProductForPrice & {
@@ -206,8 +209,10 @@ function ConfigProductBuilder({
           ) : null}
 
           {options.map((option) => {
-            const selected = option.values.find(
-              (value) => value.id === selections[option.id],
+            const thumbUrl = choicePreviewImageUrl(
+              product,
+              selections,
+              option.id,
             );
             return (
               <label key={option.id} className="field">
@@ -216,10 +221,10 @@ function ConfigProductBuilder({
                   {option.required ? " *" : ""}
                 </span>
                 <span className="config-option-row">
-                  {selected?.imageUrl ? (
+                  {thumbUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={selected.imageUrl}
+                      src={thumbUrl}
                       alt=""
                       className="config-option-thumb"
                     />

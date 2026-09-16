@@ -1,7 +1,9 @@
 import {
+  artworkBaseImageFromSelections,
   artworkOverlayUrl,
   artworkPackFor,
   defaultArtworkCatalogImage,
+  isArtworkBaseImageUrl,
   packManagesOverlay,
 } from "@/lib/config-products/artwork";
 import { findMatchingVariation } from "@/lib/config-products/pricing";
@@ -87,7 +89,9 @@ export function configPreviewFromSelection(
    * quantity price rows without the price rows swallowing the match.
    */
   const variation = findMatchingVariation(
-    (product.variations ?? []).filter((row) => row.imageUrl),
+    (product.variations ?? []).filter((row) =>
+      isArtworkBaseImageUrl(row.imageUrl),
+    ),
     selections,
   );
   const packDefault =
@@ -97,13 +101,60 @@ export function configPreviewFromSelection(
           title: product.title ?? "",
         })
       : null;
+  const builtBase =
+    pack != null
+      ? artworkBaseImageFromSelections(pack, options, selections)
+      : null;
   const base =
-    variation?.imageUrl || packDefault || product.images[0] || null;
+    variation?.imageUrl ||
+    builtBase ||
+    packDefault ||
+    product.images[0] ||
+    null;
 
   return {
     layers,
     fallbackUrl: base,
-    thumbnailUrl: variation?.imageUrl || layers.at(-1)?.url || base,
+    thumbnailUrl: base || layers.at(-1)?.url || null,
     caption: parts.join(" · "),
   };
+}
+
+/** Dropdown thumb next to a choice — uses live overlay rules, not the stale saved URL. */
+export function choicePreviewImageUrl(
+  product: {
+    slug?: string;
+    title?: string;
+    options: PreviewOption[];
+  },
+  selections: Record<string, string>,
+  optionId: string,
+): string | null {
+  const option = product.options.find((row) => row.id === optionId);
+  const valueId = selections[optionId];
+  const value = option?.values.find((row) => row.id === valueId);
+  if (!option || !value) return null;
+
+  const pack =
+    product.slug != null
+      ? artworkPackFor({
+          slug: product.slug,
+          title: product.title ?? "",
+        })
+      : undefined;
+
+  if (pack && packManagesOverlay(pack, option.name, value.label)) {
+    return (
+      artworkOverlayUrl(
+        pack,
+        product.options,
+        selections,
+        option.name,
+        value.label,
+      ) ??
+      value.imageUrl ??
+      null
+    );
+  }
+  return value.imageUrl ?? null;
 }

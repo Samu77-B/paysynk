@@ -49,6 +49,7 @@ export function ConfigHeroImage({
       }`}
       style={style}
       onLoad={() => setVisible(true)}
+      onError={() => setVisible(true)}
     />
   );
 }
