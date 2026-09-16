@@ -1095,9 +1095,16 @@ h3 {
   gap: 0.85rem;
 }
 
-.config-builder h1 {
-  margin: 0;
-  font-size: 1.6rem;
+.config-template-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+}
+
+.config-template-dl {
+  font-size: 0.85rem;
+  text-decoration: none;
 }
 
 .config-price {

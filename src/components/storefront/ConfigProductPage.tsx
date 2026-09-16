@@ -16,6 +16,7 @@ import {
   choicePreviewImageUrl,
   configPreviewFromSelection,
 } from "@/lib/config-products/preview";
+import { artworkPackFor } from "@/lib/config-products/artwork";
 import type { ConfigProductForPrice } from "@/lib/config-products/pricing";
 
 export type PublicConfigProduct = ConfigProductForPrice & {
@@ -85,6 +86,8 @@ function ConfigProductBuilder({
     () => configPreviewFromSelection(product, selections),
     [product, selections],
   );
+
+  const artworkPack = artworkPackFor(product);
 
   async function onFiles(list: FileList | null) {
     if (!list?.length) return;
@@ -261,6 +264,28 @@ function ConfigProductBuilder({
               </label>
             );
           })}
+
+          {artworkPack?.templates.length ? (
+            <div className="field">
+              <span>Download a PDF template</span>
+              <p className="muted small">
+                Use the template that matches your card size, then upload your
+                finished artwork below.
+              </p>
+              <div className="config-template-downloads">
+                {artworkPack.templates.map((file) => (
+                  <a
+                    key={file.href}
+                    className="btn btn-ghost config-template-dl"
+                    href={file.href}
+                    download
+                  >
+                    {file.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {product.uploadsEnabled ? (
             <div className="field">

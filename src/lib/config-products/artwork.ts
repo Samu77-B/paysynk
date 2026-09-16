@@ -38,6 +38,8 @@ export type ArtworkPack = {
   overlays: ArtworkOverlay[];
   /** Extra flags shown as UI chips on the hero — not stacked PNGs. */
   badges: ArtworkBadge[];
+  /** PDF artwork templates customers can download before uploading files. */
+  templates: Array<{ label: string; href: string }>;
 };
 
 /** "85 × 55mm" and "85x55mm" both land on "85x55" so merchant edits do not break matching. */
@@ -92,6 +94,16 @@ export const ARTWORK_PACKS: ArtworkPack[] = [
         optionName: "Add boxes?",
         valueLabel: "Add boxes",
         label: "Boxes included",
+      },
+    ],
+    templates: [
+      {
+        label: "85 × 55mm PDF template",
+        href: "/print/business-cards/templates/85x55.pdf",
+      },
+      {
+        label: "90 × 60mm PDF template",
+        href: "/print/business-cards/templates/90x60.pdf",
       },
     ],
   },
