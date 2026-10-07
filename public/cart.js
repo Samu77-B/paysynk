@@ -1154,8 +1154,11 @@
               " !important;color:" +
               t.btnText +
               ' !important">' +
-              (busy ? "Redirecting…" : "Checkout with Stripe") +
-              "</button>"
+              (busy ? "Redirecting…" : "Buy Now") +
+              "</button>" +
+              '<p style="margin:8px 0 0;font-size:0.82rem;color:' +
+              t.muted +
+              ';text-align:center">You will be taken to Stripe’s secure checkout to complete your purchase.</p>'
             : '<p style="margin:0;font-size:0.82rem;color:' +
               t.muted +
               '">Preview only — checkout turns on after Stripe is connected in PaySynk Settings.</p>') +

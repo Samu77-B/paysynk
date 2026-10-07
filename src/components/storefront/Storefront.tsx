@@ -747,14 +747,19 @@ function CartPanel({
           ) : null}
 
           {store.paymentsActive ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              disabled={busy}
-              onClick={() => void checkout()}
-            >
-              {busy ? "Redirecting…" : "Checkout with Stripe"}
-            </button>
+            <>
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                disabled={busy}
+                onClick={() => void checkout()}
+              >
+                {busy ? "Redirecting…" : "Buy Now"}
+              </button>
+              <p className="muted small note">
+                You will be taken to Stripe’s secure checkout to complete your purchase.
+              </p>
+            </>
           ) : (
             <p className="muted small note">
               Checkout stays off until you connect Stripe in Settings → Payments.
