@@ -429,6 +429,29 @@
     document.body.appendChild(overlay);
   }
 
+  function lifestyleImage(product) {
+    if (product.images && product.images[0]) return product.images[0];
+    var variants = product.variants || [];
+    for (var i = 0; i < variants.length; i++) {
+      if (variants[i].imageUrl) return variants[i].imageUrl;
+    }
+    return "";
+  }
+
+  function distinctLifestyleImage(product) {
+    var colourUrls = {};
+    var variants = product.variants || [];
+    for (var i = 0; i < variants.length; i++) {
+      var v = variants[i];
+      if (v.imageUrl && v.options && v.options.colour) colourUrls[v.imageUrl] = true;
+    }
+    var images = product.images || [];
+    for (var j = 0; j < images.length; j++) {
+      if (images[j] && !colourUrls[images[j]]) return images[j];
+    }
+    return "";
+  }
+
   function imageForSelection(product, colour, selected) {
     if (selected && selected.imageUrl) return selected.imageUrl;
     var variants = product.variants || [];
@@ -441,10 +464,7 @@
       }
       return imageForColour(product, colour);
     }
-    for (var j = 0; j < variants.length; j++) {
-      if (variants[j].imageUrl) return variants[j].imageUrl;
-    }
-    return imageForColour(product, colour);
+    return lifestyleImage(product) || imageForColour(product, colour);
   }
 
   function imageForColour(product, colour) {
@@ -608,6 +628,7 @@
 
     var state = {
       colour: colours[0] || "",
+      colourPicked: false,
       variantId: product.variants[0] ? product.variants[0].id : "",
       flash: "",
     };
@@ -650,7 +671,11 @@
         }
       }
 
-      var photo = imageForSelection(product, state.colour, sel);
+      var lifestyle = distinctLifestyleImage(product);
+      var photo =
+        !state.colourPicked && lifestyle
+          ? lifestyle
+          : imageForSelection(product, state.colour, sel);
       var mode = el.getAttribute("data-ps-theme") || readTheme(el, store);
       var t = palette(mode, readBrand(el, store));
       var html =
@@ -800,6 +825,7 @@
       if (colourSelect) {
         colourSelect.onchange = function () {
           state.colour = colourSelect.value;
+          state.colourPicked = true;
           var next = variantsForColour()[0];
           state.variantId = next ? next.id : "";
           paint();

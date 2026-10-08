@@ -98,8 +98,26 @@ function merchCategoryLabel(value: string | null | undefined) {
   return trimmed || "Uncategorised";
 }
 
+function colourImageUrls(product: CatalogProduct) {
+  const urls = new Set<string>();
+  for (const variant of product.variants) {
+    if (variant.colour && variant.imageUrl) urls.add(variant.imageUrl);
+  }
+  return urls;
+}
+
+/** Lifestyle photo if it is distinct from colour shots; otherwise the product default. */
+function lifestyleUrl(product: CatalogProduct) {
+  const colourUrls = colourImageUrls(product);
+  const unique = product.images.find((url) => url && !colourUrls.has(url));
+  if (unique) return unique;
+  if (colourUrls.size > 0) return "";
+  return product.images[0] || product.variants[0]?.imageUrl || "";
+}
+
 function productThumb(product: CatalogProduct) {
   return (
+    lifestyleUrl(product) ||
     product.images[0] ||
     product.variants.find((v) => v.imageUrl)?.imageUrl ||
     ""
@@ -267,9 +285,7 @@ export function ProductsManager({
       }
       stockByKey[stockKey(v.colour, v.size)] = String(v.stockQty);
     }
-    const defaultImage = colourList.length
-      ? ""
-      : (product.variants[0]?.imageUrl ?? product.images[0] ?? "");
+    const defaultImage = lifestyleUrl(product);
 
     setForm({
       id: product.id,
@@ -540,8 +556,8 @@ export function ProductsManager({
           <SheetHeader className="shrink-0">
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>
-              Upload a photo per colour. Sizes share that colour’s photo and keep
-              their own stock.
+              Upload a default product photo. Colours can have their own photos;
+              sizes share a colour’s photo and keep their own stock.
             </SheetDescription>
           </SheetHeader>
 
@@ -620,14 +636,16 @@ export function ProductsManager({
                   />
                 </div>
               )}
-              {colours.length === 0 ? (
-                <ImagePicker
-                  label="Product photo"
-                  hint="Shown on the shop for this item."
-                  url={form.defaultImage}
-                  onUrl={(defaultImage) => setForm({ ...form, defaultImage })}
-                />
-              ) : null}
+              <ImagePicker
+                label="Product photo"
+                hint={
+                  colours.length > 0
+                    ? "Default photo on the shop. Colour photos below still apply when a shopper picks that colour."
+                    : "Shown on the shop for this item."
+                }
+                url={form.defaultImage}
+                onUrl={(defaultImage) => setForm({ ...form, defaultImage })}
+              />
               <div className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2">
                 <div>
                   <p className="text-sm font-medium">Active</p>

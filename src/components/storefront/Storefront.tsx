@@ -7,7 +7,7 @@ import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { StoreCatalogImage } from "@/components/storefront/StoreCatalogImage";
 import { CartProvider, useCart, toCheckoutItem } from "@/lib/cart";
 import { formatMoney, priceCart } from "@/lib/pricing";
-import { imageForSelection } from "@/lib/product-images";
+import { distinctLifestyleImage, imageForSelection } from "@/lib/product-images";
 import type { PublicOffer } from "@/lib/offers";
 import { parseCheckoutCustomer, type CheckoutCustomerField } from "@/lib/checkout-customer";
 import { internationalCountriesForStore } from "@/lib/shipping-countries";
@@ -87,6 +87,7 @@ function ProductCard({
   }, [product.variants]);
 
   const [colour, setColour] = useState(colours[0] ?? "");
+  const [colourTouched, setColourTouched] = useState(false);
   const sizesForColour = useMemo(() => {
     return product.variants.filter((v) =>
       colour ? v.options.colour === colour : true,
@@ -110,7 +111,11 @@ function ProductCard({
   }
 
   const [zoom, setZoom] = useState(false);
-  const image = imageForSelection(product, colour, selected);
+  const lifestyle = distinctLifestyleImage(product);
+  const image =
+    !colourTouched && lifestyle
+      ? lifestyle
+      : imageForSelection(product, colour, selected);
 
   function stockPillClass(qty: number) {
     if (qty <= 0) return "stock-pill stock-pill-out";
@@ -179,6 +184,7 @@ function ProductCard({
               onChange={(e) => {
                 const next = e.target.value;
                 setColour(next);
+                setColourTouched(true);
                 const first = product.variants.find(
                   (v) => v.options.colour === next,
                 );

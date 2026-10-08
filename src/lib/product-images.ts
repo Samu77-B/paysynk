@@ -20,7 +20,33 @@ type ImageVariant = {
   imageUrl?: string | null;
 };
 
-/** Merchant-uploaded photo for this colour, then filename maps, then gallery. */
+/** Lifestyle / default gallery photo, stored first on the product. */
+export function lifestyleImage(product: {
+  images: string[];
+  variants?: Array<{ imageUrl?: string | null }>;
+}): string | undefined {
+  if (product.images[0]) return product.images[0];
+  return product.variants?.find((v) => v.imageUrl)?.imageUrl ?? undefined;
+}
+
+/** Gallery photo that is not a colour variant shot — the product default. */
+export function distinctLifestyleImage(product: {
+  images: string[];
+  variants?: Array<{
+    imageUrl?: string | null;
+    options?: Record<string, string>;
+  }>;
+}): string | undefined {
+  const colourUrls = new Set<string>();
+  for (const variant of product.variants ?? []) {
+    if (variant.options?.colour && variant.imageUrl) {
+      colourUrls.add(variant.imageUrl);
+    }
+  }
+  return product.images.find((src) => src && !colourUrls.has(src));
+}
+
+/** Merchant-uploaded photo for this colour, then filename maps, then lifestyle. */
 export function imageForSelection(
   product: { title: string; images: string[]; variants: ImageVariant[] },
   colour: string,
@@ -34,9 +60,7 @@ export function imageForSelection(
     if (match?.imageUrl) return match.imageUrl;
     return imageForColour(product, colour);
   }
-  const anyUpload = product.variants.find((v) => v.imageUrl)?.imageUrl;
-  if (anyUpload) return anyUpload;
-  return imageForColour(product, colour);
+  return lifestyleImage(product) ?? imageForColour(product, colour);
 }
 
 /** Product photo that matches the selected colour, falling back to the first gallery image. */
