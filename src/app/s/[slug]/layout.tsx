@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { notFound } from "next/navigation";
 import {
   storefrontCssVars,
   storefrontPageClassName,
@@ -12,7 +13,7 @@ export default async function StorePublicLayout({
   const { slug } = await params;
   const store = await findStoreByPublicSlug(slug);
 
-  if (!store) return children;
+  if (!store || store.signupStatus !== "approved") notFound();
 
   return (
     <div

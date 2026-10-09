@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const ERRORS: Record<string, string> = {
-  invalid: "Name, store, email, and an 8+ character password are required.",
+  invalid:
+    "Use your name and store name (2–80 characters, no links), a valid email, and an 8+ character password.",
   exists: "An account with this email already exists. Sign in instead.",
   signin: "Account created, but sign-in failed. Try logging in.",
 };
@@ -44,12 +45,24 @@ export default async function RegisterPage({
       )}
 
       <form action={registerMerchant} className="mt-6 space-y-4">
+        <div className="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true">
+          <label htmlFor="company_website">Company website</label>
+          <input
+            id="company_website"
+            name="company_website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="fullName">Your name</Label>
           <Input
             id="fullName"
             name="fullName"
             required
+            minLength={2}
+            maxLength={80}
             className="bg-white"
           />
         </div>
@@ -59,6 +72,8 @@ export default async function RegisterPage({
             id="storeName"
             name="storeName"
             required
+            minLength={2}
+            maxLength={80}
             className="bg-white"
           />
         </div>

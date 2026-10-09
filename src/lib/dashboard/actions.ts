@@ -19,6 +19,7 @@ import {
   hashLoyaltyApiKey,
 } from "@/lib/loyalty";
 import { randomBytes } from "crypto";
+import { cleanStoreName } from "@/lib/signup-names";
 
 function slugify(value: string) {
   return value
@@ -491,9 +492,9 @@ export async function saveStoreIdentitySettings(input: {
   const storeId = session?.user?.storeId;
   if (!storeId) return { error: "Sign in to update your shop." };
 
-  const name = input.name.trim().replace(/\s+/g, " ").slice(0, 80);
-  if (name.length < 2) {
-    return { error: "Shop name needs at least two characters." };
+  const name = cleanStoreName(input.name);
+  if (!name) {
+    return { error: "Shop name needs 2–80 characters and cannot include a link." };
   }
 
   const currency = input.currency.trim().toLowerCase();

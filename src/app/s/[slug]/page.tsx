@@ -11,21 +11,7 @@ export default async function StorePage({ params }: Props) {
   const { slug } = await params;
 
   const store = await findStoreByPublicSlug(slug);
-  if (!store) notFound();
-
-  if (store.signupStatus !== "approved") {
-    return (
-      <main className="success-page">
-        <p className="eyebrow accent-text">PaySynk</p>
-        <h1>{store.name}</h1>
-        <p className="muted">
-          {store.signupStatus === "rejected"
-            ? "This shop is not available."
-            : "This shop is awaiting approval. You can still set up products in your merchant dashboard."}
-        </p>
-      </main>
-    );
-  }
+  if (!store || store.signupStatus !== "approved") notFound();
 
   const products = await prisma.product.findMany({
     where: { storeId: store.id, active: true },

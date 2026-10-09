@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { requireSmartSynkAuth } from "@/lib/smartsynk-auth";
 import { serializeSignup } from "@/lib/smartsynk-serialize";
 import { sendMerchantWelcomeEmail } from "@/lib/email/welcome";
+import { cleanStoreName } from "@/lib/signup-names";
 
 const patchSchema = z.object({
   status: z.enum(["pending", "approved", "rejected"]).optional(),
   adminNotes: z.string().optional(),
-  name: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(2).max(80).optional(),
 });
 
 type Params = { params: Promise<{ id: string }> };
@@ -45,6 +46,14 @@ export async function PATCH(request: Request, { params }: Params) {
   const becameApproved =
     parsed.data.status === "approved" && existing.signupStatus !== "approved";
 
+  const name = parsed.data.name ? cleanStoreName(parsed.data.name) : undefined;
+  if (parsed.data.name && !name) {
+    return NextResponse.json(
+      { error: "Store name must be plain text, 2–80 characters, with no links." },
+      { status: 400 },
+    );
+  }
+
   const store = await prisma.store.update({
     where: { id },
     data: {
@@ -52,7 +61,7 @@ export async function PATCH(request: Request, { params }: Params) {
       ...(parsed.data.adminNotes !== undefined
         ? { adminNotes: parsed.data.adminNotes }
         : {}),
-      ...(parsed.data.name ? { name: parsed.data.name } : {}),
+      ...(name ? { name } : {}),
     },
     include: { users: { orderBy: { createdAt: "asc" }, take: 1 } },
   });
@@ -64,4 +73,24 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   return NextResponse.json({ signup: serializeSignup(store) });
+}
+
+export async function DELETE(request: Request, { params }: Params) {
+  const denied = requireSmartSynkAuth(request);
+  if (denied) return denied;
+
+  const { id } = await params;
+  const existing = await prisma.store.findUnique({ where: { id } });
+  if (!existing) {
+    return NextResponse.json({ error: "Signup not found" }, { status: 404 });
+  }
+  if (existing.signupStatus === "approved") {
+    return NextResponse.json(
+      { error: "Reject the shop before deleting it." },
+      { status: 409 },
+    );
+  }
+
+  await prisma.store.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }

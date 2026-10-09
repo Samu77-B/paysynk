@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
 import { safeInternalPath } from "@/lib/safe-path";
+import { cleanPersonName, cleanStoreName } from "@/lib/signup-names";
 
 function slugify(value: string) {
   return value
@@ -15,8 +16,13 @@ function slugify(value: string) {
 }
 
 export async function registerMerchant(formData: FormData) {
-  const fullName = String(formData.get("fullName") || "").trim();
-  const storeName = String(formData.get("storeName") || "").trim();
+  const trap = String(formData.get("company_website") || "").trim();
+  if (trap) {
+    redirect("/register?error=invalid");
+  }
+
+  const fullName = cleanPersonName(String(formData.get("fullName") || ""));
+  const storeName = cleanStoreName(String(formData.get("storeName") || ""));
   const email = String(formData.get("email") || "")
     .trim()
     .toLowerCase();

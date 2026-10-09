@@ -7,10 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { requireSmartSynkAuth, slugifyStoreName } from "@/lib/smartsynk-auth";
 import { serializeSignup } from "@/lib/smartsynk-serialize";
 import { sendMerchantWelcomeEmail } from "@/lib/email/welcome";
+import { cleanPersonName, cleanStoreName } from "@/lib/signup-names";
 
 const createSchema = z.object({
-  fullName: z.string().trim().min(1),
-  storeName: z.string().trim().min(1),
+  fullName: z.string().trim().min(2).max(80),
+  storeName: z.string().trim().min(2).max(80),
   email: z.string().trim().email(),
   password: z.string().min(8).optional(),
   approve: z.boolean().optional(),
@@ -61,6 +62,15 @@ export async function POST(request: Request) {
     );
   }
 
+  const fullName = cleanPersonName(parsed.data.fullName);
+  const storeName = cleanStoreName(parsed.data.storeName);
+  if (!fullName || !storeName) {
+    return NextResponse.json(
+      { error: "Name and store name must be plain text, 2–80 characters, with no links." },
+      { status: 400 },
+    );
+  }
+
   const email = parsed.data.email.toLowerCase();
   const taken = await prisma.merchantUser.findUnique({ where: { email } });
   if (taken) {
@@ -70,7 +80,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let slug = slugifyStoreName(parsed.data.storeName) || "store";
+  let slug = slugifyStoreName(storeName) || "store";
   if (await prisma.store.findUnique({ where: { slug } })) {
     slug = `${slug}-${randomBytes(2).toString("hex")}`;
   }
@@ -82,14 +92,14 @@ export async function POST(request: Request) {
 
   const store = await prisma.store.create({
     data: {
-      name: parsed.data.storeName,
+      name: storeName,
       slug,
       signupStatus: approve ? "approved" : "pending",
       users: {
         create: {
           email,
           passwordHash,
-          name: parsed.data.fullName,
+          name: fullName,
         },
       },
     },
