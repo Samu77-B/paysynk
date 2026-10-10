@@ -28,13 +28,13 @@ export async function GET(req: Request) {
   const storeIdFromState = readConnectStoreId(cookie);
   const storeId = session.user.storeId;
 
-  if (storeIdFromState && storeIdFromState !== storeId) {
+  if (!storeIdFromState || storeIdFromState !== storeId) {
     return paymentsRedirect(
       req,
       `error=${encodeURIComponent("PayPal connection expired. Try again.")}`,
     );
   }
-  if (trackingId && trackingId !== storeId) {
+  if (!trackingId || trackingId !== storeId) {
     return paymentsRedirect(
       req,
       `error=${encodeURIComponent("PayPal connection did not match this shop.")}`,
