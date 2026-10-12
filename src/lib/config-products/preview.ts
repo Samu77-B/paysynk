@@ -86,6 +86,7 @@ export function configPreviewFromSelection(
     ),
     selections,
   );
+  const uploaded = product.images[0]?.trim() || null;
   const packDefault =
     product.slug != null
       ? defaultArtworkCatalogImage({
@@ -97,11 +98,12 @@ export function configPreviewFromSelection(
     pack != null
       ? artworkBaseImageFromSelections(pack, options, selections)
       : null;
+  /** A dashboard photo replaces the starter mockup on catalog and product page. */
   const base =
+    uploaded ||
     builtBase ||
     variation?.imageUrl ||
     packDefault ||
-    product.images[0] ||
     null;
 
   return {
@@ -109,7 +111,7 @@ export function configPreviewFromSelection(
     fallbackUrl: base,
     thumbnailUrl: base || layers.at(-1)?.url || null,
     caption: parts.join(" · "),
-    sizeClass: artworkHeroSizeClass(base),
+    sizeClass: uploaded ? "" : artworkHeroSizeClass(base),
     badges: pack ? artworkBadgesFromSelections(pack, options, selections) : [],
   };
 }

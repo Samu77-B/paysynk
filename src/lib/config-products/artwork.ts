@@ -119,21 +119,20 @@ export function defaultArtworkCatalogImage(product: {
   return `${pack.baseDir}/landscape-normal-85x55.png`;
 }
 
-/** Catalog tile: artwork pack beats a stray General-tab upload; otherwise DB photos. */
+/** Catalog tile: a General-tab photo wins; otherwise variation / artwork-pack graphics. */
 export function configCatalogImageUrl(product: {
   slug: string;
   title: string;
   images: string[];
   variationImages?: Array<string | null | undefined>;
 }): string | null {
-  const pack = artworkPackFor(product);
+  const uploaded = product.images[0]?.trim() || null;
+  if (uploaded) return uploaded;
   const fromVariation = (product.variationImages ?? []).find(
     (url) => url?.trim(),
   );
-  if (pack) {
-    return fromVariation ?? defaultArtworkCatalogImage(product);
-  }
-  return product.images[0]?.trim() || fromVariation || null;
+  if (fromVariation?.trim()) return fromVariation.trim();
+  return defaultArtworkCatalogImage(product);
 }
 
 export function artworkPackFor(product: {
