@@ -701,19 +701,24 @@
           ';border-radius:8px;margin:0 0 0.85rem;cursor:zoom-in">';
       }
       html +=
-        '<h3 style="margin:0 0 0.35rem;font-size:1.15rem;line-height:1.3">' +
+        '<h3 class="ps-title" style="margin:0 0 0.35rem;font-size:1.15rem;line-height:1.3">' +
         escapeHtml(product.title) +
-        "</h3>" +
-        '<p style="margin:0 0 0.75rem;color:' +
-        t.muted +
-        ';font-size:0.9rem;line-height:1.45">' +
-        escapeHtml(product.description || "") +
-        "</p>" +
-        '<p style="margin:0 0 1rem;font-size:1.25rem;font-weight:700">' +
+        "</h3>";
+      var desc = String(product.description || "").trim();
+      if (desc) {
+        html +=
+          '<div class="ps-desc" style="display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0 0 0.85rem;color:' +
+          t.muted +
+          ';font-size:0.95rem;line-height:1.55;white-space:pre-wrap">' +
+          formatPlainText(desc) +
+          "</div>";
+      }
+      html +=
+        '<div class="ps-price" style="margin:0 0 1rem;font-size:1.25rem;font-weight:700">' +
         (sel && sel.priceMinor > 0
           ? formatMoney(sel.priceMinor, store.currency)
           : "Price to follow") +
-        "</p>";
+        "</div>";
 
       if (colours.length) {
         html +=
@@ -884,6 +889,10 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function formatPlainText(value) {
+    return escapeHtml(value).replace(/\r\n|\r|\n/g, "<br>");
   }
 
   function escapeAttr(value) {

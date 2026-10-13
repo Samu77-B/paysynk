@@ -140,7 +140,7 @@ export default function SalonEmbedDemoPage() {
             data-store="jojo-flo-london"
           />
           <div
-            data-paysynk-product="k-rastase-premi-re-concentr-d-calcifiant-ultra-r-parateur-45ml"
+            data-paysynk-product="kerastase-premiere-concentre-decalcifiant"
             data-store="jojo-flo-london"
           />
           <div

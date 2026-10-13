@@ -1195,6 +1195,12 @@ h3 {
   font-size: 1.35rem;
 }
 
+.store-product-desc {
+  margin: 0 0 0.5rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 .price {
   font-weight: 600;
   margin: 0.5rem 0;

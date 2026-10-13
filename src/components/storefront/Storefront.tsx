@@ -166,7 +166,9 @@ function ProductCard({
         : null}
       <div className="store-product-body">
         <h2>{product.title}</h2>
-        <p className="muted">{product.description}</p>
+        {product.description.trim() ? (
+          <p className="muted store-product-desc">{product.description}</p>
+        ) : null}
         <p className="price">
           {selected && selected.priceMinor > 0
             ? formatMoney(selected.priceMinor, currency)
