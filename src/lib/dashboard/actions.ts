@@ -6,7 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { toDashboardProduct } from "@/lib/dashboard/data";
 import type { CatalogProduct } from "@/lib/dashboard/data";
 import { isAllowedMediaUrl, sanitizeMediaUrl } from "@/lib/media-url";
-import { isShopCurrency } from "@/lib/shop-currency";
+import {
+  isShopCurrency,
+  parseFxDisplayCurrencies,
+  parseFxRates,
+} from "@/lib/shop-currency";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   contrastTextFor,
   normalizeHexColor,
@@ -481,12 +486,16 @@ export async function saveStoreIdentitySettings(input: {
   currency: string;
   fxQuoteCurrency: string;
   exchangeRate: string;
+  fxDisplayCurrencies?: string[];
+  fxRates?: Record<string, string | number>;
 }): Promise<{
   error?: string;
   name?: string;
   currency?: string;
   fxQuoteCurrency?: string;
   exchangeRate?: number | null;
+  fxDisplayCurrencies?: string[];
+  fxRates?: Record<string, number>;
 }> {
   const session = await auth();
   const storeId = session?.user?.storeId;
@@ -498,32 +507,55 @@ export async function saveStoreIdentitySettings(input: {
   }
 
   const currency = input.currency.trim().toLowerCase();
-  const fxQuoteCurrency = input.fxQuoteCurrency.trim().toLowerCase();
-  if (!isShopCurrency(currency) || !isShopCurrency(fxQuoteCurrency)) {
+  if (!isShopCurrency(currency)) {
     return { error: "Choose a supported currency." };
   }
 
-  const rawRate = input.exchangeRate.trim();
-  let exchangeRate: number | null = null;
-  if (rawRate) {
-    const n = Number(rawRate);
-    if (!Number.isFinite(n) || n <= 0 || n > 1_000_000) {
-      return { error: "Enter an exchange rate above 0, or leave it blank." };
-    }
-    exchangeRate = Math.round(n * 1_000_000) / 1_000_000;
+  const fxRates = parseFxRates(input.fxRates ?? {});
+  const fxDisplayCurrencies = parseFxDisplayCurrencies(
+    input.fxDisplayCurrencies ?? [],
+    currency,
+  );
+  const missingRate = fxDisplayCurrencies.find((code) => fxRates[code] == null);
+  if (missingRate) {
+    return {
+      error: `Add a rate for ${missingRate.toUpperCase()} before showing it on the shop.`,
+    };
   }
+
+  const firstShown = fxDisplayCurrencies[0];
+  const fxQuoteCurrency = firstShown ?? (
+    isShopCurrency(input.fxQuoteCurrency.trim().toLowerCase())
+      ? input.fxQuoteCurrency.trim().toLowerCase()
+      : currency
+  );
+  const exchangeRate = firstShown ? fxRates[firstShown] ?? null : null;
 
   await prisma.store.update({
     where: { id: storeId },
-    data: { name, currency, fxQuoteCurrency, exchangeRate },
+    data: {
+      name,
+      currency,
+      fxQuoteCurrency,
+      exchangeRate,
+      fxDisplayCurrencies,
+      fxRates: fxRates as Prisma.InputJsonValue,
+    },
   });
   revalidatePath("/app");
   revalidatePath("/app/settings");
   revalidatePath("/app/products");
   if (session.user.storeSlug) {
-    revalidatePath(`/s/${session.user.storeSlug}`);
+    revalidatePath(`/s/${session.user.storeSlug}`, "layout");
   }
-  return { name, currency, fxQuoteCurrency, exchangeRate };
+  return {
+    name,
+    currency,
+    fxQuoteCurrency,
+    exchangeRate,
+    fxDisplayCurrencies,
+    fxRates,
+  };
 }
 
 export async function saveLoyaltySettings(input: {

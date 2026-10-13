@@ -10,8 +10,14 @@ import {
 } from "@/components/storefront/ConfigHeroBadges";
 import { StoreBrand } from "@/components/storefront/StoreBrand";
 import { CartProvider, useCart } from "@/lib/cart";
-import { formatMoney } from "@/lib/pricing";
-import { priceConfigSelection } from "@/lib/config-products/pricing";
+import {
+  formatMoneyCompact,
+  publicConvertedPrices,
+} from "@/lib/shop-currency";
+import {
+  formatConfigChoiceLabel,
+  priceConfigSelection,
+} from "@/lib/config-products/pricing";
 import {
   choicePreviewImageUrl,
   configPreviewFromSelection,
@@ -33,13 +39,7 @@ export function ConfigProductPage({
   store,
   product,
 }: {
-  store: {
-    slug: string;
-    name: string;
-    logoUrl?: string | null;
-    currency: string;
-    paymentsActive: boolean;
-  };
+  store: StorefrontConfigStore;
   product: PublicConfigProduct;
 }) {
   return (
@@ -49,17 +49,21 @@ export function ConfigProductPage({
   );
 }
 
+type StorefrontConfigStore = {
+  slug: string;
+  name: string;
+  logoUrl?: string | null;
+  currency: string;
+  paymentsActive: boolean;
+  fxDisplayCurrencies?: string[];
+  fxRates?: unknown;
+};
+
 function ConfigProductBuilder({
   store,
   product,
 }: {
-  store: {
-    slug: string;
-    name: string;
-    logoUrl?: string | null;
-    currency: string;
-    paymentsActive: boolean;
-  };
+  store: StorefrontConfigStore;
   product: PublicConfigProduct;
 }) {
   const { addItem, itemCount } = useCart();
@@ -85,6 +89,23 @@ function ConfigProductBuilder({
   const preview = useMemo(
     () => configPreviewFromSelection(product, selections),
     [product, selections],
+  );
+  const converted = useMemo(
+    () =>
+      priced.ok
+        ? publicConvertedPrices(
+            priced.priceMinor,
+            store.currency,
+            store.fxDisplayCurrencies ?? [],
+            store.fxRates,
+          )
+        : [],
+    [
+      priced,
+      store.currency,
+      store.fxDisplayCurrencies,
+      store.fxRates,
+    ],
   );
 
   const artworkPack = artworkPackFor(product);
@@ -211,11 +232,25 @@ function ConfigProductBuilder({
           {product.sku ? (
             <p className="muted small">SKU {product.sku}</p>
           ) : null}
-          <p className="config-price">
-            {priced.ok
-              ? formatMoney(priced.priceMinor, store.currency)
-              : formatMoney(0, store.currency)}
+          <p className="config-price config-price-row">
+            <span className="config-price-main">
+              {formatMoneyCompact(
+                priced.ok ? priced.priceMinor : 0,
+                store.currency,
+              )}
+            </span>
+            {converted.map((row) => (
+              <span key={row.code} className="config-price-fx">
+                {row.label}
+              </span>
+            ))}
           </p>
+          {converted.length > 0 ? (
+            <p className="muted small config-price-note">
+              Converted at the shop rate. Checkout stays in{" "}
+              {store.currency.toUpperCase()}.
+            </p>
+          ) : null}
           {!priced.ok ? (
             <p className="muted small">{priced.error}</p>
           ) : null}
@@ -226,8 +261,9 @@ function ConfigProductBuilder({
               selections,
               option.id,
             );
+            const usePills = option.values.length > 0 && option.values.length <= 6;
             return (
-              <label key={option.id} className="field">
+              <div key={option.id} className="field">
                 <span>
                   {option.name}
                   {option.required ? " *" : ""}
@@ -241,27 +277,51 @@ function ConfigProductBuilder({
                       className="config-option-thumb"
                     />
                   ) : null}
-                  <select
-                    required={option.required}
-                    value={selections[option.id] ?? ""}
-                    onChange={(e) =>
-                      setSelections((cur) => ({
-                        ...cur,
-                        [option.id]: e.target.value,
-                      }))
-                    }
-                  >
-                    {!option.required ? (
-                      <option value="">Please choose</option>
-                    ) : null}
-                    {option.values.map((value) => (
-                      <option key={value.id} value={value.id}>
-                        {value.label}
-                      </option>
-                    ))}
-                  </select>
+                  {usePills ? (
+                    <span className="config-option-pills" role="group">
+                      {option.values.map((value) => {
+                        const selected = selections[option.id] === value.id;
+                        return (
+                          <button
+                            key={value.id}
+                            type="button"
+                            className={`config-option-pill${selected ? " is-selected" : ""}`}
+                            aria-pressed={selected}
+                            onClick={() =>
+                              setSelections((cur) => ({
+                                ...cur,
+                                [option.id]: value.id,
+                              }))
+                            }
+                          >
+                            {formatConfigChoiceLabel(value)}
+                          </button>
+                        );
+                      })}
+                    </span>
+                  ) : (
+                    <select
+                      required={option.required}
+                      value={selections[option.id] ?? ""}
+                      onChange={(e) =>
+                        setSelections((cur) => ({
+                          ...cur,
+                          [option.id]: e.target.value,
+                        }))
+                      }
+                    >
+                      {!option.required ? (
+                        <option value="">Please choose</option>
+                      ) : null}
+                      {option.values.map((value) => (
+                        <option key={value.id} value={value.id}>
+                          {formatConfigChoiceLabel(value)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </span>
-              </label>
+              </div>
             );
           })}
 

@@ -1072,6 +1072,40 @@ h3 {
   min-width: 0;
 }
 
+.config-option-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.config-option-pill {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.config-option-pill.is-selected,
+.config-option-pill[aria-pressed="true"] {
+  background: #9fe870;
+  color: #141414;
+  border-color: transparent;
+}
+
+.store-page-light .config-option-pill {
+  background: #fff;
+  color: #141414;
+  border-color: #d6d0c8;
+}
+
 .config-option-thumb {
   width: 2.25rem;
   height: 2.25rem;
@@ -1112,6 +1146,23 @@ h3 {
   font-weight: 700;
   margin: 0;
   color: var(--accent);
+}
+
+.config-price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.85rem;
+}
+
+.config-price-fx {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted, #6b7280);
+}
+
+.config-price-note {
+  margin: 0.2rem 0 0.75rem;
 }
 
 .config-related-grid {

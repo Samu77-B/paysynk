@@ -27,6 +27,8 @@ export type DashboardContext = {
   currency: string;
   exchangeRate: number | null;
   fxQuoteCurrency: string;
+  fxDisplayCurrencies: string[];
+  fxRates: unknown;
   shippingFlatMinor: number;
   shippingIntlMinor: number | null;
   homeCountry: string;
@@ -190,6 +192,8 @@ export async function getDashboardContext(): Promise<DashboardContext> {
     currency: store.currency,
     exchangeRate: store.exchangeRate,
     fxQuoteCurrency: store.fxQuoteCurrency,
+    fxDisplayCurrencies: store.fxDisplayCurrencies,
+    fxRates: store.fxRates,
     shippingFlatMinor: store.shippingFlatMinor,
     shippingIntlMinor: store.shippingIntlMinor,
     homeCountry: store.homeCountry,

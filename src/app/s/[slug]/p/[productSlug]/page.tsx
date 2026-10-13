@@ -34,6 +34,8 @@ export default async function StoreConfigProductRoute({ params }: Props) {
         logoUrl: store.logoUrl,
         currency: store.currency,
         paymentsActive: store.paymentsActive,
+        fxDisplayCurrencies: store.fxDisplayCurrencies,
+        fxRates: store.fxRates,
       }}
       product={{
         ...product,

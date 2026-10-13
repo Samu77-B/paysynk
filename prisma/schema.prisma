@@ -85,6 +85,10 @@ model Store {
   /// Shop-currency units per 1 fxQuoteCurrency unit. Null = not set. Checkout still charges in `currency`.
   exchangeRate      Float?
   fxQuoteCurrency   String              @default("gbp")
+  /// Extra currencies shown next to the shop price on the public product page.
+  fxDisplayCurrencies String[]          @default([])
+  /// Shop-currency units per 1 unit of each code, e.g. { "usd": 157.5, "gbp": 198.5 }.
+  fxRates           Json?
   /// ISO country for domestic delivery (GB, JM, …).
   homeCountry       String              @default("GB")
   /// Flat domestic shipping in minor units (e.g. 525 = £5.25)

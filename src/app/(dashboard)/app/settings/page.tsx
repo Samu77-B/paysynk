@@ -86,6 +86,8 @@ export default async function SettingsPage() {
             currency={ctx.currency}
             fxQuoteCurrency={ctx.fxQuoteCurrency}
             exchangeRate={ctx.exchangeRate}
+            fxDisplayCurrencies={ctx.fxDisplayCurrencies}
+            fxRates={ctx.fxRates}
           />
           <StoreLogoSettings logoUrl={ctx.logoUrl} />
           <EmbedThemeSettings
