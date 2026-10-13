@@ -11,6 +11,7 @@ import { distinctLifestyleImage, imageForSelection } from "@/lib/product-images"
 import type { PublicOffer } from "@/lib/offers";
 import { parseCheckoutCustomer, type CheckoutCustomerField } from "@/lib/checkout-customer";
 import { internationalCountriesForStore } from "@/lib/shipping-countries";
+import { printCategoryRank } from "@/lib/config-products/templates";
 
 export type StorefrontProduct = {
   id: string;
@@ -797,7 +798,9 @@ export function Storefront({
   configProducts?: StorefrontConfigProduct[];
   offers?: PublicOffer[];
 }) {
-  const categories = [...new Set(configProducts.map((p) => p.category || "Print"))];
+  const categories = [...new Set(configProducts.map((p) => p.category || "Print"))].sort(
+    (a, b) => printCategoryRank(a) - printCategoryRank(b) || a.localeCompare(b),
+  );
   const merchCategories = [
     ...new Set(products.map((p) => p.category.trim() || "Merch")),
   ].sort((a, b) => {

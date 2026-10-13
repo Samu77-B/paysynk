@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CategoryField } from "@/components/dashboard/CategoryField";
 import {
   CopySnippetButton,
   productEmbedSnippet,
@@ -142,6 +143,8 @@ function ImagePicker({
     if (!file) return;
     setBusy(true);
     setErr(null);
+    const local = URL.createObjectURL(file);
+    onUrl(local);
     try {
       const compressed = await compressProductImage(file);
       const body = new FormData();
@@ -164,12 +167,15 @@ function ImagePicker({
               ? "Image is too large. Use a JPG under 4MB."
               : `Upload failed (${res.status}).`),
         );
+        onUrl("");
         return;
       }
       onUrl(data.url);
     } catch (err) {
       setErr(err instanceof Error ? err.message : "Upload failed.");
+      onUrl("");
     } finally {
+      window.setTimeout(() => URL.revokeObjectURL(local), 1500);
       setBusy(false);
     }
   }
@@ -181,14 +187,19 @@ function ImagePicker({
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
           {url ? (
-            <Image
-              src={url}
-              alt=""
-              width={48}
-              height={48}
-              unoptimized={url.startsWith("http")}
-              className="size-12 object-cover"
-            />
+            url.startsWith("blob:") || url.startsWith("data:") ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={url} alt="" className="size-12 object-cover" />
+            ) : (
+              <Image
+                src={url}
+                alt=""
+                width={48}
+                height={48}
+                unoptimized={url.startsWith("http")}
+                className="size-12 object-cover"
+              />
+            )
           ) : (
             <Package className="size-4 text-zinc-400" />
           )}
@@ -570,26 +581,13 @@ export function ProductsManager({
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Category</Label>
-                <Input
-                  list="merch-categories"
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
-                  placeholder="e.g. Hair, Apparel"
-                />
-                <datalist id="merch-categories">
-                  {categoryNames.map((name) => (
-                    <option key={name} value={name} />
-                  ))}
-                </datalist>
-                <p className="text-xs text-zinc-500">
-                  Pick an existing name or type a new one. Same names group
-                  together.
-                </p>
-              </div>
+              <CategoryField
+                listId="merch-categories"
+                value={form.category}
+                onChange={(category) => setForm({ ...form, category })}
+                suggestions={categoryNames}
+                placeholder="e.g. Hair, Apparel"
+              />
               <div className="space-y-1.5">
                 <Label>Description</Label>
                 <Textarea

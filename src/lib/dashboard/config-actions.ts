@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAllowedMediaUrl, sanitizeMediaUrl } from "@/lib/media-url";
 import {
+  copyAllTemplatesToStore,
   copyTemplateToStore,
   uniqueConfigSlug,
   slugifyConfig,
@@ -18,7 +19,8 @@ import type { ModifierKind } from "@/generated/prisma/client";
 
 function revalidateStore(slug?: string | null) {
   revalidatePath("/app/print");
-  if (slug) revalidatePath(`/s/${slug}`);
+  revalidatePath("/app/products");
+  if (slug) revalidatePath(`/s/${slug}`, "layout");
 }
 
 async function requireStore() {
@@ -45,6 +47,23 @@ export async function addConfigFromTemplate(
   } catch (err) {
     console.error(err);
     return { error: "Could not copy that template." };
+  }
+}
+
+export async function addAllConfigFromTemplates(): Promise<{
+  added?: number;
+  skipped?: number;
+  error?: string;
+}> {
+  const authz = await requireStore();
+  if ("error" in authz && authz.error) return { error: authz.error };
+  try {
+    const result = await copyAllTemplatesToStore(authz.storeId!);
+    revalidateStore(authz.slug);
+    return { added: result.added, skipped: result.skipped };
+  } catch (err) {
+    console.error(err);
+    return { error: "Could not copy the print catalog." };
   }
 }
 

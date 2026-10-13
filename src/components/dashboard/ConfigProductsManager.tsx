@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
+import Image from "next/image";
 import {
   ArrowDown,
   ArrowUp,
@@ -11,6 +12,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { CategoryField } from "@/components/dashboard/CategoryField";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +46,7 @@ import {
 import { formatMoney } from "@/lib/pricing";
 import { compressProductImage } from "@/lib/compress-image";
 import {
+  addAllConfigFromTemplates,
   addConfigFromTemplate,
   createBlankConfigProduct,
   deleteConfigProduct,
@@ -53,8 +56,12 @@ import {
 import {
   artworkPackFor,
   buildArtworkPlan,
+  configCatalogImageUrl,
 } from "@/lib/config-products/artwork";
-import { PRINT_TEMPLATES } from "@/lib/config-products/templates";
+import {
+  PRINT_TEMPLATES,
+  printCategoryRank,
+} from "@/lib/config-products/templates";
 import type { TemplateDefinition } from "@/lib/config-products/types";
 import type {
   DashboardConfigOption,
@@ -124,6 +131,39 @@ function moved<T extends { sort: number }>(
   const next = [...items];
   [next[from], next[to]] = [next[to], next[from]];
   return next.map((item, i) => ({ ...item, sort: i }));
+}
+
+function catalogThumb(product: DashboardConfigProduct) {
+  return configCatalogImageUrl({
+    slug: product.slug,
+    title: product.title,
+    images: product.images,
+    variationImages: [
+      ...product.variations.map((row) => row.imageUrl),
+      ...product.options.flatMap((option) =>
+        option.values.map((value) => value.imageUrl),
+      ),
+    ],
+  });
+}
+
+function CatalogThumb({ url, title }: { url: string | null; title: string }) {
+  return (
+    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border border-zinc-200 bg-zinc-50">
+      {url ? (
+        <Image
+          src={url}
+          alt={title}
+          width={40}
+          height={40}
+          unoptimized={url.startsWith("http") || url.startsWith("blob:")}
+          className="size-10 object-cover"
+        />
+      ) : (
+        <ImageIcon className="size-4 text-zinc-400" />
+      )}
+    </div>
+  );
 }
 
 function emptyOption(): DashboardConfigOption {
@@ -217,6 +257,27 @@ export function ConfigProductsManager({
     }
     return [...map.entries()];
   }, [templates]);
+
+  const categoryNames = useMemo(() => {
+    const fromProducts = products.map((p) => p.category);
+    const fromTemplates = templates.map((t) => t.category);
+    return [...fromProducts, ...fromTemplates];
+  }, [products, templates]);
+
+  const groupedProducts = useMemo(() => {
+    const map = new Map<string, DashboardConfigProduct[]>();
+    for (const product of products) {
+      const key = product.category.trim() || "Uncategorised";
+      const list = map.get(key) ?? [];
+      list.push(product);
+      map.set(key, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => {
+      if (a === "Uncategorised") return 1;
+      if (b === "Uncategorised") return -1;
+      return printCategoryRank(a) - printCategoryRank(b) || a.localeCompare(b);
+    });
+  }, [products]);
 
   const libraryMatch = editing
     ? PRINT_TEMPLATES.find(
@@ -338,8 +399,11 @@ export function ConfigProductsManager({
     valueIndex: number,
     file: File,
   ) {
+    const local = URL.createObjectURL(file);
+    patchValue(optionIndex, valueIndex, { imageUrl: local });
     const url = await uploadImageUrl(file);
-    if (url) patchValue(optionIndex, valueIndex, { imageUrl: url });
+    patchValue(optionIndex, valueIndex, { imageUrl: url });
+    window.setTimeout(() => URL.revokeObjectURL(local), 1500);
   }
 
   function save() {
@@ -377,9 +441,22 @@ export function ConfigProductsManager({
   }
 
   async function uploadImage(file: File) {
-    if (!editing) return;
+    const local = URL.createObjectURL(file);
+    setEditing((cur) =>
+      cur ? { ...cur, images: [...cur.images, local] } : cur,
+    );
     const url = await uploadImageUrl(file);
-    if (url) patch({ images: [...editing.images, url] });
+    setEditing((cur) => {
+      if (!cur) return cur;
+      if (url) {
+        return {
+          ...cur,
+          images: cur.images.map((u) => (u === local ? url : u)),
+        };
+      }
+      return { ...cur, images: cur.images.filter((u) => u !== local) };
+    });
+    window.setTimeout(() => URL.revokeObjectURL(local), 1500);
   }
 
   return (
@@ -412,14 +489,54 @@ export function ConfigProductsManager({
           <Plus className="size-4" />
           Add new product
         </Button>
+        {templates.length > 0 ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => {
+              const missing = templates.filter(
+                (t) => !products.some((p) => p.slug === t.slug),
+              ).length;
+              if (missing === 0) {
+                setMessage("Every Paperboy starter product is already in this shop.");
+                return;
+              }
+              const ok = window.confirm(
+                `Add ${missing} print product${missing === 1 ? "" : "s"} from the Paperboy catalog? Products already in this shop are skipped. You can edit prices afterwards.`,
+              );
+              if (!ok) return;
+              startTransition(async () => {
+                const result = await addAllConfigFromTemplates();
+                if (result.error) {
+                  setError(result.error);
+                  return;
+                }
+                setMessage(
+                  `Added ${result.added ?? 0} product${result.added === 1 ? "" : "s"}${
+                    result.skipped
+                      ? ` · skipped ${result.skipped} already in this shop`
+                      : ""
+                  }.`,
+                );
+                window.location.reload();
+              });
+            }}
+          >
+            <Layers className="size-4" />
+            Add entire Paperboy catalog
+          </Button>
+        ) : null}
       </div>
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {message ? <p className="text-sm text-zinc-600">{message}</p> : null}
 
       <Card className="border-zinc-200 shadow-sm">
         <CardHeader>
           <CardTitle>Your catalog</CardTitle>
           <CardDescription>
             {products.length} configurable product
-            {products.length === 1 ? "" : "s"} · shop{" "}
+            {products.length === 1 ? "" : "s"} grouped by category · shop{" "}
             <code className="rounded bg-zinc-100 px-1">/s/{storeSlug}</code>
           </CardDescription>
         </CardHeader>
@@ -432,54 +549,70 @@ export function ConfigProductsManager({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Image</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
                   <TableHead>Options</TableHead>
                   <TableHead>Base</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
-                  <TableRow
-                    key={product.id}
-                    className="cursor-pointer"
-                    onClick={() => open(product)}
-                  >
-                    <TableCell>
-                      <div className="font-medium">{product.title}</div>
-                      <div className="text-xs text-zinc-500">
-                        {product.active ? "Live" : "Draft"} · {product.sku || product.slug}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-zinc-600">
-                      {product.category || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {product.options.length} dropdowns
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {formatMoney(product.basePriceMinor, currency)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startTransition(async () => {
-                            await duplicateConfigProduct(product.id);
-                            window.location.reload();
-                          });
-                        }}
+                {groupedProducts.map(([category, rows]) => (
+                  <Fragment key={category}>
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={5}
+                        className="bg-zinc-50 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500"
                       >
-                        <Copy className="size-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                        {category}
+                      </TableCell>
+                    </TableRow>
+                    {rows.map((product) => {
+                      const thumb = catalogThumb(product);
+                      return (
+                        <TableRow
+                          key={product.id}
+                          className="cursor-pointer"
+                          onClick={() => open(product)}
+                        >
+                          <TableCell>
+                            <CatalogThumb url={thumb} title={product.title} />
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{product.title}</div>
+                            <div className="text-xs text-zinc-500">
+                              {product.active ? "Live" : "Draft"} ·{" "}
+                              {product.sku || product.slug}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {product.options.length} dropdowns
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatMoney(product.basePriceMinor, currency)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startTransition(async () => {
+                                  await duplicateConfigProduct(product.id);
+                                  window.location.reload();
+                                });
+                              }}
+                            >
+                              <Copy className="size-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -491,8 +624,9 @@ export function ConfigProductsManager({
         <CardHeader>
           <CardTitle>Add from template</CardTitle>
           <CardDescription>
-            Copies a starter (Paperboy-style menu) into this shop. You then
-            change dropdowns and prices. Other printers are not affected.
+            Copies a starter (Paperboy-style menu) into this shop — one product
+            or the whole catalog. You then change dropdowns and prices. Other
+            printers are not affected.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-1">
@@ -587,23 +721,20 @@ export function ConfigProductsManager({
                       onChange={(e) => patch({ title: e.target.value })}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label>SKU</Label>
-                      <Input
-                        value={editing.sku}
-                        onChange={(e) => patch({ sku: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Category</Label>
-                      <Input
-                        value={editing.category}
-                        onChange={(e) => patch({ category: e.target.value })}
-                        placeholder="Business Products"
-                      />
-                    </div>
+                  <div className="space-y-1">
+                    <Label>SKU</Label>
+                    <Input
+                      value={editing.sku}
+                      onChange={(e) => patch({ sku: e.target.value })}
+                    />
                   </div>
+                  <CategoryField
+                    listId="print-categories"
+                    value={editing.category}
+                    onChange={(category) => patch({ category })}
+                    suggestions={categoryNames}
+                    placeholder="e.g. Business Products"
+                  />
                   <div className="space-y-1">
                     <Label>Base price ({currency.toUpperCase()})</Label>
                     <MoneyInput
@@ -661,31 +792,54 @@ export function ConfigProductsManager({
                   </div>
                   <div className="space-y-2">
                     <Label>Images</Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) void uploadImage(file);
-                        e.target.value = "";
-                      }}
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      {editing.images.map((url) => (
-                        <button
-                          key={url}
-                          type="button"
-                          className="text-xs text-red-600 underline"
-                          onClick={() =>
-                            patch({
-                              images: editing.images.filter((u) => u !== url),
-                            })
-                          }
-                        >
-                          Remove image
-                        </button>
-                      ))}
-                    </div>
+                    {editing.images.length > 0 ? (
+                      <div className="flex flex-wrap gap-3">
+                        {editing.images.map((url) => (
+                          <div
+                            key={url}
+                            className="flex flex-col items-start gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-2"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt="Product photo"
+                              className="h-28 w-40 rounded bg-white object-contain"
+                            />
+                            <button
+                              type="button"
+                              className="text-xs text-red-600 underline"
+                              onClick={() =>
+                                patch({
+                                  images: editing.images.filter(
+                                    (u) => u !== url,
+                                  ),
+                                })
+                              }
+                            >
+                              Remove image
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-zinc-500">
+                        No photo yet. This is the catalog tile and the product
+                        page image — it replaces any starter mockup.
+                      </p>
+                    )}
+                    <label className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 hover:bg-zinc-50">
+                      {editing.images.length ? "Add another photo" : "Choose photo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void uploadImage(file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
                   </div>
                 </TabsContent>
 

@@ -11,6 +11,24 @@ export type ConfigProductForPrice = ConfigProduct & {
   variations: ConfigVariation[];
 };
 
+const PERCENT_IN_LABEL = /\(\s*[+-]?\d+\s*%\s*\)/;
+
+/** Dropdown / pill text. Percent modifiers (Rush +15%) are shown when the label does not already include them. */
+export function formatConfigChoiceLabel(value: {
+  label: string;
+  modifierKind?: string | null;
+  modifierValue?: number | null;
+}): string {
+  const label = value.label.trim();
+  const kind = value.modifierKind ?? "none";
+  const amount = value.modifierValue ?? 0;
+  if (kind === "percent" && amount && !PERCENT_IN_LABEL.test(label)) {
+    const sign = amount > 0 ? "+" : "";
+    return `${label} (${sign}${amount}%)`;
+  }
+  return label;
+}
+
 /** First row (top to bottom) whose match keys all agree with the selection. "*" and missing keys are wildcards. */
 export function findMatchingVariation<
   T extends { match: unknown; sort: number },
